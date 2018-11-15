@@ -89,6 +89,9 @@ namespace FROSch {
         typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstGOVecView ConstGOVecView;
         
         typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstSCVecView ConstSCVecView;
+
+        typedef typename Teuchos::RCP<Stratimikos::DefaultLinearSolverBuilder> SolverBuilderPtr;
+        typedef typename Teuchos::RCP<Thyra::LinearOpWithSolveBase<SC> > ThyraSolveBasePtr;
         
         CoarseOperator(CrsMatrixPtr k,
                        ParameterListPtr parameterList);
@@ -146,6 +149,8 @@ namespace FROSch {
         ParameterListPtr DistributionList_;
         
         ExporterPtrVecPtr CoarseSolveExporters_;
+
+        ThyraSolveBasePtr Thyra_CoarseSolver_;
         
     };
     

@@ -60,6 +60,7 @@ namespace FROSch {
     CoarseSolveRepeatedMap_ (),
     BlockCoarseDimension_(),
     CoarseSolver_ (),
+	Thyra_CoarseSolver_();
     DistributionList_ (sublist(parameterList,"Distribution")),
     CoarseSolveExporters_ (0)
     {
@@ -214,6 +215,16 @@ namespace FROSch {
                 CoarseSolver_->initialize();
 
                 CoarseSolver_->compute();
+				
+				Teuchos::RCP<const Thyra::LinearOpBase<SC> > K_thyra O Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyra(CoarseMatrix_);
+				
+				Stratimikos::DefaultLinearSolverBuilder linearSolverBuilder;
+				linearSolverBuilder.setParameterList(sublist(this-ParameterList_,"CoarseSolver"));
+				
+				Teuchos::RCP<Thyra::LinearOpWithSolveFactoryBase<SC> > lowsfactory = linearSolverBuilder.createLinearSolveStrategy(" ");
+				lowsfactory->setVerbLevel(Teuchos::VERB_HIGH);
+				
+				Thyra_CoarseSolver_ = Thyra::linearOpWithSolve(*lowsfactory, K_thyra);
                 
             }
 
@@ -256,6 +267,16 @@ namespace FROSch {
                 CoarseSolver_->initialize();
 
                 CoarseSolver_->compute();
+				
+				Teuchos::RCP<const Thyra::LinearOpBase<SC> > K_thyra O Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyra(CoarseMatrix_);
+				
+				Stratimikos::DefaultLinearSolverBuilder linearSolverBuilder;
+				linearSolverBuilder.setParameterList(sublist(this-ParameterList_,"CoarseSolver"));
+				
+				Teuchos::RCP<Thyra::LinearOpWithSolveFactoryBase<SC> > lowsfactory = linearSolverBuilder.createLinearSolveStrategy(" ");
+				lowsfactory->setVerbLevel(Teuchos::VERB_HIGH);
+				
+				Thyra_CoarseSolver_ = Thyra::linearOpWithSolve(*lowsfactory, K_thyra);
 
             }
             //------------------------------------------------------------------------------------------------------------------------
