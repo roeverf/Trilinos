@@ -66,7 +66,7 @@
 #include <Thyra_LinearOpWithSolveBase.hpp>
 #include <Thyra_VectorBase.hpp>
 #include <Thyra_SolveSupportTypes.hpp>
-#include <Thyra_BelosLinearOpWithSolveFactory.hpp>
+
 #include <Thyra_LinearOpWithSolveBase.hpp>
 #include <Thyra_LinearOpWithSolveFactoryHelpers.hpp>
 #include <Thyra_TpetraLinearOp.hpp>
@@ -78,8 +78,8 @@
 #include <Thyra_EpetraLinearOp.hpp>
 #include <Thyra_VectorSpaceBase_def.hpp>
 #include <Thyra_VectorSpaceBase_decl.hpp>
-#include <Thyra_BelosLinearOpWithSolve_def.hpp>
-#include <Thyra_BelosLinearOpWithSolveFactory_def.hpp>
+
+
 
 // Stratimikos includes
 #include <Stratimikos_DefaultLinearSolverBuilder.hpp>

@@ -59,6 +59,25 @@
 
 #include <FROSch_SubdomainSolver_def.hpp>
 
+//-------------------------------For SubDomainSolves--------------------
+//Thyra includes
+#include <Thyra_LinearOpWithSolveBase.hpp>
+#include <Thyra_VectorBase.hpp>
+#include <Thyra_SolveSupportTypes.hpp>
+#include <Thyra_LinearOpWithSolveFactoryHelpers.hpp>
+#include <Thyra_TpetraLinearOp.hpp>
+#include <Thyra_TpetraMultiVector.hpp>
+#include <Thyra_TpetraVector.hpp>
+#include <Thyra_TpetraThyraWrappers.hpp>
+#include <Thyra_VectorBase.hpp>
+#include <Thyra_VectorStdOps.hpp>
+#include <Thyra_EpetraLinearOp.hpp>
+#include <Thyra_VectorSpaceBase_def.hpp>
+#include <Thyra_VectorSpaceBase_decl.hpp>
+
+// Stratimikos includes
+#include <Stratimikos_DefaultLinearSolverBuilder.hpp>
+//-----------------------------------------------------------------------
 // TODO: Auf const überprüfen
 // TODO: #ifndef überprüfen ??????
 
