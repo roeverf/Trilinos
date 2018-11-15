@@ -135,6 +135,12 @@ namespace FROSch {
             x.replaceMap(CoarseSolveMap_);
             yTmp = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(CoarseSolveMap_,x.getNumVectors());
             CoarseSolver_->apply(x,*yTmp,mode);
+			
+			Teuchos::RCP<Thyra::MultiVectorBase<SC> > thyrax 
+			= Teuchos::rcp_const_cast<Thyra::MultiVectorBase<SC> > (Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(yTmp));
+			
+			Teuchos::RCP<const Thyra::MultiVectorBase<SC> > thyraB = Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(rcpFromRef(x));
+			
         } else {
             yTmp = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(CoarseSolveMap_,x.getNumVectors());
         }
