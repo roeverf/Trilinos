@@ -134,7 +134,7 @@ namespace FROSch {
         if (OnCoarseSolveComm_) {
             x.replaceMap(CoarseSolveMap_);
             yTmp = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(CoarseSolveMap_,x.getNumVectors());
-            CoarseSolver_->apply(x,*yTmp,mode);
+            //CoarseSolver_->apply(x,*yTmp,mode);
 			
 			Teuchos::RCP<Thyra::MultiVectorBase<SC> > thyrax 
 			= Teuchos::rcp_const_cast<Thyra::MultiVectorBase<SC> > (Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(yTmp));
@@ -186,10 +186,24 @@ namespace FROSch {
         // Build CoarseMap_
         buildCoarseSolveMap(k0);
 
+        std::string subSolvesParams = "SubSolves.xml";
+		Teuchos::RCP<Teuchos::ParameterList> subSolvesList = Teuchos::getParametersFromXmlFile(subSolvesParams);
+
         //------------------------------------------------------------------------------------------------------------------------
         // Communicate coarse matrix
+         k0->getRowMap()->getComm()->barrier();
+		 k0->getRowMap()->getComm()->barrier();
+         k0->getRowMap()->getComm()->barrier();
+		 
+		 if( k0->getRowMap()->getComm()->getRank()==0) std::cout<<"test 195\n";
         
         if (DistributionList_->get("Type","linear").compare("Zoltan2")) {
+			k0->getRowMap()->getComm()->barrier();
+		 k0->getRowMap()->getComm()->barrier();
+         k0->getRowMap()->getComm()->barrier();
+		 
+		 if( k0->getRowMap()->getComm()->getRank()==0) std::cout<<"test  202\n";
+        
             CoarseSolveExporters_[0] = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseMap_,GatheringMaps_[0]);
             
             CrsMatrixPtr tmpCoarseMatrix = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(GatheringMaps_[0],k0->getGlobalMaxNumRowEntries());
@@ -221,23 +235,51 @@ namespace FROSch {
                     }
                     
                 }
-                
+               CoarseSolveMap_->getComm()->barrier();
+			   CoarseSolveMap_->getComm()->barrier();
+               CoarseSolveMap_->getComm()->barrier();
+               if(  CoarseSolveMap_->getComm()->getRank()==0) std::cout<<"test  239\n";
+			   
                 CoarseMatrix_->fillComplete(CoarseSolveMap_,CoarseSolveMap_); //Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout)); CoarseMatrix_->describe(*fancy,Teuchos::VERB_EXTREME);
-                CoarseSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(CoarseMatrix_,sublist(this->ParameterList_,"CoarseSolver")));
-                CoarseSolver_->initialize();
+               // CoarseSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(CoarseMatrix_,sublist(this->ParameterList_,"CoarseSolver")));
+                //CoarseSolver_->initialize();
+				
+				CoarseSolveMap_->getComm()->barrier();
+			   CoarseSolveMap_->getComm()->barrier();
+               CoarseSolveMap_->getComm()->barrier();
+               if(  CoarseSolveMap_->getComm()->getRank()==0) std::cout<<"test  247\n";
 
-                CoarseSolver_->compute();
+               // CoarseSolver_->compute();
 				
 				Teuchos::RCP<Xpetra::CrsMatrixWrap<SC,LO,GO> > K_wrap = Teuchos::rcp_dynamic_cast<Xpetra::CrsMatrixWrap<SC,LO,GO> >(CoarseMatrix_);
 				Teuchos::RCP<const Thyra::LinearOpBase<SC> > K_thyra = Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyra(K_wrap->getCrsMatrix());
 				
-				Stratimikos::DefaultLinearSolverBuilder linearSolverBuilder;
-				linearSolverBuilder.setParameterList(sublist(this->ParameterList_,"CoarseSolver"));
+				CoarseSolveMap_->getComm()->barrier();
+			   CoarseSolveMap_->getComm()->barrier();
+               CoarseSolveMap_->getComm()->barrier();
+               if(  CoarseSolveMap_->getComm()->getRank()==0) std::cout<<"Thyra \n";
 				
-				Teuchos::RCP<Thyra::LinearOpWithSolveFactoryBase<SC> > lowsfactory = linearSolverBuilder.createLinearSolveStrategy(" ");
+				Stratimikos::DefaultLinearSolverBuilder linearSolverBuilder;
+                linearSolverBuilder.setParameterList(subSolvesList);
+
+				
+				CoarseSolveMap_->getComm()->barrier();
+			   CoarseSolveMap_->getComm()->barrier();
+               CoarseSolveMap_->getComm()->barrier();
+               if(  CoarseSolveMap_->getComm()->getRank()==0) std::cout<<"test  263\n";
+				
+				//sublist(this->ParameterList_,"CoarseSolver")->print();
+				//linearSolverBuilder.setParameterList(sublist(this->ParameterList_,"CoarseSolver"));
+				
+				Teuchos::RCP<Thyra::LinearOpWithSolveFactoryBase<SC> > lowsfactory = linearSolverBuilder.createLinearSolveStrategy("");
 				lowsfactory->setVerbLevel(Teuchos::VERB_HIGH);
 				
 				Thyra_CoarseSolver_ = Thyra::linearOpWithSolve(*lowsfactory, K_thyra);
+				
+				CoarseSolveMap_->getComm()->barrier();
+			   CoarseSolveMap_->getComm()->barrier();
+               CoarseSolveMap_->getComm()->barrier();
+               if(  CoarseSolveMap_->getComm()->getRank()==0) std::cout<<"test  276\n";
                 
             }
 
@@ -246,6 +288,12 @@ namespace FROSch {
         else{//coarse matrix already communicated with Zoltan2. Communicate to CoarseSolveComm.
              //------------------------------------------------------------------------------------------------------------------------
             // Matrix to the new communicator
+			k0->getRowMap()->getComm()->barrier();
+		    k0->getRowMap()->getComm()->barrier();
+           k0->getRowMap()->getComm()->barrier();
+		 
+		 if( k0->getRowMap()->getComm()->getRank()==0) std::cout<<"test 259\n";
+        
             if (OnCoarseSolveComm_) {
                 CoarseMatrix_ = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(CoarseSolveMap_,k0->getGlobalMaxNumRowEntries());
                 ConstLOVecView indices;
@@ -285,7 +333,7 @@ namespace FROSch {
 				Teuchos::RCP<const Thyra::LinearOpBase<SC> > K_thyra = Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyra(K_wrap->getCrsMatrix());		
 				
 				Stratimikos::DefaultLinearSolverBuilder linearSolverBuilder;
-				linearSolverBuilder.setParameterList(sublist(this->ParameterList_,"CoarseSolver"));
+				//linearSolverBuilder.setParameterList(sublist(this->ParameterList_,"CoarseSolver"));
 				
 				Teuchos::RCP<Thyra::LinearOpWithSolveFactoryBase<SC> > lowsfactory = linearSolverBuilder.createLinearSolveStrategy(" ");
 				lowsfactory->setVerbLevel(Teuchos::VERB_HIGH);
