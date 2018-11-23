@@ -130,11 +130,19 @@ namespace FROSch {
                                                        MultiVector& y,
                                                        Teuchos::ETransp mode) const
     {
+		CoarseMap_->getComm()->barrier();
+			CoarseMap_->getComm()->barrier();
+			CoarseMap_->getComm()->barrier();
+			if(CoarseMap_->getComm()->getRank()==0) std::cout<<"ApplyCoarseSolve\n";
         MultiVectorPtr yTmp;
         if (OnCoarseSolveComm_) {
             x.replaceMap(CoarseSolveMap_);
             yTmp = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(CoarseSolveMap_,x.getNumVectors());
             //CoarseSolver_->apply(x,*yTmp,mode);
+			CoarseSolveComm_->barrier();
+			CoarseSolveComm_->barrier();
+			CoarseSolveComm_->barrier();
+			if(CoarseSolveComm_->getRank()==0) std::cout<<"Befor Thyra Transorm\n";
 			
 			Teuchos::RCP<Thyra::MultiVectorBase<SC> > thyrax 
 			= Teuchos::rcp_const_cast<Thyra::MultiVectorBase<SC> > (Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(yTmp));
@@ -143,7 +151,13 @@ namespace FROSch {
 			
 			Thyra::SolveStatus<SC> status  = Thyra::solve<SC> (*Thyra_CoarseSolver_, Thyra::NOTRANS, *thyraB, thyrax.ptr());
 			
-			yTmp = Xpetra::ThyraUtils<SC,LO,GO,NO>::toXpetra(thyrax,CoarseMap_->getComm());
+			CoarseSolveComm_->barrier();
+			CoarseSolveComm_->barrier();
+			CoarseSolveComm_->barrier();
+			if(CoarseSolveComm_->getRank()==0) std::cout<<"After Thyra Solve  \n";
+			//yTmp = Xpetra::ThyraUtils<SC,LO,GO,NO>::toXpetra(thyrax,CoarseMap_->getComm());
+			
+			
 			
 			//x = *Xpetra::ThyraUtils<SC,LO,GO,NO>::toXpetra(thyraB,CoarseMap_->getComm());
 			
@@ -325,16 +339,17 @@ namespace FROSch {
                     CoarseSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(CoarseMatrix_,sublist(this->ParameterList_,"CoarseSolver")));
                 }
 
-                CoarseSolver_->initialize();
+                //CoarseSolver_->initialize();
 
-                CoarseSolver_->compute();
+                //CoarseSolver_->compute();
 				
 	            Teuchos::RCP<Xpetra::CrsMatrixWrap<SC,LO,GO> > K_wrap = Teuchos::rcp_dynamic_cast<Xpetra::CrsMatrixWrap<SC,LO,GO> >(CoarseMatrix_);
 				Teuchos::RCP<const Thyra::LinearOpBase<SC> > K_thyra = Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyra(K_wrap->getCrsMatrix());		
 				
 				Stratimikos::DefaultLinearSolverBuilder linearSolverBuilder;
 				//linearSolverBuilder.setParameterList(sublist(this->ParameterList_,"CoarseSolver"));
-				
+				linearSolverBuilder.setParameterList(subSolvesList);
+
 				Teuchos::RCP<Thyra::LinearOpWithSolveFactoryBase<SC> > lowsfactory = linearSolverBuilder.createLinearSolveStrategy(" ");
 				lowsfactory->setVerbLevel(Teuchos::VERB_HIGH);
 				
@@ -343,9 +358,7 @@ namespace FROSch {
             }
             //------------------------------------------------------------------------------------------------------------------------
         }
-
-       
-        
+     
         return 0;
     }
     

@@ -210,7 +210,8 @@ public:
     typedef Xpetra::MultiVector<Scalar,LocalOrdinal,GlobalOrdinal,Node > MultiVector;
     typedef Xpetra::MultiVectorFactory<Scalar,LocalOrdinal,GlobalOrdinal,Node> MultiVectorFactory;
     typedef Xpetra::ThyraUtils<Scalar,LocalOrdinal,GlobalOrdinal,Node> ThyUtils;
-
+    
+	std::cout<<"XpetraMultivector const \n";
     // return value
     RCP<MultiVector> xpMultVec = Teuchos::null;
 
@@ -263,6 +264,7 @@ public:
   // non-const version
   static Teuchos::RCP<Xpetra::MultiVector<Scalar,LocalOrdinal,GlobalOrdinal,Node> >
   toXpetra(Teuchos::RCP<Thyra::MultiVectorBase<Scalar> > v, const Teuchos::RCP<const Teuchos::Comm<int> >& comm) {
+    std::cout<<"So far in toXpetra \n";
     Teuchos::RCP<const Thyra::MultiVectorBase<Scalar> > cv =
         Teuchos::rcp_const_cast<const Thyra::MultiVectorBase<Scalar> >(v);
     Teuchos::RCP<const Xpetra::MultiVector<Scalar,LocalOrdinal,GlobalOrdinal,Node> > r =
