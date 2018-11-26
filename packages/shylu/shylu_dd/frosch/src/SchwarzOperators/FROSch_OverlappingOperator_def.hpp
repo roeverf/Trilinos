@@ -54,6 +54,7 @@ namespace FROSch {
     OverlappingMap_ (),
     Scatter_(),
     SubdomainSolver_ (),
+	Thyra_SubdomainSolver_(),
     Multiplicity_(),
     Combine_(),
     LevelID_(this->ParameterList_->get("Level ID",1))
@@ -98,6 +99,18 @@ namespace FROSch {
 
         xOverlap->replaceMap(OverlappingMatrix_->getRangeMap());
         SubdomainSolver_->apply(*xOverlap,*yOverlap,mode,1.0,0.0);
+		Teuchos::RCP<Thyra::MultiVectorBase<SC> > thyrax 
+			= Teuchos::rcp_const_cast<Thyra::MultiVectorBase<SC> > (Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(yOverlap));
+			
+	    Teuchos::RCP<Thyra::MultiVectorBase<SC> > thyraB
+			= Teuchos::rcp_const_cast<Thyra::MultiVectorBase<SC> > (Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(xOverlap));
+			
+	    Teuchos::RCP<const Thyra::MultiVectorBase<SC> > thyraBB = thyraB;
+			
+			//Teuchos::RCP<const Thyra::MultiVectorBase<SC> > thyraB = Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(rcpFromRef(xOverlap));
+			
+		//Thyra::SolveStatus<SC> status  = Thyra::solve<SC> (*Thyra_SubdomainSolver_, Thyra::NOTRANS, *thyraBB, thyrax.ptr());
+		
         yOverlap->replaceMap(OverlappingMap_);
 
         xTmp->putScalar(0.0);
@@ -151,7 +164,9 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int OverlappingOperator<SC,LO,GO,NO>::computeOverlappingOperator()
     {
-
+		std::string subSolvesParams = "SubSolves.xml";
+		Teuchos::RCP<Teuchos::ParameterList> subSolvesList = Teuchos::getParametersFromXmlFile(subSolvesParams);
+		
         if (this->IsComputed_) {// already computed once and we want to recycle the information. That is why we reset OverlappingMatrix_ to K_, because K_ has been reset at this point
             OverlappingMatrix_ = this->K_;
         }
@@ -162,8 +177,20 @@ namespace FROSch {
         SubdomainSolver_->initialize();
 
         int ret = SubdomainSolver_->compute();
+		
+		Teuchos::RCP<Xpetra::CrsMatrixWrap<SC,LO,GO> > K_wrap = Teuchos::rcp_dynamic_cast<Xpetra::CrsMatrixWrap<SC,LO,GO> >(OverlappingMatrix_);
+		Teuchos::RCP<const Thyra::LinearOpBase<SC> > K_thyra = Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyra(K_wrap->getCrsMatrix());
+				
+	    Stratimikos::DefaultLinearSolverBuilder linearSolverBuilder;
+        linearSolverBuilder.setParameterList(subSolvesList);
+		
+		Teuchos::RCP<Thyra::LinearOpWithSolveFactoryBase<SC> > lowsfactory = linearSolverBuilder.createLinearSolveStrategy("");
+	    lowsfactory->setVerbLevel(Teuchos::VERB_LOW);
+				
+	   Thyra_SubdomainSolver_= Thyra::linearOpWithSolve(*lowsfactory, K_thyra);
 
-        return ret; // RETURN VALUE
+
+        return 0; // RETURN VALUE
     }
     
 }

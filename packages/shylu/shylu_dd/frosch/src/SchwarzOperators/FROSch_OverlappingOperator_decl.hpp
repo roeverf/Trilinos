@@ -72,6 +72,9 @@ namespace FROSch {
         
         typedef typename SchwarzOperator<SC,LO,GO,NO>::SCVecPtr SCVecPtr;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstSCVecPtr ConstSCVecPtr;
+		
+		typedef typename Teuchos::RCP<Thyra::LinearOpWithSolveBase<SC> > ThyraSolveBasePtr;
+
         
 
         OverlappingOperator(CrsMatrixPtr k,
@@ -105,6 +108,8 @@ namespace FROSch {
         ImporterPtr Scatter_;
         
         SubdomainSolverPtr SubdomainSolver_;
+		
+		ThyraSolveBasePtr Thyra_SubdomainSolver_;
         
         MultiVectorPtr Multiplicity_;
         

@@ -130,19 +130,13 @@ namespace FROSch {
                                                        MultiVector& y,
                                                        Teuchos::ETransp mode) const
     {
-		CoarseMap_->getComm()->barrier();
-			CoarseMap_->getComm()->barrier();
-			CoarseMap_->getComm()->barrier();
-			if(CoarseMap_->getComm()->getRank()==0) std::cout<<"ApplyCoarseSolve\n";
+	
         MultiVectorPtr yTmp;
         if (OnCoarseSolveComm_) {
             x.replaceMap(CoarseSolveMap_);
             yTmp = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(CoarseSolveMap_,x.getNumVectors());
             //CoarseSolver_->apply(x,*yTmp,mode);
-			CoarseSolveComm_->barrier();
-			CoarseSolveComm_->barrier();
-			CoarseSolveComm_->barrier();
-			if(CoarseSolveComm_->getRank()==0) std::cout<<"Befor Thyra Transorm\n";
+			
 			
 			Teuchos::RCP<Thyra::MultiVectorBase<SC> > thyrax 
 			= Teuchos::rcp_const_cast<Thyra::MultiVectorBase<SC> > (Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(yTmp));
@@ -151,14 +145,21 @@ namespace FROSch {
 			
 			Thyra::SolveStatus<SC> status  = Thyra::solve<SC> (*Thyra_CoarseSolver_, Thyra::NOTRANS, *thyraB, thyrax.ptr());
 			
-			CoarseSolveComm_->barrier();
-			CoarseSolveComm_->barrier();
-			CoarseSolveComm_->barrier();
-			if(CoarseSolveComm_->getRank()==0) std::cout<<"After Thyra Solve  \n";
+			 Teuchos::RCP<const Xpetra::EpetraMapT<GO,NO> > eDomainM = Teuchos::rcp_dynamic_cast<const Xpetra::EpetraMapT<GO,NO> >(CoarseSolveMap_);
+			 const Epetra_Map epetraMap = eDomainM->getEpetra_Map();
+			 
+			 Teuchos::RCP<const Epetra_MultiVector> YY;
+             YY = Thyra::get_Epetra_MultiVector(epetraMap, thyrax );
+			 
+			 const Epetra_MultiVector Yy = *YY;
+			 
+            for (LO i=0; i<YY->NumVectors(); i++) {
+            for (LO j=0; j<YY->MyLength(); j++) {
+                yTmp->getDataNonConst(i)[j] = Yy[i][j];
+             }
+            }
+			
 			//yTmp = Xpetra::ThyraUtils<SC,LO,GO,NO>::toXpetra(thyrax,CoarseMap_->getComm());
-			
-			
-			
 			//x = *Xpetra::ThyraUtils<SC,LO,GO,NO>::toXpetra(thyraB,CoarseMap_->getComm());
 			
         } else {
@@ -205,19 +206,10 @@ namespace FROSch {
 
         //------------------------------------------------------------------------------------------------------------------------
         // Communicate coarse matrix
-         k0->getRowMap()->getComm()->barrier();
-		 k0->getRowMap()->getComm()->barrier();
-         k0->getRowMap()->getComm()->barrier();
-		 
-		 if( k0->getRowMap()->getComm()->getRank()==0) std::cout<<"test 195\n";
+        
         
         if (DistributionList_->get("Type","linear").compare("Zoltan2")) {
-			k0->getRowMap()->getComm()->barrier();
-		 k0->getRowMap()->getComm()->barrier();
-         k0->getRowMap()->getComm()->barrier();
-		 
-		 if( k0->getRowMap()->getComm()->getRank()==0) std::cout<<"test  202\n";
-        
+	
             CoarseSolveExporters_[0] = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseMap_,GatheringMaps_[0]);
             
             CrsMatrixPtr tmpCoarseMatrix = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(GatheringMaps_[0],k0->getGlobalMaxNumRowEntries());
@@ -249,51 +241,33 @@ namespace FROSch {
                     }
                     
                 }
-               CoarseSolveMap_->getComm()->barrier();
-			   CoarseSolveMap_->getComm()->barrier();
-               CoarseSolveMap_->getComm()->barrier();
-               if(  CoarseSolveMap_->getComm()->getRank()==0) std::cout<<"test  239\n";
+             
 			   
                 CoarseMatrix_->fillComplete(CoarseSolveMap_,CoarseSolveMap_); //Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout)); CoarseMatrix_->describe(*fancy,Teuchos::VERB_EXTREME);
                // CoarseSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(CoarseMatrix_,sublist(this->ParameterList_,"CoarseSolver")));
                 //CoarseSolver_->initialize();
 				
-				CoarseSolveMap_->getComm()->barrier();
-			   CoarseSolveMap_->getComm()->barrier();
-               CoarseSolveMap_->getComm()->barrier();
-               if(  CoarseSolveMap_->getComm()->getRank()==0) std::cout<<"test  247\n";
+			
 
                // CoarseSolver_->compute();
 				
 				Teuchos::RCP<Xpetra::CrsMatrixWrap<SC,LO,GO> > K_wrap = Teuchos::rcp_dynamic_cast<Xpetra::CrsMatrixWrap<SC,LO,GO> >(CoarseMatrix_);
 				Teuchos::RCP<const Thyra::LinearOpBase<SC> > K_thyra = Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyra(K_wrap->getCrsMatrix());
 				
-				CoarseSolveMap_->getComm()->barrier();
-			   CoarseSolveMap_->getComm()->barrier();
-               CoarseSolveMap_->getComm()->barrier();
-               if(  CoarseSolveMap_->getComm()->getRank()==0) std::cout<<"Thyra \n";
+				
 				
 				Stratimikos::DefaultLinearSolverBuilder linearSolverBuilder;
                 linearSolverBuilder.setParameterList(subSolvesList);
 
 				
-				CoarseSolveMap_->getComm()->barrier();
-			   CoarseSolveMap_->getComm()->barrier();
-               CoarseSolveMap_->getComm()->barrier();
-               if(  CoarseSolveMap_->getComm()->getRank()==0) std::cout<<"test  263\n";
 				
 				//sublist(this->ParameterList_,"CoarseSolver")->print();
 				//linearSolverBuilder.setParameterList(sublist(this->ParameterList_,"CoarseSolver"));
 				
 				Teuchos::RCP<Thyra::LinearOpWithSolveFactoryBase<SC> > lowsfactory = linearSolverBuilder.createLinearSolveStrategy("");
-				lowsfactory->setVerbLevel(Teuchos::VERB_HIGH);
+				lowsfactory->setVerbLevel(Teuchos::VERB_LOW);
 				
 				Thyra_CoarseSolver_ = Thyra::linearOpWithSolve(*lowsfactory, K_thyra);
-				
-				CoarseSolveMap_->getComm()->barrier();
-			   CoarseSolveMap_->getComm()->barrier();
-               CoarseSolveMap_->getComm()->barrier();
-               if(  CoarseSolveMap_->getComm()->getRank()==0) std::cout<<"test  276\n";
                 
             }
 
@@ -302,11 +276,7 @@ namespace FROSch {
         else{//coarse matrix already communicated with Zoltan2. Communicate to CoarseSolveComm.
              //------------------------------------------------------------------------------------------------------------------------
             // Matrix to the new communicator
-			k0->getRowMap()->getComm()->barrier();
-		    k0->getRowMap()->getComm()->barrier();
-           k0->getRowMap()->getComm()->barrier();
-		 
-		 if( k0->getRowMap()->getComm()->getRank()==0) std::cout<<"test 259\n";
+			
         
             if (OnCoarseSolveComm_) {
                 CoarseMatrix_ = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(CoarseSolveMap_,k0->getGlobalMaxNumRowEntries());
@@ -332,13 +302,13 @@ namespace FROSch {
                 
                 CoarseMatrix_->fillComplete(CoarseSolveMap_,CoarseSolveMap_); //Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout)); CoarseMatrix_->describe(*fancy,Teuchos::VERB_EXTREME);
 
-                if (!this->ParameterList_->sublist("CoarseSolver").get("SolverType","Amesos").compare("MueLu")) {
+               /*  if (!this->ParameterList_->sublist("CoarseSolver").get("SolverType","Amesos").compare("MueLu")) {
                     CoarseSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(CoarseMatrix_,sublist(this->ParameterList_,"CoarseSolver"),BlockCoarseDimension_));
                 }
                 else{
                     CoarseSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(CoarseMatrix_,sublist(this->ParameterList_,"CoarseSolver")));
                 }
-
+                */
                 //CoarseSolver_->initialize();
 
                 //CoarseSolver_->compute();
@@ -351,7 +321,7 @@ namespace FROSch {
 				linearSolverBuilder.setParameterList(subSolvesList);
 
 				Teuchos::RCP<Thyra::LinearOpWithSolveFactoryBase<SC> > lowsfactory = linearSolverBuilder.createLinearSolveStrategy(" ");
-				lowsfactory->setVerbLevel(Teuchos::VERB_HIGH);
+				lowsfactory->setVerbLevel(Teuchos::VERB_LOW);
 				
 				Thyra_CoarseSolver_ = Thyra::linearOpWithSolve(*lowsfactory, K_thyra);
 
