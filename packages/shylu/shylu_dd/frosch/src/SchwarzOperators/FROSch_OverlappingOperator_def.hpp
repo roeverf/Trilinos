@@ -98,7 +98,7 @@ namespace FROSch {
         xOverlap->doImport(*xTmp,*Scatter_,Xpetra::INSERT);
 
         xOverlap->replaceMap(OverlappingMatrix_->getRangeMap());
-        SubdomainSolver_->apply(*xOverlap,*yOverlap,mode,1.0,0.0);
+        //SubdomainSolver_->apply(*xOverlap,*yOverlap,mode,1.0,0.0);
 		Teuchos::RCP<Thyra::MultiVectorBase<SC> > thyrax 
 			= Teuchos::rcp_const_cast<Thyra::MultiVectorBase<SC> > (Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(yOverlap));
 			
@@ -107,9 +107,21 @@ namespace FROSch {
 			
 	    Teuchos::RCP<const Thyra::MultiVectorBase<SC> > thyraBB = thyraB;
 			
-			//Teuchos::RCP<const Thyra::MultiVectorBase<SC> > thyraB = Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(rcpFromRef(xOverlap));
-			
-		//Thyra::SolveStatus<SC> status  = Thyra::solve<SC> (*Thyra_SubdomainSolver_, Thyra::NOTRANS, *thyraBB, thyrax.ptr());
+		Thyra::SolveStatus<SC> status  = Thyra::solve<SC> (*Thyra_SubdomainSolver_, Thyra::NOTRANS, *thyraBB, thyrax.ptr());
+		
+		Teuchos::RCP<const Xpetra::EpetraMapT<GO,NO> > eDomainM = Teuchos::rcp_dynamic_cast<const Xpetra::EpetraMapT<GO,NO> >(OverlappingMatrix_->getDomainMap());
+	    const Epetra_Map epetraMap = eDomainM->getEpetra_Map();
+			 
+	    Teuchos::RCP<const Epetra_MultiVector> YY;
+             YY = Thyra::get_Epetra_MultiVector(epetraMap, thyrax );
+			 
+		const Epetra_MultiVector Yy = *YY;
+			 
+         for (LO i=0; i<YY->NumVectors(); i++) {
+            for (LO j=0; j<YY->MyLength(); j++) {
+                yOverlap->getDataNonConst(i)[j] = Yy[i][j];
+            }
+        }
 		
         yOverlap->replaceMap(OverlappingMap_);
 
@@ -173,10 +185,10 @@ namespace FROSch {
         
         OverlappingMatrix_ = ExtractLocalSubdomainMatrix(OverlappingMatrix_,OverlappingMap_);
         
-        SubdomainSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(OverlappingMatrix_,sublist(this->ParameterList_,"Solver")));
-        SubdomainSolver_->initialize();
+       //SubdomainSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(OverlappingMatrix_,sublist(this->ParameterList_,"Solver")));
+       //SubdomainSolver_->initialize();
 
-        int ret = SubdomainSolver_->compute();
+        //int ret = SubdomainSolver_->compute();
 		
 		Teuchos::RCP<Xpetra::CrsMatrixWrap<SC,LO,GO> > K_wrap = Teuchos::rcp_dynamic_cast<Xpetra::CrsMatrixWrap<SC,LO,GO> >(OverlappingMatrix_);
 		Teuchos::RCP<const Thyra::LinearOpBase<SC> > K_thyra = Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyra(K_wrap->getCrsMatrix());
