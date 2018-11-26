@@ -145,20 +145,25 @@ namespace FROSch {
 			
 			Thyra::SolveStatus<SC> status  = Thyra::solve<SC> (*Thyra_CoarseSolver_, Thyra::NOTRANS, *thyraB, thyrax.ptr());
 			
-			 Teuchos::RCP<const Xpetra::EpetraMapT<GO,NO> > eDomainM = Teuchos::rcp_dynamic_cast<const Xpetra::EpetraMapT<GO,NO> >(CoarseSolveMap_);
-			 const Epetra_Map epetraMap = eDomainM->getEpetra_Map();
+			CoarseSolveComm_->barrier();
+			CoarseSolveComm_->barrier();
+			CoarseSolveComm_->barrier();
+			if(CoarseSolveComm_->getRank() == 0) std::cout<<" So far so  okay\n";
+			if(CoarseMap_->lib() == Xpetra::UseEpetra){
+				Teuchos::RCP<const Xpetra::EpetraMapT<GO,NO> > eDomainM = Teuchos::rcp_dynamic_cast<const Xpetra::EpetraMapT<GO,NO> >(CoarseSolveMap_);
+				const Epetra_Map epetraMap = eDomainM->getEpetra_Map();
 			 
-			 Teuchos::RCP<const Epetra_MultiVector> YY;
-             YY = Thyra::get_Epetra_MultiVector(epetraMap, thyrax );
+				Teuchos::RCP<const Epetra_MultiVector> YY;
+				YY = Thyra::get_Epetra_MultiVector(epetraMap, thyrax );
 			 
-			 const Epetra_MultiVector Yy = *YY;
+				const Epetra_MultiVector Yy = *YY;
 			 
-            for (LO i=0; i<YY->NumVectors(); i++) {
-            for (LO j=0; j<YY->MyLength(); j++) {
-                yTmp->getDataNonConst(i)[j] = Yy[i][j];
-             }
-            }
-			
+				for (LO i=0; i<YY->NumVectors(); i++) {
+					for (LO j=0; j<YY->MyLength(); j++) {
+						yTmp->getDataNonConst(i)[j] = Yy[i][j];
+					}
+				}
+			}
 			//yTmp = Xpetra::ThyraUtils<SC,LO,GO,NO>::toXpetra(thyrax,CoarseMap_->getComm());
 			//x = *Xpetra::ThyraUtils<SC,LO,GO,NO>::toXpetra(thyraB,CoarseMap_->getComm());
 			
@@ -250,7 +255,8 @@ namespace FROSch {
 			
 
                // CoarseSolver_->compute();
-				
+			
+			
 				Teuchos::RCP<Xpetra::CrsMatrixWrap<SC,LO,GO> > K_wrap = Teuchos::rcp_dynamic_cast<Xpetra::CrsMatrixWrap<SC,LO,GO> >(CoarseMatrix_);
 				Teuchos::RCP<const Thyra::LinearOpBase<SC> > K_thyra = Xpetra::ThyraUtils<SC,LO,GO,NO>::toThyra(K_wrap->getCrsMatrix());
 				
