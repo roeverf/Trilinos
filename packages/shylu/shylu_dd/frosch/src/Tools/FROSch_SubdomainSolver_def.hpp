@@ -235,6 +235,10 @@ namespace FROSch {
              Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > RepeatedMaps = Teuchos::null;
              UNVecPtr dofsPerNodeVector;
              Teuchos::ArrayRCP<DofOrdering> dofOrderings;
+             Teuchos::ArrayRCP<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > > dofsMapsVec = Teuchos::null;
+             Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > MainCoarseMapVector = Teuchos::null;
+             
+             
              FROSCH_ASSERT(ParameterList_->isParameter("Repeated Map Vector"),"Currently TwoLevelBlockPreconditioner cannot be constructed without Repeated Maps Vector ");
              FROSCH_ASSERT(ParameterList_->isParameter("DofsPerNode Vector"),"Currently, TwoLevelBlockPreconditioner cannot be constructed without DofsPerNode Vector.");
              FROSCH_ASSERT(ParameterList_->isParameter("DofOrdering Vector"),"Currently, TwoLevelBlockPreconditioner cannot be constructed without DofOrdering Vector.");
@@ -248,14 +252,26 @@ namespace FROSch {
               if(ParameterList_->isParameter("DofOrdering Vector")) {
                  dofOrderings = ExtractVectorFromParameterList<DofOrdering>(*ParameterList_,"DofOrdering Vector");
              }
+             if(ParameterList_->isParameter("Main Map Vector")) {
+                 MainCoarseMapVector = ExtractVectorFromParameterList<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > >(*ParameterList_,"Main Map Vector");
+             }
+             if(ParameterList_->isParameter("Dofs Maps Vector")) {
+                 dofsMapsVec = ExtractVectorFromParameterList<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > >>(*ParameterList_,"Dofs Maps Vector");
+             }
              
              
              FROSCH_ASSERT(RepeatedMaps.size()==dofsPerNodeVector.size(),"RepeatedMaps.size()!=dofsPerNodeVector.size()");
              FROSCH_ASSERT(RepeatedMaps.size()==dofOrderings.size(),"RepeatedMaps.size()!=dofOrderings.size()");
+             TC->barrier();TC->barrier();TC->barrier();
+             if(TC->getRank() == 0) std::cout<<"Sub1 \n";
              TLBP = Teuchos::rcp(
                                  new TwoLevelBlockPreconditioner<SC,LO,GO,NO>(K_,ParameterList_));
-             
-             TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,RepeatedMaps,ParameterList_->get("Overlap",1));
+             TC->barrier();TC->barrier();TC->barrier();
+             if(TC->getRank() == 0) std::cout<<"Sub2 \n";
+             TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,ParameterList_->get("Overlap",1),MainCoarseMapVector,dofsMapsVec);
+             TC->barrier();TC->barrier();TC->barrier();
+             if(TC->getRank() == 0) std::cout<<"Sub3 \n";
+            // TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,RepeatedMaps,ParameterList_->get("Overlap",1));
              
          }
         
@@ -422,7 +438,11 @@ namespace FROSch {
         	 IsComputed_ = true;
         }
          else if(!ParameterList_->get("SolverType","Amesos").compare("TwoLevelBlockPreconditioner")) {
+             K_->getRowMap()->getComm()->barrier();K_->getRowMap()->getComm()->barrier();K_->getRowMap()->getComm()->barrier();
+             if(K_->getRowMap()->getComm()->getRank() == 0)std::cout<<"Pre Compute\n";
              TLBP->compute();
+             K_->getRowMap()->getComm()->barrier();K_->getRowMap()->getComm()->barrier();K_->getRowMap()->getComm()->barrier();
+             if(K_->getRowMap()->getComm()->getRank() == 0)std::cout<<"Compute Done\n";
              IsComputed_ = true;
              
          }

@@ -330,7 +330,8 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int CoarseOperator<SC,LO,GO,NO>::compute()
     {
-		
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0)std::cout<<"Ccomp1\n";
 		#ifdef FROSch_CoarseOperatorTimers
 		Teuchos::TimeMonitor ComputeTimeMonitor(*ComputeTimer.at(current_level-1));
 		#endif
@@ -340,22 +341,40 @@ namespace FROSch {
             std::cerr << "WARNING: Some of the operations could be moved from initialize() to Compute().\n";
         }
         if (!this->ParameterList_->get("Recycling","none").compare("basis") && this->IsComputed_) {
+            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+            if(this->MpiComm_->getRank() == 0)std::cout<<"Ccomp1.0\n";
             this->setUpCoarseOperator();
-            
+            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+            if(this->MpiComm_->getRank() == 0)std::cout<<"Ccomp1.1\n";
             this->IsComputed_ = true;
         } else if(!this->ParameterList_->get("Recycling","none").compare("all") && this->IsComputed_) {
             // Maybe use some advanced settings in the future
         } else {
+            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+            if(this->MpiComm_->getRank() == 0)std::cout<<"Ccomp2.0\n";
             clearCoarseSpace(); // AH 12/11/2018: If we do not clear the coarse space, we will always append just append the coarse space
+             this->MpiComm_->barrier();this->MpiComm_->barrier();
+            if(this->MpiComm_->getRank() == 0)std::cout<<"Ccomp2.1\n";
+
             MapPtr subdomainMap = this->computeCoarseSpace(CoarseSpace_); // AH 12/11/2018: This map could be overlapping, repeated, or unique. This depends on the specific coarse operator
+            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+            if(this->MpiComm_->getRank() == 0)std::cout<<"Ccomp2\n";
             CoarseSpace_->assembleCoarseSpace();
+            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+            if(this->MpiComm_->getRank() == 0)std::cout<<"Ccomp3\n";
             CoarseSpace_->buildGlobalBasisMatrix(this->K_->getRangeMap(),subdomainMap,this->ParameterList_->get("Threshold Phi",1.e-8));
+            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+            if(this->MpiComm_->getRank() == 0)std::cout<<"Ccomp4\n";
             Phi_ = CoarseSpace_->getGlobalBasisMatrix();
+            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+            if(this->MpiComm_->getRank() == 0)std::cout<<"Ccomp5\n";
             this->setUpCoarseOperator();
-            
+            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+            if(this->MpiComm_->getRank() == 0)std::cout<<"Ccomp\n";
             this->IsComputed_ = true;
         }
         return 0;
+        
     }
     
     template <class SC,class LO,class GO,class NO>
@@ -770,19 +789,19 @@ namespace FROSch {
                 Teuchos::RCP<Xpetra::Map<LO,GO,NO> > MainCoarseMap = BuildMapFromNodeMap(CoarseSolveRepeatedMap_,2,DimensionWise);
                 Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > MainCoarseMapVector(1);
                 MainCoarseMapVector[0] = MainCoarseMap;
-                Teuchos::ArrayRCP<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > > dofsMapsVec;
+                this->ParameterList_->sublist("CoarseSolver").set("Main Map Vector",MainCoarseMapVector);
+                
                 Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > dofsMaps;
                 
                 Teuchos::ArrayRCP<DofOrdering> dofOrderings(1);
                 dofOrderings[0] = DimensionWise;
                 Teuchos::ArrayRCP<UN> dofsPerNodeVector(1);
-                dofsPerNodeVector[0] = 2
+                dofsPerNodeVector[0] = 1
                 ;
                 //BuildDofMaps(MainCoarseMap,2,DimensionWise,CoarseSolveRepeatedMap_,dofsMaps);
-                
-
-                
+                Teuchos::ArrayRCP<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > > dofsMapsVec;
                 BuildDofMapsVec(MainCoarseMapVector,dofsPerNodeVector,dofOrderings,RepMapVector,dofsMapsVec);
+                this->ParameterList_->sublist("CoarseSolver").set("Dofs Maps Vector",dofsMapsVec);
                 
                 sublist(this->ParameterList_,"CoarseSolver")->set("DofOrdering Vector",dofOrderings);
                 sublist(this->ParameterList_,"CoarseSolver")->set("DofsPerNode Vector",dofsPerNodeVector);

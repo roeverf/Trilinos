@@ -214,9 +214,10 @@ namespace FROSch {
                                                              DofOrderingVecPtr dofOrderingVec,
                                                              int overlap,
                                                              MapPtrVecPtr repeatedMapVec,
-                                                             MultiVectorPtrVecPtr nullSpaceBasisVec,
-                                                             MultiVectorPtrVecPtr nodeListVec,
                                                              MapPtrVecPtr2D dofsMapsVec,
+                                                             MultiVectorPtrVecPtr
+                                                             nullSpaceBasisVec,
+                                                             MultiVectorPtrVecPtr nodeListVec,
                                                              GOVecPtr2D dirichletBoundaryDofsVec)
     {
         ////////////
@@ -352,11 +353,18 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int TwoLevelBlockPreconditioner<SC,LO,GO,NO>::compute()
     {
+        this->MpiComm_->barrier(); this->MpiComm_->barrier(); this->MpiComm_->barrier();
+        if( this->MpiComm_->getRank() == 0)std::cout<<"Com 1\n";
         int ret = 0;
         if (0>this->OverlappingOperator_->compute()) ret -= 1;
-        
+         this->MpiComm_->barrier(); this->MpiComm_->barrier(); this->MpiComm_->barrier();
+        if( this->MpiComm_->getRank() == 0)std::cout<<"Com 2\n";
         if (this->ParameterList_->get("TwoLevel",true)) {
             if (0>CoarseOperator_->compute()) ret -= 10;
+             this->MpiComm_->barrier(); this->MpiComm_->barrier(); this->MpiComm_->barrier();
+            if( this->MpiComm_->getRank() == 0)std::cout<<"Com 3\n";
+            
+            
         }
         return ret;
     }

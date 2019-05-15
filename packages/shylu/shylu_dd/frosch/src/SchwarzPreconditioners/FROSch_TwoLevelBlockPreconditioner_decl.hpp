@@ -90,9 +90,9 @@ namespace FROSch {
                        DofOrderingVecPtr dofOrderingVec,
                        int overlap = -1,
                        MapPtrVecPtr repeatedMapVec = Teuchos::null,                       
+                       MapPtrVecPtr2D dofsMapsVec = Teuchos::null,
                        MultiVectorPtrVecPtr nullSpaceBasisVec = Teuchos::null,
                        MultiVectorPtrVecPtr nodeListVec = Teuchos::null,
-                       MapPtrVecPtr2D dofsMapsVec = Teuchos::null,
                        GOVecPtr2D dirichletBoundaryDofsVec = Teuchos::null);
         
         int initialize(UN dimension,
