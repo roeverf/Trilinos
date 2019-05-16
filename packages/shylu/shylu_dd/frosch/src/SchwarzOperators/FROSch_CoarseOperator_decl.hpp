@@ -186,6 +186,7 @@ namespace FROSch {
         
         ConstMapPtr kRowMap_;
         LO DofsPerNodeCoarse_;
+        UN dofs;
  
 #ifdef FROSch_CoarseOperatorTimers
 	 Teuchos::Array<TimePtr> ComputeTimer;

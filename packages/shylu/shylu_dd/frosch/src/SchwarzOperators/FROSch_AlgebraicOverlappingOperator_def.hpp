@@ -46,14 +46,7 @@
 
 namespace FROSch {
 	
-	std::vector<Teuchos::RCP<Teuchos::Time> > initVec (){
-		std::vector<Teuchos::RCP<Teuchos::Time> > m;
-		m.resize(2);
-		for(int i = 0;i<2;i++){
-			m.at(i) = Teuchos::null;
-		}
-		return m;
-	}
+	
 	template <class SC,class LO,class GO,class NO>
     int AlgebraicOverlappingOperator<SC,LO,GO,NO>::current_level=0;
 	

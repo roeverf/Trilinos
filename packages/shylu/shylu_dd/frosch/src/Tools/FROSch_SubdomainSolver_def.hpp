@@ -262,17 +262,12 @@ namespace FROSch {
              
              FROSCH_ASSERT(RepeatedMaps.size()==dofsPerNodeVector.size(),"RepeatedMaps.size()!=dofsPerNodeVector.size()");
              FROSCH_ASSERT(RepeatedMaps.size()==dofOrderings.size(),"RepeatedMaps.size()!=dofOrderings.size()");
-             TC->barrier();TC->barrier();TC->barrier();
-             if(TC->getRank() == 0) std::cout<<"Sub1 \n";
+             
              TLBP = Teuchos::rcp(
                                  new TwoLevelBlockPreconditioner<SC,LO,GO,NO>(K_,ParameterList_));
-             TC->barrier();TC->barrier();TC->barrier();
-             if(TC->getRank() == 0) std::cout<<"Sub2 \n";
-             TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,ParameterList_->get("Overlap",1),MainCoarseMapVector,dofsMapsVec);
-             TC->barrier();TC->barrier();TC->barrier();
-             if(TC->getRank() == 0) std::cout<<"Sub3 \n";
-            // TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,RepeatedMaps,ParameterList_->get("Overlap",1));
-             
+            
+             //TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,ParameterList_->get("Overlap",1),MainCoarseMapVector,dofsMapsVec);
+             TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,RepeatedMaps,ParameterList_->get("Overlap",1));
          }
         
 #endif
@@ -438,11 +433,8 @@ namespace FROSch {
         	 IsComputed_ = true;
         }
          else if(!ParameterList_->get("SolverType","Amesos").compare("TwoLevelBlockPreconditioner")) {
-             K_->getRowMap()->getComm()->barrier();K_->getRowMap()->getComm()->barrier();K_->getRowMap()->getComm()->barrier();
-             if(K_->getRowMap()->getComm()->getRank() == 0)std::cout<<"Pre Compute\n";
+             
              TLBP->compute();
-             K_->getRowMap()->getComm()->barrier();K_->getRowMap()->getComm()->barrier();K_->getRowMap()->getComm()->barrier();
-             if(K_->getRowMap()->getComm()->getRank() == 0)std::cout<<"Compute Done\n";
              IsComputed_ = true;
              
          }

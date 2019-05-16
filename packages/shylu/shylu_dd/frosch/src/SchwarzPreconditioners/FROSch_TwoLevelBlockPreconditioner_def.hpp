@@ -88,32 +88,26 @@ namespace FROSch {
                                                              MapPtrVecPtr2D dofsMapsVec,
                                                              GOVecPtr2D dirichletBoundaryDofsVec)
     {
-        Teuchos::RCP< const Teuchos::Comm< int > > TC =repeatedNodesMapVec[0]->getComm();
+        Teuchos::RCP< const Teuchos::Comm< int > > TC = repeatedNodesMapVec[0]->getComm();
         UN nmbBlocks = dofsPerNodeVec.size();
-        for (UN i = 0; i < dofOrderingVec.size(); i++ ) {
+        for (UN i = 0; i < dofOrderingVec.size(); i++) {
             DofOrdering dofOrdering = dofOrderingVec[i];
             FROSCH_ASSERT(dofOrdering == NodeWise || dofOrdering == DimensionWise || dofOrdering == Custom,"ERROR: Specify a valid DofOrdering.");
         }
         int ret = 0;
-        //-----MAPS---
-        TC->barrier();TC->barrier();TC->barrier();
-        if(TC->getRank() == 0) std::cout<<"Init1\n";
-        for(int i = 0;i<repeatedNodesMapVec.
-            size();i++){
-            TC->barrier();TC->barrier();TC->barrier();
-            if(TC->getRank() == 0) std::cout<<"Init1.1\n";
-            repeatedMapVec[i] = BuildMapFromNodeMap(repeatedNodesMapVec[i],dofsPerNodeVec[i],dofOrderingVec[0]);
-            TC->barrier();TC->barrier();TC->barrier();
-            if(TC->getRank() == 0) std::cout<<"Init1.2\n";
-            
+        // Build dofsMaps and repeatedNodesMap
+        if (dofsMapsVec.is_null()) {
+            if (0>BuildMapFromNodeMapVec(repeatedNodesMapVec,dofsPerNodeVec,dofOrderingVec,repeatedMapVec,dofsMapsVec)) ret -= 100; // Todo: Rückgabewerte
+        } else {
+            FROSCH_ASSERT(dofsMapsVec.size()==dofsPerNodeVec.size(),"dofsMapsVec.size()!=dofsPerNodeVec.size()");
+            for (UN j=0; j<dofsMapsVec.size(); j++) {
+                FROSCH_ASSERT(dofsMapsVec[j].size()==dofsPerNodeVec[j],"dofsMapsVec[block].size()!=dofsPerNodeVec[block]");
+                for (UN i=0; i<dofsMapsVec.size(); i++) {
+                    FROSCH_ASSERT(!dofsMapsVec[j][i].is_null(),"dofsMapsVec[block][i].is_null()");
+                }
+            }
         }
-        TC->barrier();TC->barrier();TC->barrier();
-        if(TC->getRank() == 0) std::cout<<"Init2\n";
-        BuildDofMapsVec(repeatedMapVec,dofsPerNodeVec,dofOrderingVec,repeatedNodesMapVec,dofsMapsVec);
-        TC->barrier();TC->barrier();TC->barrier();
-        if(TC->getRank() == 0) std::cout<<"Init3\n";
-        
-        //---------------------------------------
+
         //////////////////////////
         // Communicate nodeList //
         //////////////////////////
@@ -214,10 +208,9 @@ namespace FROSch {
                                                              DofOrderingVecPtr dofOrderingVec,
                                                              int overlap,
                                                              MapPtrVecPtr repeatedMapVec,
-                                                             MapPtrVecPtr2D dofsMapsVec,
-                                                             MultiVectorPtrVecPtr
-                                                             nullSpaceBasisVec,
+                                                             MultiVectorPtrVecPtr nullSpaceBasisVec,
                                                              MultiVectorPtrVecPtr nodeListVec,
+                                                             MapPtrVecPtr2D dofsMapsVec,
                                                              GOVecPtr2D dirichletBoundaryDofsVec)
     {
         ////////////
@@ -353,18 +346,11 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int TwoLevelBlockPreconditioner<SC,LO,GO,NO>::compute()
     {
-        this->MpiComm_->barrier(); this->MpiComm_->barrier(); this->MpiComm_->barrier();
-        if( this->MpiComm_->getRank() == 0)std::cout<<"Com 1\n";
         int ret = 0;
         if (0>this->OverlappingOperator_->compute()) ret -= 1;
-         this->MpiComm_->barrier(); this->MpiComm_->barrier(); this->MpiComm_->barrier();
-        if( this->MpiComm_->getRank() == 0)std::cout<<"Com 2\n";
+        
         if (this->ParameterList_->get("TwoLevel",true)) {
             if (0>CoarseOperator_->compute()) ret -= 10;
-             this->MpiComm_->barrier(); this->MpiComm_->barrier(); this->MpiComm_->barrier();
-            if( this->MpiComm_->getRank() == 0)std::cout<<"Com 3\n";
-            
-            
         }
         return ret;
     }

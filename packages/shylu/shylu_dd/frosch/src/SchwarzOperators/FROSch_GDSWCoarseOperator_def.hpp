@@ -72,7 +72,6 @@ namespace FROSch {
     int GDSWCoarseOperator<SC,LO,GO,NO>::initialize(UN dimension,
                                                     MapPtr repeatedMap)
     {
-        
         buildCoarseSpace(dimension,repeatedMap);
         this->IsInitialized_ = true;
         this->IsComputed_ = false;
@@ -98,7 +97,7 @@ namespace FROSch {
                                                     MapPtr repeatedNodesMap,
                                                     MapPtrVecPtr repeatedDofMaps)
     {
-        
+        this->dofs = dofsPerNode;
         buildCoarseSpace(dimension,dofsPerNode,repeatedNodesMap,repeatedDofMaps);
         this->IsInitialized_ = true;
         this->IsComputed_ = false;
@@ -112,7 +111,7 @@ namespace FROSch {
                                                     MapPtrVecPtr repeatedDofMaps,
                                                     GOVecPtr dirichletBoundaryDofs)
     {
-        buildCoarseSpace(dimension,dofsPerNode,repeatedNodesMap,repeatedDofMaps,dirichletBoundaryDofs);
+        this->dofs = dofsPerNode; buildCoarseSpace(dimension,dofsPerNode,repeatedNodesMap,repeatedDofMaps,dirichletBoundaryDofs);
         this->IsInitialized_ = true;
         this->IsComputed_ = false;
         return 0;
@@ -125,6 +124,7 @@ namespace FROSch {
                                                     MapPtrVecPtr repeatedDofMaps,
                                                     MultiVectorPtr nodeList)
     {
+        this->dofs = dofsPerNode;
         buildCoarseSpace(dimension,dofsPerNode,repeatedNodesMap,repeatedDofMaps,nodeList);
         this->IsInitialized_ = true;
         this->IsComputed_ = false;
@@ -139,7 +139,7 @@ namespace FROSch {
                                                     GOVecPtr dirichletBoundaryDofs,
                                                     MultiVectorPtr nodeList)
     {
-        buildCoarseSpace(dimension,dofsPerNode,repeatedNodesMap,repeatedDofMaps,dirichletBoundaryDofs,nodeList);
+        this->dofs = dofsPerNode; buildCoarseSpace(dimension,dofsPerNode,repeatedNodesMap,repeatedDofMaps,dirichletBoundaryDofs,nodeList);
         this->IsInitialized_ = true;
         this->IsComputed_ = false;
         return 0;
@@ -153,6 +153,7 @@ namespace FROSch {
                                                     GOVecPtr2D dirichletBoundaryDofsVec,
                                                     MultiVectorPtrVecPtr nodeListVec)
     {
+       
         buildCoarseSpace(dimension,dofsPerNodeVec,repeatedNodesMapVec,repeatedDofMapsVec,dirichletBoundaryDofsVec,nodeListVec);
         this->IsInitialized_ = true;
         this->IsComputed_ = false;
@@ -246,7 +247,8 @@ namespace FROSch {
 		{
            
         FROSCH_ASSERT(dofsMaps.size()==dofsPerNode,"dofsMaps.size()!=dofsPerNode");
-        
+        this->dofs=dofsPerNode;
+            
         // Das könnte man noch ändern
         // TODO: DAS SOLLTE ALLES IN EINE FUNKTION IN HARMONICCOARSEOPERATOR
         this->GammaDofs_.resize(this->GammaDofs_.size()+1);
@@ -299,7 +301,8 @@ namespace FROSch {
                                                                GOVecPtr dirichletBoundaryDofs,
                                                                MultiVectorPtr nodeList)
     {
-		
+        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
+
 		#ifdef FROSch_GDSWOperatorTimers
 		Teuchos::TimeMonitor ResetCoarseSpaceTimeMonitor(*ResetCoarseSpaceTimer.at(current_level-1));
 		#endif
@@ -407,6 +410,7 @@ namespace FROSch {
                     }
                     if (useShortEdgeRotations) {
                         MultiVectorPtrVecPtr rotations = this->computeRotations(blockId,dimension,nodeList,shortEdges);
+                        
                         for (UN i=0; i<rotations.size(); i++) {
                             this->InterfaceCoarseSpaces_[blockId]->addSubspace(shortEdges->getEntityMap(),rotations[i]);
                         }
@@ -426,6 +430,7 @@ namespace FROSch {
                     }
                     if (useShortEdgeRotations) {
                         MultiVectorPtrVecPtr rotations = this->computeRotations(blockId,dimension,nodeList,straightEdges);
+                        rotations[0]->describe(*fancy,Teuchos::VERB_EXTREME);
                         for (UN i=0; i<rotations.size(); i++) {
                             this->InterfaceCoarseSpaces_[blockId]->addSubspace(straightEdges->getEntityMap(),rotations[i]);
                         }

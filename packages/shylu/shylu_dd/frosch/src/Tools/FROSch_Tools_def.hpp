@@ -437,7 +437,8 @@ namespace FROSch {
     }
     
     template <class LO,class GO,class NO>
-    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > MergeMaps(Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > mapVector){
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > MergeMaps(Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > mapVector)
+    {
         FROSCH_ASSERT(!mapVector.is_null(),"mapVector is null!");
         FROSCH_ASSERT(mapVector.size()>0,"Length of mapVector is == 0!");
         
@@ -456,27 +457,6 @@ namespace FROSch {
         }
         return Xpetra::MapFactory<LO,GO,NO>::Build(mapVector[0]->lib(),-1,elementList(),0,mapVector[0]->getComm());
     }
-
-    template <class LO,class GO,class NO>
-    int BuildDofMapsVec(const Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > mapVec,
-                        Teuchos::ArrayRCP<unsigned> dofsPerNodeVec,
-                        Teuchos::ArrayRCP<FROSch::DofOrdering> dofOrderingVec,
-                        Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &nodesMapVec,
-                        Teuchos::ArrayRCP<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > >&dofMapsVec){
-        
-        unsigned numberBlocks = mapVec.size();
-        nodesMapVec = Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > (numberBlocks);
-        dofMapsVec = Teuchos::ArrayRCP<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > > (numberBlocks);
-
-        GO tmpOffset = 0;
-        for (unsigned i = 0 ; i < numberBlocks; i++) {
-            BuildDofMaps(mapVec[i],dofsPerNodeVec[i],dofOrderingVec[i],nodesMapVec[i],dofMapsVec[i],tmpOffset);
-            tmpOffset += mapVec[i]->getMaxAllGlobalIndex()+1;
-        }
-        
-        return 0;
-    }
-    
     
     template <class LO,class GO,class NO>
     int BuildDofMaps(const Teuchos::RCP<Xpetra::Map<LO,GO,NO> > map,
@@ -523,6 +503,27 @@ namespace FROSch {
     }
     
     template <class LO,class GO,class NO>
+    int BuildDofMapsVec(const Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > mapVec,
+                        Teuchos::ArrayRCP<unsigned> dofsPerNodeVec,
+                        Teuchos::ArrayRCP<FROSch::DofOrdering> dofOrderingVec,
+                        Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &nodesMapVec,
+                        Teuchos::ArrayRCP<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > >&dofMapsVec){
+        
+        unsigned numberBlocks = mapVec.size();
+        nodesMapVec = Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > (numberBlocks);
+        dofMapsVec = Teuchos::ArrayRCP<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > > (numberBlocks);
+        
+        GO tmpOffset = 0;
+        for (unsigned i = 0 ; i < numberBlocks; i++) {
+            BuildDofMaps(mapVec[i],dofsPerNodeVec[i],dofOrderingVec[i],nodesMapVec[i],dofMapsVec[i],tmpOffset);
+            tmpOffset += mapVec[i]->getMaxAllGlobalIndex()+1;
+        }
+        
+        return 0;
+    }
+    
+    
+    template <class LO,class GO,class NO>
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromDofMaps(const Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &dofMaps,
                                                              unsigned dofsPerNode,
                                                              unsigned dofOrdering)
@@ -557,52 +558,66 @@ namespace FROSch {
     template <class LO,class GO,class NO>
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromNodeMap(Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &nodesMap,
                                                              unsigned dofsPerNode,
-                                                             unsigned dofOrdering)
+                                                             unsigned dofOrdering,
+                                                             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &map,
+                                                             Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &dofMaps,
+                                                             GO offset)
     {
+        //if (map->getComm()->getRank()==0) std::cout << "WARNING: BuildDofMaps is yet to be tested...\n";
         FROSCH_ASSERT(dofOrdering==0 || dofOrdering==1,"ERROR: Specify a valid DofOrdering.");
-        FROSCH_ASSERT(!nodesMap.is_null(),"nodesMap.is_null().");
-        Teuchos::RCP<const Teuchos::Comm< int > > TC = nodesMap->getComm();
-        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(cout));        
-        TC->barrier();TC->barrier();TC->barrier();
-        //if(TC->getRank() == 0) std::cout << TC->getRank() << " Tools1\n";
-        std::cout << TC->getRank() << " dofOrdering " << dofOrdering << " Tools1\n";
-        unsigned numNodes = nodesMap->getNodeNumElements();
-        Teuchos::Array<GO> globalIDs(dofsPerNode*numNodes);
+        FROSCH_ASSERT(nodesMap->getGlobalNumElements()%dofsPerNode==0 && nodesMap->getNodeNumElements()%dofsPerNode==0,"ERROR: The number of dofsPerNode does not divide the number of global dofs in the map!");
+        
+        Teuchos::Array<GO> allDofs(nodesMap->getNodeNumElements()*dofsPerNode);
+        Teuchos::Array<Teuchos::ArrayRCP<GO> > dofs(dofsPerNode);
+        for (unsigned j=0; j<dofsPerNode; j++) {
+            dofs[j] = Teuchos::ArrayRCP<GO>(nodesMap->getNodeNumElements());
+        }
         if (dofOrdering==0) {
-            for (unsigned i=0; i<dofsPerNode; i++) {
-                for (unsigned j=0; j<numNodes; j++) {
-                    globalIDs[dofsPerNode*j+i] = dofsPerNode*nodesMap->getGlobalElement(j)+i;
+            for (unsigned i=0; i<nodesMap->getNodeNumElements(); i++) {
+                for (unsigned j=0; j<dofsPerNode; j++) {
+                    allDofs[dofsPerNode*i+j] = dofsPerNode*nodesMap->getGlobalElement(i)+j+offset;
+                    dofs[j][i] = allDofs[dofsPerNode*i+j];
                 }
             }
-            TC->barrier();TC->barrier();TC->barrier();
-            if(TC->getRank() == 0) std::cout<<"Tools2.1\n";
         } else if (dofOrdering == 1) {
-            for (unsigned i=0; i<dofsPerNode; i++) {
-                for (unsigned j=0; j<numNodes; j++) {
-                    globalIDs[j+i*numNodes] = nodesMap->getGlobalElement(j)+i*(nodesMap->getMaxAllGlobalIndex()+1); //MaxIndex-1
-                    //std::cout << TC->getRank() << " index " << j+i*numNodes << " length " << dofsPerNode*numNodes << " value " << globalIDs[j+i*numNodes] << "\n";
+            GO numGlobalIDs = map->getMaxAllGlobalIndex()+1;
+            for (unsigned i=0; i<nodesMap->getNodeNumElements(); i++) {
+                for (unsigned j=0; j<dofsPerNode; j++) {
+                    allDofs[i+j*nodesMap->getNodeNumElements()] = nodesMap->getGlobalElement(i)+j*numGlobalIDs/dofsPerNode+offset;
+                    dofs[j][i] = allDofs[i+j*nodesMap->getNodeNumElements()];
                 }
             }
-            TC->barrier();TC->barrier();TC->barrier();
-            if(TC->getRank() == 0) std::cout<<"Tools2.2\n";
-            
         } else {
             FROSCH_ASSERT(false,"dofOrdering unknown.");
         }
-   
-        Teuchos::RCP<Xpetra::Map<LO,GO,NO> > mainMap = Xpetra::MapFactory<LO,GO,NO>::Build(nodesMap->lib(),-1,globalIDs(),0,TC);
-        TC->barrier();TC->barrier();TC->barrier();
-        if(TC->getRank() == 0) std::cout<<"Tools4\n";
-        //mainMap->describe(*fancy,Teuchos::VERB_EXTREME);
-        return mainMap;
+        nodesMap = Xpetra::MapFactory<LO,GO,NO>::Build(map->lib(),-1,allDofs(),0,map->getComm());
+        
+        dofMaps = Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > >(dofsPerNode);
+        for (unsigned j=0; j<dofsPerNode; j++) {
+            dofMaps[j] = Xpetra::MapFactory<LO,GO,NO>::Build(map->lib(),-1,dofs[j](),0,map->getComm());
+        }
+        return 0;
     }
     
-//    template <class LO,class GO,class NO>
-//    Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > BuildSubMaps(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &fullMap,
-//                                                                          Teuchos::ArrayRCP<GO> maxSubGIDVec){
-//        
-//          Teuchos::RCP<Xpetra::Map<LO,GO,NO> > fullMapNonConst = Teuchos::rcp_dynamic_cast<Xpetra::Map<LO,GO,NO> >(fullMap);
-//    }
+    template <class LO,class GO,class NO>
+    int BuildMapFromNodeMapVec(const Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > nodesMapVec,
+                               Teuchos::ArrayRCP<unsigned> dofsPerNodeVec,
+                               Teuchos::ArrayRCP<FROSch::DofOrdering> dofOrderingVec,
+                               Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &mapVec,
+                               Teuchos::ArrayRCP<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > >&dofMapsVec)
+    {
+        unsigned numberBlocks = nodesMapVec.size();
+        mapVec = Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > (numberBlocks);
+        dofMapsVec = Teuchos::ArrayRCP<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > > (numberBlocks);
+        
+        GO tmpOffset = 0;
+        for (unsigned i = 0 ; i < numberBlocks; i++) {
+            BuildDofMaps(nodesMapVec[i],dofsPerNodeVec[i],dofOrderingVec[i],mapVec[i],dofMapsVec[i],tmpOffset);
+            tmpOffset += mapVec[i]->getMaxAllGlobalIndex()+1;
+        }
+        
+        return 0;
+    }
     
     template <class LO,class GO,class NO>
     Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > BuildSubMaps(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &fullMap,

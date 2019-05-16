@@ -116,7 +116,17 @@ namespace FROSch {
     template <class LO,class GO,class NO>
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromNodeMap(Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &nodesMap,
                                                              unsigned dofsPerNode,
-                                                             unsigned dofOrdering);
+                                                             unsigned dofOrdering,
+                                                             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &map,
+                                                             Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &dofMaps,
+                                                             GO offset = 0);
+    
+    template <class LO,class GO,class NO>
+    int BuildMapFromNodeMapVec(const Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > nodesMapVec,
+                               Teuchos::ArrayRCP<unsigned> dofsPerNodeVec,
+                               Teuchos::ArrayRCP<FROSch::DofOrdering> dofOrderingVec,
+                               Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &mapVec,
+                               Teuchos::ArrayRCP<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > >&dofMapsVec);
     
     template <class LO,class GO,class NO>
     Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > BuildSubMaps(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &fullMap,
@@ -210,7 +220,18 @@ namespace FROSch {
     \param[in] forschObj FROSch object that is asking for the missing package
     \param[in] packageName Name of the missing package
     */
-    void ThrowErrorMissingPackage(const std::string& froschObj, const std::string& packageName);
+    inline void ThrowErrorMissingPackage(const std::string& froschObj,
+                                         const std::string& packageName)
+    {
+        // Create the error message
+        std::stringstream errMsg;
+        errMsg << froschObj << " is asking for the Trilinos packate '"<< packageName << "', "
+        "but this package is not included in your build configuration. "
+        "Please enable '" << packageName << "' in your build configuration to be used with ShyLU_DDFROSch.";
+        
+        // Throw the error
+        FROSCH_ASSERT(false, errMsg.str());
+    }
 }
 
 #endif

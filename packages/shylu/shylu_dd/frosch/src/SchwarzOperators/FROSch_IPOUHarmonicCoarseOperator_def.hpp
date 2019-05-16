@@ -215,6 +215,7 @@ namespace FROSch {
             // Build local basis
             LocalPartitionOfUnityBasis_ = LocalPartitionOfUnityBasisPtr(new LocalPartitionOfUnityBasis<SC,LO,GO,NO>(this->MpiComm_,this->SerialComm_,this->DofsPerNode_[blockId],sublist(coarseSpaceList,"LocalPartitionOfUnityBasis"),interfaceNullspaceBasis,InterfacePartitionOfUnity_->getLocalPartitionOfUnity(),InterfacePartitionOfUnity_->getPartitionOfUnityMaps())); // sublist(coarseSpaceList,"LocalPartitionOfUnityBasis") testen
             
+            //hier Orthoganalisierung
             LocalPartitionOfUnityBasis_->buildLocalPartitionOfUnityBasis();
             if (this->ParameterList_->get("Use RepMap",false)) {
                 if (this->K_->getMap()->lib() == Xpetra::UseTpetra) {
