@@ -89,15 +89,19 @@ namespace FROSch {
                                                              GOVecPtr2D dirichletBoundaryDofsVec)
     {
         Teuchos::RCP< const Teuchos::Comm< int > > TC = repeatedNodesMapVec[0]->getComm();
+        Teuchos::RCP<Teuchos::FancyOStream> fancy = fancyOStream(Teuchos::rcpFromRef(std::cout));
         UN nmbBlocks = dofsPerNodeVec.size();
         for (UN i = 0; i < dofOrderingVec.size(); i++) {
             DofOrdering dofOrdering = dofOrderingVec[i];
             FROSCH_ASSERT(dofOrdering == NodeWise || dofOrdering == DimensionWise || dofOrdering == Custom,"ERROR: Specify a valid DofOrdering.");
         }
+        TC->barrier();TC->barrier();TC->barrier();
+        if(TC->getRank() == 0) std::cout<<"Init 1\n";
         int ret = 0;
         // Build dofsMaps and repeatedNodesMap
         if (dofsMapsVec.is_null()) {
-            if (0>BuildMapFromNodeMapVec(repeatedNodesMapVec,dofsPerNodeVec,dofOrderingVec,repeatedMapVec,dofsMapsVec)) ret -= 100; // Todo: Rückgabewerte
+            if (0>BuildMapFromNodeMapVec(repeatedNodesMapVec,dofsPerNodeVec,dofOrderingVec,repeatedMapVec,dofsMapsVec))
+                    ret -= 100; // Todo: Rückgabewerte
         } else {
             FROSCH_ASSERT(dofsMapsVec.size()==dofsPerNodeVec.size(),"dofsMapsVec.size()!=dofsPerNodeVec.size()");
             for (UN j=0; j<dofsMapsVec.size(); j++) {
@@ -107,7 +111,9 @@ namespace FROSch {
                 }
             }
         }
-
+        
+        TC->barrier();TC->barrier();TC->barrier();
+        if(TC->getRank() == 0) std::cout<<"Init 4\n";
         //////////////////////////
         // Communicate nodeList //
         //////////////////////////
@@ -129,13 +135,14 @@ namespace FROSch {
         // Determine dirichletBoundaryDofs //
         //////////////////////////////////////////
         MapPtr repeatedMap = MergeMaps(repeatedMapVec);
+        
         if (dirichletBoundaryDofsVec.is_null()) {
             dirichletBoundaryDofsVec.resize(repeatedMapVec.size());
             LOVecPtr counterSub(repeatedMapVec.size(),0);
             for (UN j=0; j<dirichletBoundaryDofsVec.size(); j++) {
                 dirichletBoundaryDofsVec[j] = GOVecPtr(repeatedMapVec[j]->getNodeNumElements());
             }
-            GOVecPtr dirichletBoundaryDofs = FindOneEntryOnlyRowsGlobal(this->K_,repeatedMap);
+            GOVecPtr dirichletBoundaryDofs = FindOneEntryOnlyRowsGlobal(this->K_,repeatedMap); std::cout << dirichletBoundaryDofs.size() << std::endl;
             for (UN i=0; i<dirichletBoundaryDofs.size(); i++) {
                 LO subNumber = -1;
                 for (UN j = dofsMapsVec.size(); j > 0 ; j--) {
@@ -152,6 +159,7 @@ namespace FROSch {
             //dirichletBoundaryDofsVec = GOVecPtr2D(repeatedMapVec.size());
             for (UN i=0; i<dirichletBoundaryDofsVec.size(); i++) {
                 dirichletBoundaryDofsVec[i].resize(counterSub[i]);
+                if (this->MpiComm_->getRank() == 0) std::cout << "dirichletBoundaryDofsVec[i] " << dirichletBoundaryDofsVec[i].size() << std::endl;
             }
             
         }
@@ -160,10 +168,12 @@ namespace FROSch {
         ////////////////////////////////////
         if (!this->ParameterList_->get("OverlappingOperator Type","AlgebraicOverlappingOperator").compare("AlgebraicOverlappingOperator")) {
             AlgebraicOverlappingOperatorPtr algebraicOverlappigOperator = Teuchos::rcp_static_cast<AlgebraicOverlappingOperator<SC,LO,GO,NO> >(this->OverlappingOperator_);
-            if (0>algebraicOverlappigOperator->initialize(overlap,repeatedMap)) ret -= 1;
+            if (0>algebraicOverlappigOperator->initialize(overlap,repeatedMap)){
+                ret -= 1;}
         } else {
             FROSCH_ASSERT(false,"OverlappingOperator Type unkown.");
         }
+        std::cout<<ret<<std::endl;
         
         ///////////////////////////////
         // Initialize CoarseOperator //
@@ -217,7 +227,6 @@ namespace FROSch {
         // Checks //
         ////////////
         
-        Teuchos::RCP< const Teuchos::Comm< int > > TC =repeatedMapVec[0]->getComm();
         
         UN nmbBlocks = dofsPerNodeVec.size();
         for (UN i = 0; i < dofOrderingVec.size(); i++ ) {
@@ -347,8 +356,11 @@ namespace FROSch {
     int TwoLevelBlockPreconditioner<SC,LO,GO,NO>::compute()
     {
         int ret = 0;
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0) std::cout<<"TLBP comp 1\n";
         if (0>this->OverlappingOperator_->compute()) ret -= 1;
-        
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0) std::cout<<"TLBP comp 2\n";
         if (this->ParameterList_->get("TwoLevel",true)) {
             if (0>CoarseOperator_->compute()) ret -= 10;
         }

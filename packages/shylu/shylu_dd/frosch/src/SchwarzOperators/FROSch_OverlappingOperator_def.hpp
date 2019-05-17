@@ -207,15 +207,13 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int OverlappingOperator<SC,LO,GO,NO>::computeOverlappingOperator()
     {
-
+        int ret = 0;
         if (this->IsComputed_) {// already computed once and we want to recycle the information. That is why we reset OverlappingMatrix_ to K_, because K_ has been reset at this point
             OverlappingMatrix_ = this->K_;
         }
-        
         OverlappingMatrix_ = ExtractLocalSubdomainMatrix(OverlappingMatrix_,OverlappingMap_);
         
         SubdomainSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(OverlappingMatrix_,sublist(this->ParameterList_,"Solver")));
-		int ret;
 		{
 			#ifdef FROSch_OverlappingOperatorTimers
 			Teuchos::TimeMonitor BuildDirectSolvesTimeMonitor(*BuildDirectSolves.at(current_level-1));

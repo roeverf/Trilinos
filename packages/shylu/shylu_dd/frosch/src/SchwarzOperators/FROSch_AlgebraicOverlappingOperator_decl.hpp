@@ -44,7 +44,7 @@
 
 #include <FROSch_OverlappingOperator_def.hpp>
 #include <boost/assign/list_of.hpp>
-#define FROSch_AlgebraicOverlappingTimers
+//#define FROSch_AlgebraicOverlappingTimers
 
 namespace FROSch {
     

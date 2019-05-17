@@ -53,9 +53,10 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     AlgebraicOverlappingOperator<SC,LO,GO,NO>::AlgebraicOverlappingOperator(CrsMatrixPtr k,
                                                                             ParameterListPtr parameterList) :
-    OverlappingOperator<SC,LO,GO,NO> (k,parameterList),
+    OverlappingOperator<SC,LO,GO,NO> (k,parameterList)
 	#ifdef FROSch_AlgebraicOverlappingTimers
-	BuildOverlappingMatricesTimer(this->level),
+	,
+    BuildOverlappingMatricesTimer(this->level),
 	InitOverlappingOperatorTimer(this->level),
 	ComputeOverlappingOperatorTimer(this->level)
 	#endif
@@ -70,7 +71,7 @@ namespace FROSch {
 			BuildOverlappingMatricesTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch AlgebraicOverlappingOperator: BuildOverlappingMatrices " + std::to_string(i));
 			InitOverlappingOperatorTimer.at(i) =Teuchos::TimeMonitor::getNewCounter("FROSch AlgebraicOverlappingOperator: InitOverlappingOperator " + std::to_string(i));
 			ComputeOverlappingOperatorTimer.at(i) =Teuchos::TimeMonitor::getNewCounter("FROSch AlgebraicOverlappingOperator: ComputeOverlappingOperator " + std::to_string(i));
-		}
+          }
 #endif
 	   current_level = current_level +1; 
     }
@@ -109,6 +110,16 @@ namespace FROSch {
 		#endif
 		this->computeOverlappingOperator();
         }
+        
+        
+        
+        
+        
+        
+        
+        
+        
+       
         
         this->IsComputed_ = true;
         return 0; // RETURN VALUE!!!
