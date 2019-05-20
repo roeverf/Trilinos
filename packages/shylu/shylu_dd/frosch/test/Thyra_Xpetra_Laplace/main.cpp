@@ -46,7 +46,6 @@
 #include <Teuchos_GlobalMPISession.hpp>
 #include <Teuchos_CommandLineProcessor.hpp>
 #include <Teuchos_XMLParameterListCoreHelpers.hpp>
-#include <Teuchos_TimeMonitor.hpp>
 
 // Galeri::Xpetra
 #include "Galeri_XpetraProblemFactory.hpp"
@@ -108,6 +107,7 @@ int main(int argc, char *argv[])
 {
     oblackholestream blackhole;
     GlobalMPISession mpiSession(&argc,&argv,&blackhole);
+    
     RCP<const Comm<int> > CommWorld = Xpetra::DefaultPlatform::getDefaultPlatform().getComm();
     
     CommandLineProcessor My_CLP;
@@ -189,9 +189,7 @@ int main(int argc, char *argv[])
             RCP<MultiVector<SC,LO,GO,NO> > CoordinatesTmp;
             RCP<Matrix<SC,LO,GO,NO> > KTmp;
             if (Dimension==2) {
-                UniqueMapTmp = Galeri::Xpetra::CreateMap<LO,GO,NO>(xpetraLib,"Cartesian2D",Comm,GaleriList);
-                //RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(cout));
-                //nodeMap->describe(*fancy,VERB_EXTREME);
+                UniqueMapTmp = Galeri::Xpetra::CreateMap<LO,GO,NO>(xpetraLib,"Cartesian2D",Comm,GaleriList); // RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(cout)); nodeMap->describe(*fancy,VERB_EXTREME);
                 CoordinatesTmp = Galeri::Xpetra::Utils::CreateCartesianCoordinates<SC,LO,GO,Map<LO,GO,NO>,MultiVector<SC,LO,GO,NO> >("2D",UniqueMapTmp,GaleriList);
                 RCP<Galeri::Xpetra::Problem<Map<LO,GO,NO>,CrsMatrixWrap<SC,LO,GO,NO>,MultiVector<SC,LO,GO,NO> > > Problem = Galeri::Xpetra::BuildProblem<SC,LO,GO,Map<LO,GO,NO>,CrsMatrixWrap<SC,LO,GO,NO>,MultiVector<SC,LO,GO,NO> >("Laplace2D",UniqueMapTmp,GaleriList);
                 KTmp = Problem->BuildMatrix();
@@ -379,11 +377,10 @@ int main(int argc, char *argv[])
         SolveStatus<double> status =
         solve<double>(*lows, Thyra::NOTRANS, *thyraB, thyraX.ptr());
         
-        
-        Comm->barrier(); if (Comm->getRank()==0) cout << "\n#############\n# Finished! #\n#############" << endl;        
-		Teuchos::TimeMonitor::summarize();
+        Comm->barrier(); if (Comm->getRank()==0) cout << "\n#############\n# Finished! #\n#############" << endl;
     }
     
     return(EXIT_SUCCESS);
     
 }
+

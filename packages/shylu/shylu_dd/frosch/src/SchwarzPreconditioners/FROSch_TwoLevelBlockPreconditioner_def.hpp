@@ -95,8 +95,7 @@ namespace FROSch {
             DofOrdering dofOrdering = dofOrderingVec[i];
             FROSCH_ASSERT(dofOrdering == NodeWise || dofOrdering == DimensionWise || dofOrdering == Custom,"ERROR: Specify a valid DofOrdering.");
         }
-        TC->barrier();TC->barrier();TC->barrier();
-        if(TC->getRank() == 0) std::cout<<"Init 1\n";
+        
         int ret = 0;
         // Build dofsMaps and repeatedNodesMap
         if (dofsMapsVec.is_null()) {
@@ -112,8 +111,7 @@ namespace FROSch {
             }
         }
         
-        TC->barrier();TC->barrier();TC->barrier();
-        if(TC->getRank() == 0) std::cout<<"Init 4\n";
+        
         //////////////////////////
         // Communicate nodeList //
         //////////////////////////
@@ -142,7 +140,7 @@ namespace FROSch {
             for (UN j=0; j<dirichletBoundaryDofsVec.size(); j++) {
                 dirichletBoundaryDofsVec[j] = GOVecPtr(repeatedMapVec[j]->getNodeNumElements());
             }
-            GOVecPtr dirichletBoundaryDofs = FindOneEntryOnlyRowsGlobal(this->K_,repeatedMap); std::cout << dirichletBoundaryDofs.size() << std::endl;
+            GOVecPtr dirichletBoundaryDofs = FindOneEntryOnlyRowsGlobal(this->K_,repeatedMap); //std::cout << dirichletBoundaryDofs.size() << std::endl;
             for (UN i=0; i<dirichletBoundaryDofs.size(); i++) {
                 LO subNumber = -1;
                 for (UN j = dofsMapsVec.size(); j > 0 ; j--) {
@@ -159,7 +157,7 @@ namespace FROSch {
             //dirichletBoundaryDofsVec = GOVecPtr2D(repeatedMapVec.size());
             for (UN i=0; i<dirichletBoundaryDofsVec.size(); i++) {
                 dirichletBoundaryDofsVec[i].resize(counterSub[i]);
-                if (this->MpiComm_->getRank() == 0) std::cout << "dirichletBoundaryDofsVec[i] " << dirichletBoundaryDofsVec[i].size() << std::endl;
+               // if (this->MpiComm_->getRank() == 0) std::cout << "dirichletBoundaryDofsVec[i] " << dirichletBoundaryDofsVec[i].size() << std::endl;
             }
             
         }
@@ -356,11 +354,7 @@ namespace FROSch {
     int TwoLevelBlockPreconditioner<SC,LO,GO,NO>::compute()
     {
         int ret = 0;
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0) std::cout<<"TLBP comp 1\n";
         if (0>this->OverlappingOperator_->compute()) ret -= 1;
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0) std::cout<<"TLBP comp 2\n";
         if (this->ParameterList_->get("TwoLevel",true)) {
             if (0>CoarseOperator_->compute()) ret -= 10;
         }

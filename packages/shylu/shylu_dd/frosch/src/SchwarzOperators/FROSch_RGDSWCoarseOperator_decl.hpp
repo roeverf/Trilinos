@@ -43,7 +43,7 @@
 #define _FROSCH_RGDSWCOARSEOPERATOR_DECL_HPP
 
 #include <FROSch_GDSWCoarseOperator_def.hpp>
-#define FROSch_RDSWOperatorTimers
+//#define FROSch_RDSWOperatorTimers
 
 namespace FROSch {
     

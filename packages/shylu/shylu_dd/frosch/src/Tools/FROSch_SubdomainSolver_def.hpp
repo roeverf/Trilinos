@@ -436,11 +436,8 @@ namespace FROSch {
         	 IsComputed_ = true;
         }
          else if(!ParameterList_->get("SolverType","Amesos").compare("TwoLevelBlockPreconditioner")) {
-             K_->getRowMap()->getComm()->barrier();K_->getRowMap()->getComm()->barrier();K_->getRowMap()->getComm()->barrier();
-             if(K_->getRowMap()->getComm()->getRank() == 0) std::cout<<"pre compute\n";
+             
              TLBP->compute();
-             K_->getRowMap()->getComm()->barrier();K_->getRowMap()->getComm()->barrier();K_->getRowMap()->getComm()->barrier();
-             if(K_->getRowMap()->getComm()->getRank() == 0) std::cout<<"compute done\n";
              IsComputed_ = true;
              
          }

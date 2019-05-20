@@ -294,11 +294,6 @@ namespace FROSch {
         Teuchos::RCP<Xpetra::Map<LO,GO,NO> > RepeatedMap = Xpetra::MapFactory<LO,GO,NO>::Build(ReGraph->getColMap()->lib(),-1,repeatedIndices(),0,ReGraph->getColMap()->getComm());
         */
         Teuchos::RCP<Xpetra::Map<LO,GO,NO> > RepeatedMap = Xpetra::MapFactory<LO,GO,NO>::Build(ReGraph->getColMap()->lib(),-1,repeatedMapEntries(),0,ReGraph->getColMap()->getComm());
-        TeuchosComm->barrier();TeuchosComm->barrier();TeuchosComm->barrier();
-        if(TeuchosComm->getRank() == 0)std::cout<<"----------------------Repeated Map-----------------------------------\n";
-        RepeatedMap->describe(*fancy,Teuchos::VERB_EXTREME);
-        TeuchosComm->barrier();TeuchosComm->barrier();TeuchosComm->barrier();
-        if(TeuchosComm->getRank() == 0)std::cout<<"----------------------Repeated Map-----------------------------------\n";
         return RepeatedMap;
     }
     

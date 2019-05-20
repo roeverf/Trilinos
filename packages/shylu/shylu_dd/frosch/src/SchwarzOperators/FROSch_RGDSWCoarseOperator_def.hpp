@@ -157,7 +157,7 @@ namespace FROSch {
                 entitySetVector = this->DDInterface_->getEntitySetVector();
                 coarseNodes = this->DDInterface_->getCoarseNodes();
                 coarseNodes->buildEntityMap(nodesMap); //Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout)); coarseNodes->getEntityMap()->describe(*fancy,Teuchos::VERB_EXTREME);
-                this->kRowMap_ =coarseNodes->getEntityMap();
+                //this->kRowMap_ =coarseNodes->getEntityMap();
                 MultiVectorPtrVecPtr translations = this->computeTranslations(blockId,coarseNodes,entitySetVector,distanceFunction);
                 for (UN i=0; i<translations.size(); i++) {
                     this->InterfaceCoarseSpaces_[blockId]->addSubspace(coarseNodes->getEntityMap(),translations[i]);
@@ -193,16 +193,22 @@ namespace FROSch {
                     coarse nodes: rotations      --- " << useRotations << "\n\
                     --------------------------------------------\n";
                 }
+                this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+                if(this->MpiComm_->getRank() == 0) std::cout<<"HAHA1\n";
                 if (this->ParameterList_->get("Use RepMap",false)) {
                     if (this->K_->getMap()->lib() == Xpetra::UseTpetra) {
                         this->buildGraphEntries(this->DDInterface_);
                     }
                 }
+                this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+                if(this->MpiComm_->getRank() == 0) std::cout<<"HAHA2\n";
                 this->BlockCoarseDimension_[blockId] = numCoarseNodesGlobal;
+                this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+                if(this->MpiComm_->getRank() == 0) std::cout<<"HAHA3\n";
+                
             }
         }
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if (this->MpiComm_->getRank() == 0){std::cout<<"TADA\n";}
+        
         
         
         return 0;
