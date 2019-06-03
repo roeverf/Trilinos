@@ -108,7 +108,9 @@ namespace FROSch {
 		#ifdef FROSch_AlgebraicOverlappingTimers
 		Teuchos::TimeMonitor ComputeOverlappingOperatorTimeMonitor(*ComputeOverlappingOperatorTimer.at(current_level-1));
 		#endif
-		this->computeOverlappingOperator();
+           
+            this->computeOverlappingOperator();
+            
         }
         
         

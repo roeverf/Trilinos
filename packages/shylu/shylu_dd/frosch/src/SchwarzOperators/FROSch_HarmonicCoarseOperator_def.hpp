@@ -65,11 +65,14 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     typename HarmonicCoarseOperator<SC,LO,GO,NO>::MapPtr HarmonicCoarseOperator<SC,LO,GO,NO>::computeCoarseSpace(CoarseSpacePtr coarseSpace)
     {
-        MapPtr repeatedMap = assembleSubdomainMap();
         
-        // Build local saddle point problem
+        MapPtr repeatedMap = assembleSubdomainMap();
+        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
+        //repeatedMap->(*fancy,Teuchos::VERB_EXTREME);
+        
+        
         CrsMatrixPtr repeatedMatrix = FROSch::ExtractLocalSubdomainMatrix(this->K_,repeatedMap); // AH 12/11/2018: Should this be in initalize?
-
+        
         // Extract submatrices
         GOVec indicesGammaDofsAll(0);
         GOVec indicesIDofsAll(0);
@@ -84,20 +87,18 @@ namespace FROSch {
             }
             tmp += GammaDofs_[i].size()+IDofs_[i].size();
         }
-
+        
+       
         CrsMatrixPtr kII;
         CrsMatrixPtr kIGamma;
         CrsMatrixPtr kGammaI;
         CrsMatrixPtr kGammaGamma;
 
         FROSch::BuildSubmatrices(repeatedMatrix,indicesIDofsAll(),kII,kIGamma,kGammaI,kGammaGamma);
-
         // Assemble coarse map
         MapPtr coarseMap = assembleCoarseMap(); // AH 12/11/2018: Should this be in initalize?
-
         // Build the saddle point harmonic extensions
         MultiVectorPtr localCoarseSpaceBasis = computeExtensions(repeatedMatrix->getRowMap(),coarseMap,indicesGammaDofsAll(),indicesIDofsAll(),kII,kIGamma);
-
         coarseSpace->addSubspace(coarseMap,localCoarseSpaceBasis);
         
         return repeatedMap;
@@ -405,10 +406,11 @@ namespace FROSch {
         // Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout)); this->Phi_->describe(*fancy,Teuchos::VERB_EXTREME);
         // Hier Multiplikation kIGamma*PhiGamma
         kIGamma->apply(*mVPhiGamma,*mVtmp);
+        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
         
         mVtmp->scale(-1.0);
-        
         // Jetzt der solver für kII
+       
         ExtensionSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(kII,sublist(this->ParameterList_,"ExtensionSolver")));
         ExtensionSolver_->initialize();
         ExtensionSolver_->compute();

@@ -7,7 +7,7 @@
 // Under the terms of Contract DE-AC04-94AL85000 with Sandia Corporation,
 // the U.S. Government retains certain rights in this software.
 //
-// Redistribution and use in source and binary forms, with or without
+// Redistribution and use in sourceand binary forms, with or without
 // modification, are permitted provided that the following conditions are
 // met:
 //
@@ -82,7 +82,9 @@ namespace FROSch {
 		#endif
         FROSCH_ASSERT(dofsMaps.size()==dofsPerNode,"dofsMaps.size()!=dofsPerNode");
         FROSCH_ASSERT(blockId<this->NumberOfBlocks_,"Block does not exist yet and can therefore not be reset.");
-        
+        //For degress of freedom on next level
+        UN tra;
+        UN rot;
         // Process the parameter list
         std::stringstream blockIdStringstream;
         blockIdStringstream << blockId+1;
@@ -157,14 +159,16 @@ namespace FROSch {
                 entitySetVector = this->DDInterface_->getEntitySetVector();
                 coarseNodes = this->DDInterface_->getCoarseNodes();
                 coarseNodes->buildEntityMap(nodesMap); //Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout)); coarseNodes->getEntityMap()->describe(*fancy,Teuchos::VERB_EXTREME);
-                //this->kRowMap_ =coarseNodes->getEntityMap();
+                this->kRowMap_ =coarseNodes->getEntityMap();
                 MultiVectorPtrVecPtr translations = this->computeTranslations(blockId,coarseNodes,entitySetVector,distanceFunction);
+                tra = translations.size();
                 for (UN i=0; i<translations.size(); i++) {
                     this->InterfaceCoarseSpaces_[blockId]->addSubspace(coarseNodes->getEntityMap(),translations[i]);
                 }
                  
                 if (useRotations) {
                     MultiVectorPtrVecPtr rotations = this->computeRotations(blockId,dimension,nodeList,coarseNodes,entitySetVector,distanceFunction);
+                    rot = rotations.size();
                     for (UN i=0; i<rotations.size(); i++) {
                         this->InterfaceCoarseSpaces_[blockId]->addSubspace(coarseNodes->getEntityMap(),rotations[i]);
                     }
@@ -182,6 +186,12 @@ namespace FROSch {
                     numCoarseNodesGlobal = 0;
                 }
                 
+                //dofPerNode next level
+                if(useRotations){
+                    this->dofs = tra + rot;
+                }else{
+                    this->dofs = tra;
+                }
                 if (this->MpiComm_->getRank() == 0) {
                     std::cout << "\n\
                     --------------------------------------------\n\
@@ -193,18 +203,15 @@ namespace FROSch {
                     coarse nodes: rotations      --- " << useRotations << "\n\
                     --------------------------------------------\n";
                 }
-                this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-                if(this->MpiComm_->getRank() == 0) std::cout<<"HAHA1\n";
+              
                 if (this->ParameterList_->get("Use RepMap",false)) {
                     if (this->K_->getMap()->lib() == Xpetra::UseTpetra) {
                         this->buildGraphEntries(this->DDInterface_);
                     }
                 }
-                this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-                if(this->MpiComm_->getRank() == 0) std::cout<<"HAHA2\n";
+                
                 this->BlockCoarseDimension_[blockId] = numCoarseNodesGlobal;
-                this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-                if(this->MpiComm_->getRank() == 0) std::cout<<"HAHA3\n";
+                
                 
             }
         }

@@ -70,6 +70,26 @@ namespace FROSch {
         return Xpetra::MapFactory<LO,GO,NO>::Build(map->lib(),-1,uniqueVector(),0,map->getComm()); // We need this setup for maps with offset (with MaxGID+1 not being the number of global elements), or we need an allreduce to determine the number of global elements from uniqueVector
 //        return Xpetra::MapFactory<LO,GO,NO>::Build(map->lib(),map->getMaxAllGlobalIndex()+1,uniqueVector(),0,map->getComm());
     }
+    template <class LO,class GO,class NO>
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildNodeMapFromMap(Teuchos::RCP<Xpetra::Map<LO,GO,NO> > & theMap,unsigned dofsPerNode){
+        
+       
+        GO maxIndex = theMap->getMaxGlobalIndex();
+        GO maxNode = (maxIndex +1)/dofsPerNode - 1;
+        Teuchos::Array<GO> vals;
+        Teuchos::ArrayView< const GO> elementList = theMap->getNodeElementList();
+        //vals.resize(elementList.size());
+        
+        for(int i = 0;i<elementList.size();i++){
+            if(elementList[i]<= maxNode){
+                vals.push_back(elementList[i]);
+            }
+            
+        }
+        
+         return Xpetra::MapFactory<LO,GO,NO>::Build(theMap->lib(),-1,vals(),0,theMap->getComm());
+        
+    }
 
     template <class SC,class LO,class GO,class NO>
     Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > BuildRepeatedSubMaps(Teuchos::RCP<Xpetra::Matrix<SC,LO,GO,NO> > matrix,
@@ -554,8 +574,9 @@ namespace FROSch {
                                                              unsigned dofOrdering)
     {
         FROSCH_ASSERT(dofOrdering==0 || dofOrdering==1,"ERROR: Specify a valid DofOrdering.");
+       
         FROSCH_ASSERT(!dofMaps.is_null(),"dofMaps.is_null().");
-        FROSCH_ASSERT(dofMaps.size()==dofsPerNode,"dofMaps.size!=dofsPerNode.");
+        //FROSCH_ASSERT(dofMaps.size()==dofsPerNode,"dofMaps.size!=dofsPerNode.");
         for (unsigned i=0; i<dofMaps.size(); i++) {
             FROSCH_ASSERT(dofMaps[i]->getGlobalNumElements()%dofsPerNode==0 && dofMaps[i]->getNodeNumElements()%dofsPerNode==0,"ERROR: The number of dofsPerNode does not divide the number of global dofs in the dofMaps!");
         }
@@ -587,16 +608,22 @@ namespace FROSch {
                             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &map,
                             Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &dofMaps,
                             GO offset)
+    
     {
         //if (map->getComm()->getRank()==0) std::cout << "WARNING: BuildDofMaps is yet to be tested...\n";
         FROSCH_ASSERT(dofOrdering==0 || dofOrdering==1,"ERROR: Specify a valid DofOrdering.");
         //FROSCH_ASSERT(nodesMap->getGlobalNumElements()%dofsPerNode==0 && nodesMap->getNodeNumElements()%dofsPerNode==0,"ERROR: The number of dofsPerNode does not divide the number of global dofs in the map!");
+        if(nodesMap->getComm()->getRank() == 0)std::cout<<"Tools0\n";
         
+       
         Teuchos::Array<GO> allDofs(nodesMap->getNodeNumElements()*dofsPerNode);
+     
+  
         Teuchos::Array<Teuchos::ArrayRCP<GO> > dofs(dofsPerNode);
         for (unsigned j=0; j<dofsPerNode; j++) {
             dofs[j] = Teuchos::ArrayRCP<GO>(nodesMap->getNodeNumElements());
         }
+        
         if (dofOrdering==0) {
             for (unsigned i=0; i<nodesMap->getNodeNumElements(); i++) {
                 for (unsigned j=0; j<dofsPerNode; j++) {
@@ -604,6 +631,7 @@ namespace FROSch {
                     dofs[j][i] = allDofs[dofsPerNode*i+j];
                 }
             }
+            
         } else if (dofOrdering == 1) {
             GO numGlobalIDs = nodesMap->getMaxAllGlobalIndex()+1;
             for (unsigned i=0; i<nodesMap->getNodeNumElements(); i++) {
@@ -617,10 +645,16 @@ namespace FROSch {
         }
         map = Xpetra::MapFactory<LO,GO,NO>::Build(nodesMap->lib(),-1,allDofs(),0,nodesMap->getComm());
         
+        
+        
+        
+        
+        
         dofMaps = Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > >(dofsPerNode);
         for (unsigned j=0; j<dofsPerNode; j++) {
             dofMaps[j] = Xpetra::MapFactory<LO,GO,NO>::Build(nodesMap->lib(),-1,dofs[j](),0,nodesMap->getComm());
         }
+        
         return 0;
     }
     

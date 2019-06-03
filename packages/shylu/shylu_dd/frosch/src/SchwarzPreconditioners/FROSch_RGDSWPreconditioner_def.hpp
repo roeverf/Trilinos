@@ -229,9 +229,16 @@ namespace FROSch {
     int RGDSWPreconditioner<SC,LO,GO,NO>::compute()
     {
         int ret = 0;
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0) std::cout<<"Comp Ov Op\n";
         if (0>this->FirstLevelOperator_->compute()) ret -= 1;
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0) std::cout<<"Done\n"<<"Comp C OP\n";;
         if (0>CoarseLevelOperator_->compute()) ret -= 10;
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0) std::cout<<"Done\n";
         return ret;
+        
     }
     
     template <class SC,class LO,class GO,class NO>
