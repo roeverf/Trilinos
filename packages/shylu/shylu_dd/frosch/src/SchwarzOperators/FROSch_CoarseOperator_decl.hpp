@@ -192,8 +192,16 @@ namespace FROSch {
 	 Teuchos::Array<TimePtr> ComputeTimer;
 	Teuchos::Array<TimePtr> BuildGraphEntriesTimer;
 	Teuchos::Array<TimePtr> BuildGraphTimer;
+	Teuchos::Array<TimePtr> GraphTimer1;
+
 	Teuchos::Array<TimePtr> BuildElementNodeListTimer;
 	
+	Teuchos::Array<TimePtr>ElementNodeListTimer1;
+	Teuchos::Array<TimePtr>ElementNodeListTimer2;
+	Teuchos::Array<TimePtr>ElementNodeListTimer2;
+	Teuchos::Array<TimePtr>ElementNodeListTimer3;
+	Teuchos::Array<TimePtr>ElementNodeListTimer4;
+
 	Teuchos::Array<TimePtr> ApplyTimer;
 	Teuchos::Array<TimePtr> ApplyPhiTTimer;
 	Teuchos::Array<TimePtr> ApplyExportTimer;
