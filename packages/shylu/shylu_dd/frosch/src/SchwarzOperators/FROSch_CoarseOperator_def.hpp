@@ -278,17 +278,12 @@ namespace FROSch {
         
         UN maxNumElements = -1;
         UN numElementsLocal = elements_.size();
-<<<<<<< HEAD
 		{
 			#ifdef FROSch_CoarseOperatorTimers
 					Teuchos::TimeMonitor ElementNodeListTimeMonitor1(*ElementNodeListTimer1.at(current_level-1));
 			#endif
 			reduceAll(*this->MpiComm_,Teuchos::REDUCE_MAX,numElementsLocal,Teuchos::ptr(&maxNumElements));
         }
-=======
-        reduceAll(*this->MpiComm_,Teuchos::REDUCE_MAX,numElementsLocal,Teuchos::ptr(&maxNumElements));
-       
->>>>>>> f19d9520e58521c753888c740e1ccd48fe35bebc
          Teuchos::RCP<const Xpetra::Map<LO, GO, NO> > ColMap = Xpetra::MapFactory<LO,GO,NO>::createLocalMap(Xpetra::UseTpetra,maxNumElements,this->MpiComm_);
          Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> >  Elem = Xpetra::CrsMatrixFactory<GO,LO,GO,NO>::Build(GraphEntriesList_->getMap(),ColMap,numElementsLocal);
         Teuchos::ArrayView<const GO> myGlobals = GraphEntriesList_->getMap()->getNodeElementList();
@@ -305,18 +300,13 @@ namespace FROSch {
             Elem->insertGlobalValues(myGlobals[i],col_vec(),elements_);
             
         }
-<<<<<<< HEAD
+
         Elem->fillComplete();
 	   }
-=======
-        Elem->fillComplete();
-        
->>>>>>> f19d9520e58521c753888c740e1ccd48fe35bebc
         size_t MaxRow = Elem->getGlobalMaxNumRowEntries();
         Teuchos::RCP<Xpetra::Import<LO,GO,NO> > scatter2 = Xpetra::ImportFactory<LO,GO,NO>::Build(Elem->getRowMap(),GraphMap);
         Teuchos::RCP<const Xpetra::Map<LO, GO, NO> > ColMapE = Xpetra::MapFactory<LO,GO,NO>::createLocalMap(Xpetra::UseTpetra,MaxRow,CoarseSolveComm_);
         Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > ElemS = Xpetra::CrsMatrixFactory<GO,LO,GO,NO>::Build(GraphMap,ColMapE,MaxRow);
-<<<<<<< HEAD
 		{
 			#ifdef FROSch_CoarseOperatorTimers
 					Teuchos::TimeMonitor ElementNodeListTimeMonitor3(*ElementNodeListTimer3.at(current_level-1));
@@ -325,11 +315,6 @@ namespace FROSch {
 			ElemS->fillComplete();
 		}
        
-=======
-        ElemS->doImport(*Elem,*scatter2,Xpetra::INSERT);
-        ElemS->fillComplete();
-        
->>>>>>> f19d9520e58521c753888c740e1ccd48fe35bebc
         Teuchos::RCP<const Xpetra::Map<LO, GO, NO> > GraphMap2 =Xpetra::MapFactory<LO,GO,NO>::Build(Xpetra::UseTpetra,-1,RowsCoarseSolve,0,CoarseSolveComm_);
         
         ElementNodeList_ = Xpetra::CrsMatrixFactory<GO,LO,GO,NO>::Build(GraphMap2,ColMapE,MaxRow);
@@ -382,16 +367,9 @@ namespace FROSch {
             clearCoarseSpace(); // AH 12/11/2018: If we do not clear the coarse space, we will always append just append the coarse space
 
             MapPtr subdomainMap = this->computeCoarseSpace(CoarseSpace_); // AH 12/11/2018: This map could be overlapping, repeated, or unique. This depends on the specific coarse operator
-<<<<<<< HEAD
-            
-            CoarseSpace_->assembleCoarseSpace();
-           
-            CoarseSpace_->buildGlobalBasisMatrix(this->K_->getRangeMap(),subdomainMap,this->ParameterList_->get("Threshold Phi",1.e-8));
-            
-=======
+
             CoarseSpace_->assembleCoarseSpace();
             CoarseSpace_->buildGlobalBasisMatrix(this->K_->getRangeMap(),subdomainMap,this->ParameterList_->get("Threshold Phi",1.e-8));
->>>>>>> f19d9520e58521c753888c740e1ccd48fe35bebc
             Phi_ = CoarseSpace_->getGlobalBasisMatrix();
             this->setUpCoarseOperator();
             this->IsComputed_ = true;
@@ -580,18 +558,11 @@ namespace FROSch {
                         CoarseMatrix_->insertGlobalValues(CoarseSolveMap_->getGlobalElement(i),indices(),values());
                     }
                     
-<<<<<<< HEAD
-                }
-                CoarseMatrix_->fillComplete(CoarseSolveMap_,CoarseSolveMap_); //Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout)); CoarseMatrix_->describe(*fancy,Teuchos::VERB_EXTREME);
-                
-=======
                 }
              
                 CoarseMatrix_->fillComplete(CoarseSolveMap_,CoarseSolveMap_);
 
                
-                
->>>>>>> f19d9520e58521c753888c740e1ccd48fe35bebc
                 CoarseSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(CoarseMatrix_,sublist(this->ParameterList_,"CoarseSolver")));
                 {
 					#ifdef FROSch_CoarseOperatorTimers
