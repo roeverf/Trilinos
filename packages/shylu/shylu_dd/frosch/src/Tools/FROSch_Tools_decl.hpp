@@ -114,12 +114,15 @@ namespace FROSch {
                                                              unsigned dofOrdering);
     
     template <class LO,class GO,class NO>
-    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromNodeMap(Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &nodesMap,
-                                                             unsigned dofsPerNode,
-                                                             unsigned dofOrdering,
-                                                             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &map,
-                                                             Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &dofMaps,
-                                                             GO offset = 0);
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildNodeMapFromMap(Teuchos::RCP<Xpetra::Map<LO,GO,NO> > & theMap,unsigned dofsPerNode);
+    
+    template <class LO,class GO,class NO>
+    int BuildMapFromNodeMap(const Teuchos::RCP<Xpetra::Map<LO,GO,NO> > nodesMap,
+                            unsigned dofsPerNode,
+                            unsigned dofOrdering,
+                            Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &map,
+                            Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &dofMaps,
+                            GO offset = 0);
     
     template <class LO,class GO,class NO>
     int BuildMapFromNodeMapVec(const Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > nodesMapVec,

@@ -207,15 +207,16 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int OverlappingOperator<SC,LO,GO,NO>::computeOverlappingOperator()
     {
-
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0) std::cout<<"comp over\n";
+        int ret = 0;
         if (this->IsComputed_) {// already computed once and we want to recycle the information. That is why we reset OverlappingMatrix_ to K_, because K_ has been reset at this point
             OverlappingMatrix_ = this->K_;
         }
-        
         OverlappingMatrix_ = ExtractLocalSubdomainMatrix(OverlappingMatrix_,OverlappingMap_);
-        
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0) std::cout<<"comp over1\n";
         SubdomainSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(OverlappingMatrix_,sublist(this->ParameterList_,"Solver")));
-		int ret;
 		{
 			#ifdef FROSch_OverlappingOperatorTimers
 			Teuchos::TimeMonitor BuildDirectSolvesTimeMonitor(*BuildDirectSolves.at(current_level-1));
@@ -223,7 +224,8 @@ namespace FROSch {
         SubdomainSolver_->initialize();
 		ret = SubdomainSolver_->compute();
 		}
-
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0) std::cout<<"comp over2\n";
         return ret; // RETURN VALUE
     }
     

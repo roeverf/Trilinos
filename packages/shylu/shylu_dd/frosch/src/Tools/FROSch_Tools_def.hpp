@@ -70,6 +70,26 @@ namespace FROSch {
         return Xpetra::MapFactory<LO,GO,NO>::Build(map->lib(),-1,uniqueVector(),0,map->getComm()); // We need this setup for maps with offset (with MaxGID+1 not being the number of global elements), or we need an allreduce to determine the number of global elements from uniqueVector
 //        return Xpetra::MapFactory<LO,GO,NO>::Build(map->lib(),map->getMaxAllGlobalIndex()+1,uniqueVector(),0,map->getComm());
     }
+    template <class LO,class GO,class NO>
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildNodeMapFromMap(Teuchos::RCP<Xpetra::Map<LO,GO,NO> > & theMap,unsigned dofsPerNode){
+        
+       
+        GO maxIndex = theMap->getMaxGlobalIndex();
+        GO maxNode = (maxIndex +1)/dofsPerNode - 1;
+        Teuchos::Array<GO> vals;
+        Teuchos::ArrayView< const GO> elementList = theMap->getNodeElementList();
+        //vals.resize(elementList.size());
+        
+        for(int i = 0;i<elementList.size();i++){
+            if(elementList[i]<= maxNode){
+                vals.push_back(elementList[i]);
+            }
+            
+        }
+        
+         return Xpetra::MapFactory<LO,GO,NO>::Build(theMap->lib(),-1,vals(),0,theMap->getComm());
+        
+    }
 
     template <class SC,class LO,class GO,class NO>
     Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > BuildRepeatedSubMaps(Teuchos::RCP<Xpetra::Matrix<SC,LO,GO,NO> > matrix,
@@ -203,34 +223,58 @@ namespace FROSch {
         //Zoltan2 Problem
         typedef Zoltan2::XpetraCrsGraphAdapter<Xpetra::CrsGraph<LO,GO,NO> > inputAdapter;
         Teuchos::RCP<Teuchos::ParameterList> tmpList = Teuchos::sublist(parameterList,"Zoltan2 Parameter");
-        
+
         Teuchos::RCP<inputAdapter> adaptedMatrix = Teuchos::rcp(new inputAdapter(Xgraph,0,0));
         size_t MaxRow = B->getGlobalMaxNumRowEntries();
+        
         Teuchos::RCP<const Xpetra::Map<LO, GO, NO> > ColMap = Xpetra::MapFactory<LO,GO,NO>::createLocalMap(Xpetra::UseTpetra,MaxRow,TeuchosComm);
+        
         Teuchos::RCP<Zoltan2::PartitioningProblem<inputAdapter> >problem =
         Teuchos::RCP<Zoltan2::PartitioningProblem<inputAdapter> >(new Zoltan2::PartitioningProblem<inputAdapter> (adaptedMatrix.getRawPtr(), tmpList.get(),TeuchosComm));
         problem->solve();
+    
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > ReGraph;
         adaptedMatrix->applyPartitioningSolution(*Xgraph,ReGraph,problem->getSolution());
-       
         
+        Teuchos::RCP<Xpetra::Import<LO,GO,NO> > scatter = Xpetra::ImportFactory<LO,GO,NO>::Build(Xgraph->getRowMap(),ReGraph->getRowMap());
+        
+        Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > BB = Xpetra::CrsMatrixFactory<GO,LO,GO,NO>::Build(B,*scatter);
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        
+        Teuchos::Array<GO> repeatedMapEntries(0);
+        for (size_t i = 0; i<ReGraph->getRowMap()->getNodeNumElements(); i++) {
+            Teuchos::ArrayView<const GO> arr;
+            Teuchos::ArrayView<const LO> cc;
+            BB->getLocalRowView(i,cc,arr);
+            
+            for (unsigned j=0; j<arr.size(); j++) {
+                repeatedMapEntries.push_back(arr[j]);
+            }
+        }
+        sortunique(repeatedMapEntries);
+        
+       /*
+        ReGraph->describe(*fancy,Teuchos::VERB_EXTREME);
         //Repeated Element List
         Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > EleRepMap = ReGraph->getColMap();
+        
         //------------------------------Build NodeRepMap-----------------------------
         Teuchos::RCP<Xpetra::Import<LO,GO,NO> > scatter = Xpetra::ImportFactory<LO,GO,NO>::Build(Xgraph->getRowMap(),ReGraph->getColMap());
+       
         //Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > BB = Xpetra::CrsMatrixFactory<GO,LO,GO,NO>::Build(B,*scatter);
         
         //Teuchos::RCP<Xpetra::TpetraCrsMatrix<GO> > BB =Teuchos::rcp(new Xpetra::TpetraCrsMatrix<GO>(ReGraph->getColMap(),MaxRow));
         Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > BB = Xpetra::CrsMatrixFactory<GO,LO,GO,NO>::Build(ReGraph->getColMap(),B->getColMap(),MaxRow);
+        
         BB->doImport(*B,*scatter,Xpetra::INSERT);
         BB->fillComplete();
+        BB->describe(*fancy,Teuchos::VERB_EXTREME);
         //--------------------Get Repeated Nodes Map------------------------
         //All Elemnts and neighboring on Proc
         Teuchos::ArrayView<const GO>  eList =EleRepMap->getNodeElementList();
         
         std::map<GO,int> rep;
-        
-        
         
         Teuchos::Array<GO> vec = createVector(eList);
         if(MyPID == 0) std::cout<<"+++++++++++++++++++++++++++++++++++++++++++\n";
@@ -268,8 +312,9 @@ namespace FROSch {
             repeatedIndices.push_back(x.first);
         }
         Teuchos::RCP<Xpetra::Map<LO,GO,NO> > RepeatedMap = Xpetra::MapFactory<LO,GO,NO>::Build(ReGraph->getColMap()->lib(),-1,repeatedIndices(),0,ReGraph->getColMap()->getComm());
+        */
+        Teuchos::RCP<Xpetra::Map<LO,GO,NO> > RepeatedMap = Xpetra::MapFactory<LO,GO,NO>::Build(ReGraph->getColMap()->lib(),-1,repeatedMapEntries(),0,ReGraph->getColMap()->getComm());
         return RepeatedMap;
-        
     }
     
     /*
@@ -529,8 +574,9 @@ namespace FROSch {
                                                              unsigned dofOrdering)
     {
         FROSCH_ASSERT(dofOrdering==0 || dofOrdering==1,"ERROR: Specify a valid DofOrdering.");
+       
         FROSCH_ASSERT(!dofMaps.is_null(),"dofMaps.is_null().");
-        FROSCH_ASSERT(dofMaps.size()==dofsPerNode,"dofMaps.size!=dofsPerNode.");
+        //FROSCH_ASSERT(dofMaps.size()==dofsPerNode,"dofMaps.size!=dofsPerNode.");
         for (unsigned i=0; i<dofMaps.size(); i++) {
             FROSCH_ASSERT(dofMaps[i]->getGlobalNumElements()%dofsPerNode==0 && dofMaps[i]->getNodeNumElements()%dofsPerNode==0,"ERROR: The number of dofsPerNode does not divide the number of global dofs in the dofMaps!");
         }
@@ -556,22 +602,28 @@ namespace FROSch {
     }
     
     template <class LO,class GO,class NO>
-    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromNodeMap(Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &nodesMap,
-                                                             unsigned dofsPerNode,
-                                                             unsigned dofOrdering,
-                                                             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &map,
-                                                             Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &dofMaps,
-                                                             GO offset)
+    int BuildMapFromNodeMap(const Teuchos::RCP<Xpetra::Map<LO,GO,NO> > nodesMap,
+                            unsigned dofsPerNode,
+                            unsigned dofOrdering,
+                            Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &map,
+                            Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &dofMaps,
+                            GO offset)
+    
     {
         //if (map->getComm()->getRank()==0) std::cout << "WARNING: BuildDofMaps is yet to be tested...\n";
         FROSCH_ASSERT(dofOrdering==0 || dofOrdering==1,"ERROR: Specify a valid DofOrdering.");
-        FROSCH_ASSERT(nodesMap->getGlobalNumElements()%dofsPerNode==0 && nodesMap->getNodeNumElements()%dofsPerNode==0,"ERROR: The number of dofsPerNode does not divide the number of global dofs in the map!");
+        //FROSCH_ASSERT(nodesMap->getGlobalNumElements()%dofsPerNode==0 && nodesMap->getNodeNumElements()%dofsPerNode==0,"ERROR: The number of dofsPerNode does not divide the number of global dofs in the map!");
+        if(nodesMap->getComm()->getRank() == 0)std::cout<<"Tools0\n";
         
+       
         Teuchos::Array<GO> allDofs(nodesMap->getNodeNumElements()*dofsPerNode);
+     
+  
         Teuchos::Array<Teuchos::ArrayRCP<GO> > dofs(dofsPerNode);
         for (unsigned j=0; j<dofsPerNode; j++) {
             dofs[j] = Teuchos::ArrayRCP<GO>(nodesMap->getNodeNumElements());
         }
+        
         if (dofOrdering==0) {
             for (unsigned i=0; i<nodesMap->getNodeNumElements(); i++) {
                 for (unsigned j=0; j<dofsPerNode; j++) {
@@ -579,23 +631,30 @@ namespace FROSch {
                     dofs[j][i] = allDofs[dofsPerNode*i+j];
                 }
             }
+            
         } else if (dofOrdering == 1) {
-            GO numGlobalIDs = map->getMaxAllGlobalIndex()+1;
+            GO numGlobalIDs = nodesMap->getMaxAllGlobalIndex()+1;
             for (unsigned i=0; i<nodesMap->getNodeNumElements(); i++) {
                 for (unsigned j=0; j<dofsPerNode; j++) {
-                    allDofs[i+j*nodesMap->getNodeNumElements()] = nodesMap->getGlobalElement(i)+j*numGlobalIDs/dofsPerNode+offset;
+                    allDofs[i+j*nodesMap->getNodeNumElements()] = nodesMap->getGlobalElement(i)+j*numGlobalIDs+offset;
                     dofs[j][i] = allDofs[i+j*nodesMap->getNodeNumElements()];
                 }
             }
         } else {
             FROSCH_ASSERT(false,"dofOrdering unknown.");
         }
-        nodesMap = Xpetra::MapFactory<LO,GO,NO>::Build(map->lib(),-1,allDofs(),0,map->getComm());
+        map = Xpetra::MapFactory<LO,GO,NO>::Build(nodesMap->lib(),-1,allDofs(),0,nodesMap->getComm());
+        
+        
+        
+        
+        
         
         dofMaps = Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > >(dofsPerNode);
         for (unsigned j=0; j<dofsPerNode; j++) {
-            dofMaps[j] = Xpetra::MapFactory<LO,GO,NO>::Build(map->lib(),-1,dofs[j](),0,map->getComm());
+            dofMaps[j] = Xpetra::MapFactory<LO,GO,NO>::Build(nodesMap->lib(),-1,dofs[j](),0,nodesMap->getComm());
         }
+        
         return 0;
     }
     
@@ -612,7 +671,7 @@ namespace FROSch {
         
         GO tmpOffset = 0;
         for (unsigned i = 0 ; i < numberBlocks; i++) {
-            BuildDofMaps(nodesMapVec[i],dofsPerNodeVec[i],dofOrderingVec[i],mapVec[i],dofMapsVec[i],tmpOffset);
+            BuildMapFromNodeMap(nodesMapVec[i],dofsPerNodeVec[i],dofOrderingVec[i],mapVec[i],dofMapsVec[i],tmpOffset);
             tmpOffset += mapVec[i]->getMaxAllGlobalIndex()+1;
         }
         
