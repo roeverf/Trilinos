@@ -405,6 +405,7 @@ namespace FROSch {
         }
         // Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout)); this->Phi_->describe(*fancy,Teuchos::VERB_EXTREME);
         // Hier Multiplikation kIGamma*PhiGamma
+        if(kII->getGlobalNumRows()>0){
         kIGamma->apply(*mVPhiGamma,*mVtmp);
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
         
@@ -456,6 +457,7 @@ namespace FROSch {
                 }
                 itmp++;
             }
+        }
         }
         return mVPhi;
     }

@@ -69,10 +69,15 @@ namespace FROSch {
     GraphEntriesList_(),
     kRowMap_()	
 #ifdef FROSch_CoarseOperatorTimers
-   ,ComputeTimer(this->level), 
+   ,ComputeTimer(this->level),
 	BuildGraphEntriesTimer(this->level) ,
+    GraphTimer1(this->level),
 	BuildGraphTimer(this->level),
 	BuildElementNodeListTimer(this->level),
+    ElementNodeListTimer1(this->level),
+    ElementNodeListTimer2(this->level),
+    ElementNodeListTimer3(this->level),
+    ElementNodeListTimer4(this->level),
 	BuildCoarseMatrixTimer(this->level),
 	ApplyTimer(this->level),
 	ApplyPhiTTimer(this->level),
