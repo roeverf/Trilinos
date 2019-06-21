@@ -48,15 +48,15 @@
 
 
 namespace FROSch {
-    
+
     template <class SC = Xpetra::Operator<>::scalar_type,
     class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
     class GO = typename Xpetra::Operator<SC,LO>::global_ordinal_type,
     class NO = typename Xpetra::Operator<SC,LO,GO>::node_type>
     class CoarseOperator : public SchwarzOperator<SC,LO,GO,NO> {
-        
+
     public:
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::CommPtr CommPtr;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::Map Map;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtr MapPtr;
@@ -68,126 +68,127 @@ namespace FROSch {
 
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVector MultiVector;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr MultiVectorPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::ExporterPtrVecPtr ExporterPtrVecPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::ParameterList ParameterList;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr ParameterListPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::CoarseSpacePtr CoarseSpacePtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::SubdomainSolverPtr SubdomainSolverPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::UN UN;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVec GOVec;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr GOVecPtr;
         typedef Teuchos::Array<GOVec> GOVec2D;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVec LOVec;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr2D LOVecPtr2D;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::SCVec SCVec;
 
         typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstLOVecView ConstLOVecView;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstGOVecView ConstGOVecView;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstSCVecView ConstSCVecView;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::CrsGraphPtr CrsGraphPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtr EntitySetPtr;
         typedef const EntitySetPtr EntitySetConstPtr;
         typedef Teuchos::ArrayRCP<EntitySetPtr> EntitySetPtrVecPtr;
         typedef const EntitySetPtrVecPtr EntitySetPtrConstVecPtr;
 
-        
+
         typedef Teuchos::RCP<InterfaceEntity<SC,LO,GO,NO> > InterfaceEntityPtr;
         typedef Teuchos::Array<InterfaceEntityPtr> InterfaceEntityPtrVec;
         typedef Teuchos::ArrayRCP<InterfaceEntityPtr> InterfaceEntityPtrVecPtr;
-		
+
 		typedef typename SchwarzOperator<SC,LO,GO,NO>::Time Time;
 		typedef typename SchwarzOperator<SC,LO,GO,NO>::TimePtr TimePtr;
 
-        
+
 
         CoarseOperator(CrsMatrixPtr k,
                        ParameterListPtr parameterList);
-        
+
         ~CoarseOperator();
-        
+
         virtual int initialize() = 0;
-        
+
         virtual int compute();
-        
+
         virtual MapPtr computeCoarseSpace(CoarseSpacePtr coarseSpace) = 0;
-        
+
         virtual int clearCoarseSpace();
-        
+
         virtual void apply(const MultiVector &x,
                           MultiVector &y,
                           bool usePreconditionerOnly,
                           Teuchos::ETransp mode=Teuchos::NO_TRANS,
                           SC alpha=Teuchos::ScalarTraits<SC>::one(),
                           SC beta=Teuchos::ScalarTraits<SC>::zero()) const;
-        
+
         virtual void applyPhiT(MultiVector& x,
                               MultiVector& y) const;
-        
+
         virtual void applyCoarseSolve(MultiVector& x,
                                      MultiVector& y,
                                      Teuchos::ETransp mode=Teuchos::NO_TRANS) const;
-        
+
         virtual void applyPhi(MultiVector& x,
                              MultiVector& y) const;
 
         virtual CoarseSpacePtr getCoarseSpace() const;
-        
+
         static int current_level;
-        
+
     protected:
-        
+
         virtual MapPtr assembleSubdomainMap() = 0;
-        
+
         virtual int setUpCoarseOperator();
-        
+
         CrsMatrixPtr buildCoarseMatrix();
-        
+
         virtual int buildCoarseSolveMap(CrsMatrixPtr &k0);
-        virtual int buildElementNodeList(MapPtr &tmpCoarseMap);
+        virtual int buildElementNodeList();
         virtual int buildGraphEntries(Teuchos::RCP<DDInterface<SC,LO,GO,NO> > theDDInterface_);
         virtual int buildConnectGraph();
         CommPtr CoarseSolveComm_;
-        
+
         bool OnCoarseSolveComm_;
-        
+
         LO NumProcsCoarseSolve_;
-        
+
         CoarseSpacePtr CoarseSpace_;
-        
+
         CrsMatrixPtr Phi_;
         CrsMatrixPtr CoarseMatrix_;
-        
+
         MapPtrVecPtr GatheringMaps_;
+        MapPtrVecPtr MLGatheringMaps_;
         MapPtr CoarseSolveMap_;
         MapPtr CoarseSolveRepeatedMap_;
         GOVecPtr BlockCoarseDimension_;
-        
+
         SubdomainSolverPtr CoarseSolver_;
         ParameterListPtr DistributionList_;
-        
+
         ExporterPtrVecPtr CoarseSolveExporters_;
-        
+        ExporterPtrVecPtr MLCoarseSolveExporters_;
         //Graph to compute Reapeated Map
         CrsGraphPtr SubdomainConnectGraph_;
         //Element-Node-List to compute RepeatedMap
         Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > ElementNodeList_;
         Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > GraphEntriesList_;
-        
+
         ConstMapPtr kRowMap_;
         LO DofsPerNodeCoarse_;
         UN dofs;
- 
+
 #ifdef FROSch_CoarseOperatorTimers
 	 Teuchos::Array<TimePtr> ComputeTimer;
 	Teuchos::Array<TimePtr> BuildGraphEntriesTimer;
@@ -195,7 +196,7 @@ namespace FROSch {
 	Teuchos::Array<TimePtr> GraphTimer1;
 
 	Teuchos::Array<TimePtr> BuildElementNodeListTimer;
-	
+
 	Teuchos::Array<TimePtr>ElementNodeListTimer1;
 	Teuchos::Array<TimePtr>ElementNodeListTimer2;
 	Teuchos::Array<TimePtr>ElementNodeListTimer2;
@@ -214,9 +215,9 @@ namespace FROSch {
 	Teuchos::Array<TimePtr> BuildCoarseRepMapTimer;
 	Teuchos::Array<TimePtr> ExportKOTimer;
 	Teuchos::Array<TimePtr> BuildDirectSolvesTimer;
-#endif  
+#endif
     };
-    
+
 }
 
 #endif

@@ -45,7 +45,7 @@
 #include <FROSch_HarmonicCoarseOperator_decl.hpp>
 
 namespace FROSch {
-    
+
     template <class SC,class LO,class GO,class NO>
     HarmonicCoarseOperator<SC,LO,GO,NO>::HarmonicCoarseOperator(CrsMatrixPtr k,
                                                                 ParameterListPtr parameterList) :
@@ -59,20 +59,20 @@ namespace FROSch {
     DofsMaps_ (0),
     NumberOfBlocks_ (0)
     {
-        
-    }        
+
+    }
 
     template <class SC,class LO,class GO,class NO>
     typename HarmonicCoarseOperator<SC,LO,GO,NO>::MapPtr HarmonicCoarseOperator<SC,LO,GO,NO>::computeCoarseSpace(CoarseSpacePtr coarseSpace)
     {
-        
+
         MapPtr repeatedMap = assembleSubdomainMap();
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
         //repeatedMap->(*fancy,Teuchos::VERB_EXTREME);
-        
-        
+
+
         CrsMatrixPtr repeatedMatrix = FROSch::ExtractLocalSubdomainMatrix(this->K_,repeatedMap); // AH 12/11/2018: Should this be in initalize?
-        
+
         // Extract submatrices
         GOVec indicesGammaDofsAll(0);
         GOVec indicesIDofsAll(0);
@@ -87,8 +87,8 @@ namespace FROSch {
             }
             tmp += GammaDofs_[i].size()+IDofs_[i].size();
         }
-        
-       
+
+
         CrsMatrixPtr kII;
         CrsMatrixPtr kIGamma;
         CrsMatrixPtr kGammaI;
@@ -100,10 +100,10 @@ namespace FROSch {
         // Build the saddle point harmonic extensions
         MultiVectorPtr localCoarseSpaceBasis = computeExtensions(repeatedMatrix->getRowMap(),coarseMap,indicesGammaDofsAll(),indicesIDofsAll(),kII,kIGamma);
         coarseSpace->addSubspace(coarseMap,localCoarseSpaceBasis);
-        
+
         return repeatedMap;
-    }        
-    
+    }
+
     template <class SC,class LO,class GO,class NO>
     typename HarmonicCoarseOperator<SC,LO,GO,NO>::MapPtr HarmonicCoarseOperator<SC,LO,GO,NO>::assembleCoarseMap()
     {
@@ -121,13 +121,13 @@ namespace FROSch {
         }
         return Xpetra::MapFactory<LO,GO,NO>::Build(DofsMaps_[0][0]->lib(),-1,mapVector(),0,this->MpiComm_);
     }
-    
+
     template <class SC,class LO,class GO,class NO>
     typename HarmonicCoarseOperator<SC,LO,GO,NO>::MapPtr HarmonicCoarseOperator<SC,LO,GO,NO>::assembleSubdomainMap()
     {
         FROSCH_ASSERT(DofsMaps_.size()==NumberOfBlocks_,"DofsMaps_.size()!=NumberOfBlocks_");
         FROSCH_ASSERT(DofsPerNode_.size()==NumberOfBlocks_,"DofsPerNode_.size()!=NumberOfBlocks_");
-        
+
         GOVec mapVector(0);
         for (UN i=0; i<NumberOfBlocks_; i++) {
             FROSCH_ASSERT(DofsMaps_[i].size()==DofsPerNode_[i],"DofsMaps_[i].size()!=DofsPerNode_[i]");
@@ -143,7 +143,7 @@ namespace FROSch {
         }
         return Xpetra::MapFactory<LO,GO,NO>::Build(DofsMaps_[0][0]->lib(),-1,mapVector(),0,this->MpiComm_);
     }
-    
+
     template <class SC,class LO,class GO,class NO>
     int  HarmonicCoarseOperator<SC,LO,GO,NO>::addZeroCoarseSpaceBlock(MapPtr dofsMap)
     {
@@ -173,7 +173,7 @@ namespace FROSch {
         MapPtr blockCoarseMap;
         if (useForCoarseSpace) {
             InterfaceCoarseSpaces_[blockId].reset(new CoarseSpace<SC,LO,GO,NO>());
-            
+
             //Epetra_SerialComm serialComm;
             MapPtr serialGammaMap = Xpetra::MapFactory<LO,GO,NO>::Build(dofsMap->lib(),dofsMap->getNodeNumElements(),0,this->SerialComm_);
             mVPhiGamma = Xpetra::MultiVectorFactory<LO,GO,NO>::Build(serialGammaMap,dofsMap->getNodeNumElements());
@@ -191,7 +191,7 @@ namespace FROSch {
 
         if (useForCoarseSpace) {
             blockCoarseMap = Xpetra::MapFactory<LO,GO,NO>::Build(dofsMap->lib(),-1,GammaDofs_[blockId](),0,this->MpiComm_);
-            
+
             InterfaceCoarseSpaces_[blockId]->addSubspace(blockCoarseMap,mVPhiGamma);
             InterfaceCoarseSpaces_[blockId]->assembleCoarseSpace();
         }
@@ -203,7 +203,7 @@ namespace FROSch {
 
         return 0;
     }
-    
+
     template <class SC,class LO,class GO,class NO>
     int HarmonicCoarseOperator<SC,LO,GO,NO>::computeVolumeFunctions(UN blockId,
                                                                     UN dimension,
@@ -216,14 +216,14 @@ namespace FROSch {
         blockIdStringstream << blockId+1;
         std::string blockIdString = blockIdStringstream.str();
         Teuchos::RCP<Teuchos::ParameterList> coarseSpaceList = sublist(sublist(this->ParameterList_,"Blocks"),blockIdString.c_str());
-        
+
         bool useForCoarseSpace = coarseSpaceList->get("Use For Coarse Space",true);
         bool useRotations = coarseSpaceList->get("Rotations",true);
         if (useRotations && nodeList.is_null()) {
             useRotations = false;
             if (this->Verbose_) std::cout << "\nWarning: Rotations cannot be used!\n";
         }
-        
+
         this->GammaDofs_[blockId] = LOVecPtr(this->DofsPerNode_[blockId]*interior->getEntity(0)->getNumNodes());
         this->IDofs_[blockId] = LOVecPtr(0);
         for (UN k=0; k<this->DofsPerNode_[blockId]; k++) {
@@ -231,12 +231,12 @@ namespace FROSch {
                 this->GammaDofs_[blockId][this->DofsPerNode_[blockId]*i+k] = interior->getEntity(0)->getLocalDofID(i,k);
             }
         }
-        
-        if (useForCoarseSpace) {            
+
+        if (useForCoarseSpace) {
             InterfaceCoarseSpaces_[blockId].reset(new CoarseSpace<SC,LO,GO,NO>());
-            
+
             interior->buildEntityMap(nodesMap);
-            
+
             MultiVectorPtrVecPtr translations = computeTranslations(blockId,interior);
             for (UN i=0; i<translations.size(); i++) {
                 this->InterfaceCoarseSpaces_[blockId]->addSubspace(interior->getEntityMap(),translations[i]);
@@ -247,15 +247,15 @@ namespace FROSch {
                     this->InterfaceCoarseSpaces_[blockId]->addSubspace(interior->getEntityMap(),rotations[i]);
                 }
             }
-            
+
             InterfaceCoarseSpaces_[blockId]->assembleCoarseSpace();
-            
+
             // Count entities
             GO numEntitiesGlobal = interior->getEntityMap()->getMaxAllGlobalIndex();
             if (interior->getEntityMap()->lib()==Xpetra::UseEpetra || interior->getEntityMap()->getGlobalNumElements()>0) {
                 numEntitiesGlobal += 1;
             }
-            
+
             if (this->MpiComm_->getRank() == 0) {
                 std::cout << "\n\
                 --------------------------------------------\n\
@@ -270,7 +270,7 @@ namespace FROSch {
         }
         return 0;
     }
-    
+
     template <class SC,class LO,class GO,class NO>
     typename HarmonicCoarseOperator<SC,LO,GO,NO>::MultiVectorPtrVecPtr HarmonicCoarseOperator<SC,LO,GO,NO>::computeTranslations(UN blockId,
                                                                                                                                 EntitySetPtr entitySet)
@@ -284,7 +284,7 @@ namespace FROSch {
                 translations[i] = Teuchos::null;
             }
         }
-        
+
         for (UN k=0; k<this->DofsPerNode_[blockId]; k++) {
             for (UN i=0; i<entitySet->getNumEntities(); i++) {
                 for (UN j=0; j<entitySet->getEntity(i)->getNumNodes(); j++) {
@@ -294,7 +294,7 @@ namespace FROSch {
         }
         return translations;
     }
-    
+
     template <class SC,class LO,class GO,class NO>
     typename HarmonicCoarseOperator<SC,LO,GO,NO>::MultiVectorPtrVecPtr HarmonicCoarseOperator<SC,LO,GO,NO>::computeRotations(UN blockId,
                                                                                                                              UN dimension,
@@ -303,7 +303,7 @@ namespace FROSch {
     {
         FROSCH_ASSERT(nodeList->getNumVectors()==dimension,"dimension of the nodeList is wrong.");
         FROSCH_ASSERT(dimension==this->DofsPerNode_[blockId],"dimension!=this->DofsPerNode_[blockId]");
-        
+
         UN rotationsPerEntity = 0;
         switch (dimension) {
             case 1:
@@ -319,7 +319,7 @@ namespace FROSch {
                 FROSCH_ASSERT(false,"The dimension is neither 2 nor 3!");
                 break;
         }
-        
+
         MultiVectorPtrVecPtr rotations(rotationsPerEntity);
         MapPtr serialGammaMap = Xpetra::MapFactory<LO,GO,NO>::Build(this->K_->getRangeMap()->lib(),this->GammaDofs_[blockId].size(),0,this->SerialComm_);
         for (UN i=0; i<rotationsPerEntity; i++) {
@@ -329,13 +329,13 @@ namespace FROSch {
                 rotations[i] = Teuchos::null;
             }
         }
-        
+
         SC x,y,z,rx,ry,rz;
         for (UN i=0; i<entitySet->getNumEntities(); i++) {
             for (UN j=0; j<entitySet->getEntity(i)->getNumNodes(); j++) {
                 x = nodeList->getData(0)[entitySet->getEntity(i)->getLocalNodeID(j)];
                 y = nodeList->getData(1)[entitySet->getEntity(i)->getLocalNodeID(j)];
-                
+
                 // Rotation 1
                 rx = y;
                 ry = -x;
@@ -344,9 +344,9 @@ namespace FROSch {
                 rotations[0]->replaceLocalValue(entitySet->getEntity(i)->getGammaDofID(j,1),i,ry);
                 if (dimension == 3) {
                     z = nodeList->getData(2)[entitySet->getEntity(i)->getLocalNodeID(j)];
-                    
+
                     rotations[0]->replaceLocalValue(entitySet->getEntity(i)->getGammaDofID(j,2),i,rz);
-                    
+
                     // Rotation 2
                     rx = -z;
                     ry = 0;
@@ -354,7 +354,7 @@ namespace FROSch {
                     rotations[1]->replaceLocalValue(entitySet->getEntity(i)->getGammaDofID(j,0),i,rx);
                     rotations[1]->replaceLocalValue(entitySet->getEntity(i)->getGammaDofID(j,1),i,ry);
                     rotations[1]->replaceLocalValue(entitySet->getEntity(i)->getGammaDofID(j,2),i,rz);
-                    
+
                     // Rotation 3
                     rx = 0;
                     ry = z;
@@ -407,25 +407,25 @@ namespace FROSch {
         // Hier Multiplikation kIGamma*PhiGamma
         kIGamma->apply(*mVPhiGamma,*mVtmp);
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
-        
+
         mVtmp->scale(-1.0);
         // Jetzt der solver für kII
-       
+       if(kII->getGlobalNumRows()>0){
         ExtensionSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(kII,sublist(this->ParameterList_,"ExtensionSolver")));
         ExtensionSolver_->initialize();
         ExtensionSolver_->compute();
         ExtensionSolver_->apply(*mVtmp,*mVPhiI);
-
+        }
         GOVec priorIndex(NumberOfBlocks_,0);
         GOVec postIndex(NumberOfBlocks_,0);
-        
+
         GOVec2D excludeCols(NumberOfBlocks_);
-        
+
         LOVec bound(NumberOfBlocks_+1,(LO)0);
         for (UN i=0; i<NumberOfBlocks_; i++) {
             bound[i+1] = bound[i] + this->IDofs_[i].size();
         }
-        
+
         LO itmp = 0;
         for (UN i=0; i<NumberOfBlocks_; i++) {
             std::stringstream blockIdStringstream;
@@ -445,7 +445,7 @@ namespace FROSch {
                     extensionBlocks.push_back(j);
                 }
             }
-            
+
             for (UN j=0; j<numLocalBlockRows[i]; j++) {
                 for (UN ii=0; ii<extensionBlocks.size(); ii++) {
                     for (LO k=bound[extensionBlocks[ii]]; k<bound[extensionBlocks[ii]+1]; k++) {
@@ -459,7 +459,7 @@ namespace FROSch {
         }
         return mVPhi;
     }
-    
+
 }
 
 #endif
