@@ -43,7 +43,7 @@
 #define _FROSCH_COARSEOPERATOR_DECL_HPP
 
 #include <FROSch_SchwarzOperator_def.hpp>
-//#define FROSch_CoarseOperatorTimers
+#define FROSch_CoarseOperatorTimers
 // TODO: Member sortieren!?
 
 
@@ -199,8 +199,8 @@ namespace FROSch {
 
 	Teuchos::Array<TimePtr>ElementNodeListTimer1;
 	Teuchos::Array<TimePtr>ElementNodeListTimer2;
-	Teuchos::Array<TimePtr>ElementNodeListTimer2;
-	Teuchos::Array<TimePtr>ElementNodeListTimer3;
+        
+    Teuchos::Array<TimePtr>ElementNodeListTimer3;
 	Teuchos::Array<TimePtr>ElementNodeListTimer4;
 
 	Teuchos::Array<TimePtr> ApplyTimer;
