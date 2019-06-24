@@ -172,6 +172,7 @@ namespace FROSch {
         MapPtrVecPtr MLGatheringMaps_;
         MapPtr CoarseSolveMap_;
         MapPtr CoarseSolveRepeatedMap_;
+        MapPtr MLCoarseMap_;
         GOVecPtr BlockCoarseDimension_;
 
         SubdomainSolverPtr CoarseSolver_;
@@ -192,6 +193,10 @@ namespace FROSch {
 #ifdef FROSch_CoarseOperatorTimers
 	 Teuchos::Array<TimePtr> ComputeTimer;
 	Teuchos::Array<TimePtr> BuildGraphEntriesTimer;
+  Teuchos::Array<TimePtr> GraphInterInfoTimer;
+  Teuchos::Array<TimePtr> GraphAssemTimer;
+  Teuchos::Array<TimePtr> GraphAssem2Timer;
+
 	Teuchos::Array<TimePtr> BuildGraphTimer;
 	Teuchos::Array<TimePtr> GraphTimer1;
 
@@ -199,7 +204,7 @@ namespace FROSch {
 
 	Teuchos::Array<TimePtr>ElementNodeListTimer1;
 	Teuchos::Array<TimePtr>ElementNodeListTimer2;
-        
+
     Teuchos::Array<TimePtr>ElementNodeListTimer3;
 	Teuchos::Array<TimePtr>ElementNodeListTimer4;
 
