@@ -378,6 +378,8 @@ int main(int argc, char *argv[])
         solve<double>(*lows, Thyra::NOTRANS, *thyraB, thyraX.ptr());
         
         Comm->barrier(); if (Comm->getRank()==0) cout << "\n#############\n# Finished! #\n#############" << endl;
+
+        Teuchos::TimeMonitor::report(cout);
     }
     
     return(EXIT_SUCCESS);

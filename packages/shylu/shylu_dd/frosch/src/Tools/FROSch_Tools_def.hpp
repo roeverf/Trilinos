@@ -213,7 +213,7 @@ namespace FROSch {
 
     template <class SC,class LO,class GO,class NO>
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildRepMap_Zoltan(Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > Xgraph,
-                                                            Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > B,
+                                                            Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> >  B,
                                                             Teuchos::RCP<Teuchos::ParameterList> parameterList,
                                                             Teuchos::RCP<const Teuchos::Comm<int> > TeuchosComm)
     {
@@ -238,82 +238,24 @@ namespace FROSch {
 
         Teuchos::RCP<Xpetra::Import<LO,GO,NO> > scatter = Xpetra::ImportFactory<LO,GO,NO>::Build(Xgraph->getRowMap(),ReGraph->getRowMap());
 
-        Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > BB = Xpetra::CrsMatrixFactory<GO,LO,GO,NO>::Build(B,*scatter);
+        Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > BB = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(ReGraph->getRowMap(),MaxRow);
+        BB->doImport(*B,*scatter,Xpetra::INSERT);
+
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         Teuchos::Array<GO> repeatedMapEntries(0);
         for (size_t i = 0; i<ReGraph->getRowMap()->getNodeNumElements(); i++) {
             Teuchos::ArrayView<const GO> arr;
             Teuchos::ArrayView<const LO> cc;
-            BB->getLocalRowView(i,cc,arr);
-
+            GO gi = ReGraph->getRowMap()->getGlobalElement(i);
+            BB->getGlobalRowView(gi,arr);
             for (unsigned j=0; j<arr.size(); j++) {
                 repeatedMapEntries.push_back(arr[j]);
             }
         }
         sortunique(repeatedMapEntries);
 
-       /*
-        ReGraph->describe(*fancy,Teuchos::VERB_EXTREME);
-        //Repeated Element List
-        Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > EleRepMap = ReGraph->getColMap();
-
-        //------------------------------Build NodeRepMap-----------------------------
-        Teuchos::RCP<Xpetra::Import<LO,GO,NO> > scatter = Xpetra::ImportFactory<LO,GO,NO>::Build(Xgraph->getRowMap(),ReGraph->getColMap());
-
-        //Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > BB = Xpetra::CrsMatrixFactory<GO,LO,GO,NO>::Build(B,*scatter);
-
-        //Teuchos::RCP<Xpetra::TpetraCrsMatrix<GO> > BB =Teuchos::rcp(new Xpetra::TpetraCrsMatrix<GO>(ReGraph->getColMap(),MaxRow));
-        Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > BB = Xpetra::CrsMatrixFactory<GO,LO,GO,NO>::Build(ReGraph->getColMap(),B->getColMap(),MaxRow);
-
-        BB->doImport(*B,*scatter,Xpetra::INSERT);
-        BB->fillComplete();
-        BB->describe(*fancy,Teuchos::VERB_EXTREME);
-        //--------------------Get Repeated Nodes Map------------------------
-        //All Elemnts and neighboring on Proc
-        Teuchos::ArrayView<const GO>  eList =EleRepMap->getNodeElementList();
-
-        std::map<GO,int> rep;
-
-        Teuchos::Array<GO> vec = createVector(eList);
-        if(MyPID == 0) std::cout<<"+++++++++++++++++++++++++++++++++++++++++++\n";
-
-        for (size_t i = 0; i<ReGraph->getRowMap()->getNodeNumElements(); i++) {
-            std::vector<GO> el1;
-            std::vector<GO> el2;
-            Teuchos::ArrayView<const GO> arr;
-            Teuchos::ArrayView<const LO> cc;
-            BB->getLocalRowView(i,cc,arr);
-            el1 = Teuchos::createVector(arr);
-
-            for (unsigned h = 0;h<el1.size(); h++) rep.insert(std::pair<GO,unsigned>(el1.at(h),MyPID));
-
-            for (unsigned k = ReGraph->getRowMap()->getNodeNumElements();k<vec.size();k++){
-                Teuchos::ArrayView<const GO> arr2;
-                Teuchos::ArrayView<const LO> cc2;
-                BB->getLocalRowView(k,cc2,arr2);
-                el2 = Teuchos::createVector(arr2);
-                std::sort(el1.begin(),el1.end());
-                std::sort(el2.begin(),el2.end());
-                typename std::vector<GO>::iterator it;
-
-                std::vector<GO> common(3);
-                it = std::set_intersection(el1.begin(),el1.end(),el2.begin(),el2.end(),common.begin());
-                common.resize(it-common.begin());
-                for (unsigned l = 0; l<common.size(); l++) {
-                    rep.insert(std::pair<GO,unsigned>(common.at(l),MyPID));
-                }
-            }
-        }
-
-        Teuchos::Array<GO> repeatedIndices;
-        for (auto& x: rep) {
-            repeatedIndices.push_back(x.first);
-        }
-        Teuchos::RCP<Xpetra::Map<LO,GO,NO> > RepeatedMap = Xpetra::MapFactory<LO,GO,NO>::Build(ReGraph->getColMap()->lib(),-1,repeatedIndices(),0,ReGraph->getColMap()->getComm());
-        */
-
         Teuchos::RCP<Xpetra::Map<LO,GO,NO> > RepeatedMap = Xpetra::MapFactory<LO,GO,NO>::Build(ReGraph->getColMap()->lib(),-1,repeatedMapEntries(),0,ReGraph->getColMap()->getComm());
-//        RepeatedMap->describe(*fancy,Teuchos::VERB_EXTREME);
+        //RepeatedMap->describe(*fancy,Teuchos::VERB_EXTREME);
         return RepeatedMap;
     }
 

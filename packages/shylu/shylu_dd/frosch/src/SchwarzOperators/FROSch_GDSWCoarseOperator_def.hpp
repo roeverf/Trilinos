@@ -561,7 +561,7 @@ namespace FROSch {
 
                 if (this->ParameterList_->get("Use RepMap",false)) {
                     if (this->K_->getMap()->lib() == Xpetra::UseTpetra) {
-                        this->buildGraphEntries(DDInterface_);
+                        this->buildGlobalGraph(DDInterface_);
                     }
                 }
 

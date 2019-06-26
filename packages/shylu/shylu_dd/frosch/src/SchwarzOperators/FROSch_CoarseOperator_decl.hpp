@@ -155,8 +155,8 @@ namespace FROSch {
 
         virtual int buildCoarseSolveMap(CrsMatrixPtr &k0);
         virtual int buildElementNodeList();
-        virtual int buildGraphEntries(Teuchos::RCP<DDInterface<SC,LO,GO,NO> > theDDInterface_);
-        virtual int buildConnectGraph();
+        virtual int buildGlobalGraph(Teuchos::RCP<DDInterface<SC,LO,GO,NO> > theDDInterface_);
+        virtual int buildCoarseGraph();
         CommPtr CoarseSolveComm_;
 
         bool OnCoarseSolveComm_;
@@ -174,7 +174,7 @@ namespace FROSch {
         MapPtr CoarseSolveRepeatedMap_;
         MapPtr MLCoarseMap_;
         GOVecPtr BlockCoarseDimension_;
-
+        UN maxNumNeigh_;
         SubdomainSolverPtr CoarseSolver_;
         ParameterListPtr DistributionList_;
 
@@ -183,7 +183,7 @@ namespace FROSch {
         //Graph to compute Reapeated Map
         CrsGraphPtr SubdomainConnectGraph_;
         //Element-Node-List to compute RepeatedMap
-        Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > ElementNodeList_;
+        CrsGraphPtr ElementNodeList_;
         Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > GraphEntriesList_;
 
         ConstMapPtr kRowMap_;
@@ -192,22 +192,6 @@ namespace FROSch {
 
 #ifdef FROSch_CoarseOperatorTimers
 	 Teuchos::Array<TimePtr> ComputeTimer;
-	Teuchos::Array<TimePtr> BuildGraphEntriesTimer;
-  Teuchos::Array<TimePtr> GraphInterInfoTimer;
-  Teuchos::Array<TimePtr> GraphAssemTimer;
-  Teuchos::Array<TimePtr> GraphAssem2Timer;
-
-	Teuchos::Array<TimePtr> BuildGraphTimer;
-	Teuchos::Array<TimePtr> GraphTimer1;
-
-	Teuchos::Array<TimePtr> BuildElementNodeListTimer;
-
-	Teuchos::Array<TimePtr>ElementNodeListTimer1;
-	Teuchos::Array<TimePtr>ElementNodeListTimer2;
-
-    Teuchos::Array<TimePtr>ElementNodeListTimer3;
-	Teuchos::Array<TimePtr>ElementNodeListTimer4;
-
 	Teuchos::Array<TimePtr> ApplyTimer;
 	Teuchos::Array<TimePtr> ApplyPhiTTimer;
 	Teuchos::Array<TimePtr> ApplyExportTimer;
@@ -220,6 +204,9 @@ namespace FROSch {
 	Teuchos::Array<TimePtr> BuildCoarseRepMapTimer;
 	Teuchos::Array<TimePtr> ExportKOTimer;
 	Teuchos::Array<TimePtr> BuildDirectSolvesTimer;
+  Teuchos::Array<TimePtr> BuildGlobalGraphTimer;
+  Teuchos::Array<TimePtr> InterfaceInfoTimer;
+  Teuchos::Array<TimePtr> BuildCoarseGraphTimer;
 #endif
     };
 
