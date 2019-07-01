@@ -226,12 +226,18 @@ namespace FROSch {
 
         Teuchos::RCP<inputAdapter> adaptedMatrix = Teuchos::rcp(new inputAdapter(Xgraph,0,0));
         size_t MaxRow = B->getGlobalMaxNumRowEntries();
-
+        TeuchosComm->barrier();
+        TeuchosComm->barrier();
+        TeuchosComm->barrier();
+        if(TeuchosComm->getRank() == 0) std::cout<<"Tools1\n";
         Teuchos::RCP<const Xpetra::Map<LO, GO, NO> > ColMap = Xpetra::MapFactory<LO,GO,NO>::createLocalMap(Xpetra::UseTpetra,MaxRow,TeuchosComm);
-
         Teuchos::RCP<Zoltan2::PartitioningProblem<inputAdapter> >problem =
         Teuchos::RCP<Zoltan2::PartitioningProblem<inputAdapter> >(new Zoltan2::PartitioningProblem<inputAdapter> (adaptedMatrix.getRawPtr(), tmpList.get(),TeuchosComm));
         problem->solve();
+        TeuchosComm->barrier();
+        TeuchosComm->barrier();
+        TeuchosComm->barrier();
+        if(TeuchosComm->getRank() == 0) std::cout<<"Tools2\n";
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > ReGraph;
         adaptedMatrix->applyPartitioningSolution(*Xgraph,ReGraph,problem->getSolution());
@@ -240,7 +246,10 @@ namespace FROSch {
 
         Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > BB = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(ReGraph->getRowMap(),MaxRow);
         BB->doImport(*B,*scatter,Xpetra::INSERT);
-
+        TeuchosComm->barrier();
+        TeuchosComm->barrier();
+        TeuchosComm->barrier();
+        if(TeuchosComm->getRank() == 0) std::cout<<"Tools3\n";
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         Teuchos::Array<GO> repeatedMapEntries(0);
         for (size_t i = 0; i<ReGraph->getRowMap()->getNodeNumElements(); i++) {
@@ -253,7 +262,10 @@ namespace FROSch {
             }
         }
         sortunique(repeatedMapEntries);
-
+        TeuchosComm->barrier();
+        TeuchosComm->barrier();
+        TeuchosComm->barrier();
+        if(TeuchosComm->getRank() == 0) std::cout<<"Tools4\n";
         Teuchos::RCP<Xpetra::Map<LO,GO,NO> > RepeatedMap = Xpetra::MapFactory<LO,GO,NO>::Build(ReGraph->getColMap()->lib(),-1,repeatedMapEntries(),0,ReGraph->getColMap()->getComm());
         //RepeatedMap->describe(*fancy,Teuchos::VERB_EXTREME);
         return RepeatedMap;
@@ -937,6 +949,8 @@ namespace FROSch {
 
         return vector;
     }
+
+
 
 #ifdef HAVE_SHYLU_DDFROSCH_EPETRA
     template <class LO,class GO,class NO>

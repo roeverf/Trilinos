@@ -51,6 +51,7 @@
 #include <Xpetra_MultiVectorFactory.hpp>
 #include <Xpetra_VectorFactory.hpp>
 #include <Xpetra_ExportFactory.hpp>
+#include <Xpetra_CrsGraphFactory.hpp>
 #ifdef HAVE_SHYLU_DDFROSCH_ZOLTAN2
 #include <Zoltan2_MatrixAdapter.hpp>
 #include <Zoltan2_XpetraCrsMatrixAdapter.hpp>
