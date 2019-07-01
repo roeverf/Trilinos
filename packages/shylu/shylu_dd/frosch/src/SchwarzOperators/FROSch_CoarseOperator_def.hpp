@@ -68,7 +68,6 @@ namespace FROSch {
     CoarseSolveExporters_ (0),
 		MLCoarseSolveExporters_(0),
     SubdomainConnectGraph_(),
-    GraphEntriesList_(),
     kRowMap_()
 #ifdef FROSch_CoarseOperatorTimers
 		,BuildCoarseMatrixTimer(this->level),
@@ -187,7 +186,7 @@ namespace FROSch {
 			 Teuchos::TimeMonitor Export1(*ExportGraphTimer.at(ee));
 	 	   TestGraph2->doExport(*SubdomainConnectGraph_,*MLCoarseSolveExporters_[1],Xpetra::INSERT);
 		 }
-	 	 TestGraph2->fillComplete();
+	 	// TestGraph2->fillComplete();
 	 	 TestGraph3 = TestGraph2;
       ee = ee+1;
 	 	for(int i  = 2;i<MLGatheringMaps_.size();i++){
@@ -195,14 +194,14 @@ namespace FROSch {
 				Teuchos::TimeMonitor Export1(*ExportGraphTimer.at(ee));
 	 		TestGraph2 = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(MLGatheringMaps_[i],maxNumNeigh_);
 	 		TestGraph2->doExport(*TestGraph3,*MLCoarseSolveExporters_[i],Xpetra::INSERT);
-	 		TestGraph2->fillComplete();
+	 		//TestGraph2->fillComplete();
 	 		TestGraph3 = TestGraph2;
 			ee=ee+1;
 		}
 	 	}
 
 	 	//TestGraph3->describe(*fancy,Teuchos::VERB_EXTREME);
-
+    //TestGraph3->fillComplete();
 		const size_t numMyElementS = MLGatheringMaps_[MLGatheringMaps_.size()-1]->getNodeNumElements();
     if (OnCoarseSolveComm_) {
 			 SubdomainConnectGraph_= Xpetra::CrsGraphFactory<LO,GO,NO>::Build(MLCoarseMap_,maxNumNeigh_);
@@ -210,7 +209,7 @@ namespace FROSch {
 				 Teuchos::ArrayView<const LO> in;
          Teuchos::ArrayView<const GO> vals_graph;
          GO kg = MLGatheringMaps_[MLGatheringMaps_.size()-1]->getGlobalElement(k);
-         TestGraph3->getLocalRowView(k,vals_graph);
+         TestGraph3->getGlobalRowView(kg,vals_graph);
          Teuchos::Array<GO> vals(vals_graph);
 				 SubdomainConnectGraph_->insertGlobalIndices(kg,vals());
 			 }
@@ -255,34 +254,28 @@ namespace FROSch {
       {
 				{
 					Teuchos::TimeMonitor Export1(*ExportGraphTimer.at(ee));
-			tmpElemGraph->doExport(*ElemGraph,*MLCoarseSolveExporters_[1],Xpetra::INSERT);
-		}
-		ee = ee+1;
-			//tmpElemGraph->fillComplete();
-			ElemSGraph = tmpElemGraph;
-			//tmpElemGraph->describe(*fancy,Teuchos::VERB_EXTREME);
+					tmpElemGraph->doExport(*ElemGraph,*MLCoarseSolveExporters_[1],Xpetra::INSERT);
+				}
+				ee = ee+1;
+				//tmpElemGraph->fillComplete();
+				ElemSGraph = tmpElemGraph;
+				//tmpElemGraph->describe(*fancy,Teuchos::VERB_EXTREME);
 
-			for(int i  = 2;i<MLGatheringMaps_.size();i++){
-				{
+				for(int i  = 2;i<MLGatheringMaps_.size();i++){
+					{
 					Teuchos::TimeMonitor Export1(*ExportGraphTimer.at(ee));
 				  tmpElemGraph = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(MLGatheringMaps_[i],maxNumElements);
 					tmpElemGraph->doExport(*ElemSGraph,*MLCoarseSolveExporters_[i],Xpetra::INSERT);
-				}
-				ee = ee+1;
+					}
+					ee = ee+1;
 					//tmpElemGraph->fillComplete();
 					ElemSGraph = tmpElemGraph;
 				}
 			}
-		 /*std::cout<<this->MpiComm_->getRank()<<"  "<<vaa<<std::endl;
-			if(this->MpiComm_->getRank() == 0) std::cout<<"++++++++++++++++++++++++++++++++++++++++\n";
-			ElemSGraph->describe(*fancy,Teuchos::VERB_EXTREME);
-			if(this->MpiComm_->getRank() == 0) std::cout<<"++++++++++++++++++++++++++++++++++++++++\n";
-*/
 			ElementNodeList_ =Xpetra::CrsGraphFactory<LO,GO,NO>::Build(MLCoarseMap_,maxNumElements);
 			{
 
 				if(OnCoarseSolveComm_){
-
             const size_t numMyElementS = MLCoarseMap_->getNodeNumElements();
             Teuchos::ArrayView<const GO> myGlobalElements = MLCoarseMap_->getNodeElementList();
             Teuchos::ArrayView<const LO> idEl;
@@ -292,11 +285,11 @@ namespace FROSch {
 								ElemSGraph->getGlobalRowView(kg,va);
 								Teuchos::Array<GO> vva(va);
 								ElementNodeList_->insertGlobalIndices(kg,vva());
-
             }
             ElementNodeList_->fillComplete();
 						//ElementNodeList_->describe(*fancy,Teuchos::VERB_EXTREME);
         }
+				ElemSGraph->fillComplete();
 			}
 
         return 0;
@@ -556,7 +549,12 @@ namespace FROSch {
 
                 CoarseMatrix_->fillComplete(CoarseSolveMap_,CoarseSolveMap_);
                 //CoarseMatrix_->describe(*fancy,Teuchos::VERB_EXTREME);
-                CoarseSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(CoarseMatrix_,sublist(this->ParameterList_,"CoarseSolver")));
+								/*if(sublist(this->ParameterList_,"CoarseSolver")->isParameter("CoarseSolverParameter")){
+									  Teuchos::RCP<Teuchos::ParameterList> CoarseParameterList_= ExtractPtrFromParameterList<Teuchos::ParameterList>(*sublist(this->ParameterList_,"CoarseSolver"),"CoarseSolverParameter");
+									  CoarseSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(CoarseMatrix_,CoarseParameterList_));
+								}else{*/
+                	CoarseSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(CoarseMatrix_,sublist(this->ParameterList_,"CoarseSolver")));
+								//}
                 {
 #ifdef FROSch_CoarseOperatorTimers
                     Teuchos::TimeMonitor BuildDirectSolvesTimeMonitor(*BuildDirectSolvesTimer.at(current_level-1));
@@ -810,7 +808,6 @@ namespace FROSch {
 										//CoarseSolveRepeatedMap_->describe(*fancy,Teuchos::VERB_EXTREME);
 										Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > RepMapVector(1);
                     RepMapVector[0] = CoarseSolveRepeatedMap_;
-                    sublist(this->ParameterList_,"CoarseSolver")->set("Repeated Map Vector",RepMapVector);
                     //Set DofOderingVec and DofsPerNodeVec to ParameterList
                     Teuchos::ArrayRCP<DofOrdering> dofOrderings(1);
                     dofOrderings[0] = DimensionWise;
