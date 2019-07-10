@@ -86,6 +86,7 @@ namespace FROSch {
 		BuildDirectSolvesTimer(this->level),
 		BuildGlobalGraphTimer(this->level),
 		InterfaceInfoTimer(this->level),
+		BuildElementNodeListTimer(this->level),
 		BuildCoarseGraphTimer(this->level)
 #endif
 {
@@ -107,6 +108,7 @@ namespace FROSch {
     BuildGlobalGraphTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch CoarsOperator BuildGlobalGraph "+std::to_string(i));
     InterfaceInfoTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch CoarsOperator InterfaceInformation "+std::to_string(i));
     BuildCoarseGraphTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch CoarsOperator BuildCoarseGraph "+std::to_string(i));
+		BuildElementNodeListTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch CoarsOperator BuildElementNodeList "+std::to_string(i));
 
 	}
 	#endif
@@ -165,6 +167,7 @@ namespace FROSch {
         reduceAll(*this->MpiComm_,Teuchos::REDUCE_MAX,numElementsLocal,Teuchos::ptr(&maxNumNeigh_));
 				SubdomainConnectGraph_ = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(GraphMap,maxNumNeigh_);
 			  SubdomainConnectGraph_->insertGlobalIndices(GraphMap->getComm()->getRank(),entries());
+				//SubdomainConnectGraph_->describe(*fancy,Teuchos::VERB_EXTREME);
 
         return 0;
     }
@@ -201,7 +204,7 @@ namespace FROSch {
 			ee=ee+1;
 		}
 	 	}
-	 	//TestGraph3->describe(*fancy,Teuchos::VERB_EXTREME);
+	 	//TestGraph2->describe(*fancy,Teuchos::VERB_EXTREME);
 		const size_t numMyElementS = MLGatheringMaps_[MLGatheringMaps_.size()-1]->getNodeNumElements();
     if (OnCoarseSolveComm_) {
 			 SubdomainConnectGraph_= Xpetra::CrsGraphFactory<LO,GO,NO>::Build(MLCoarseMap_,maxNumNeigh_);
@@ -209,7 +212,7 @@ namespace FROSch {
 				 Teuchos::ArrayView<const LO> in;
          Teuchos::ArrayView<const GO> vals_graph;
          GO kg = MLGatheringMaps_[MLGatheringMaps_.size()-1]->getGlobalElement(k);
-         TestGraph2->getGlobalRowView(k,vals_graph);
+         TestGraph2->getGlobalRowView(kg,vals_graph);
          Teuchos::Array<GO> vals(vals_graph);
 				 SubdomainConnectGraph_->insertGlobalIndices(kg,vals());
 			 }
@@ -222,6 +225,9 @@ namespace FROSch {
     template <class SC,class LO,class GO, class NO>
     int CoarseOperator<SC,LO,GO,NO>::buildElementNodeList(){
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
+				#ifdef FROSch_CoarseOperatorTimers
+			 Teuchos::TimeMonitor BuildElementNodeListTimeMonitor(*BuildElementNodeListTimer.at(current_level-1));
+			 #endif
 		int MLgatheringSteps = DistributionList_->get("MLGatheringSteps",2);
 		Teuchos::Array<TimePtr> ExportGraphTimer(MLGatheringMaps_.size());
 		for(int k = 0;k<MLGatheringMaps_.size();k++){
@@ -247,9 +253,8 @@ namespace FROSch {
         }
 				ElemGraph->fillComplete();
 			}
-			this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-			if(this->MpiComm_->getRank() == 0)std::cout<<"EE0\n";
-      //ElemGraph->describe(*fancy,Teuchos::VERB_EXTREME);
+
+      //ElemGraph-describe(*fancy,Teuchos::VERB_EXTREME);
       CrsGraphPtr tmpElemGraph = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(MLGatheringMaps_[1],maxNumElements);
 			CrsGraphPtr ElemSGraph;
 
@@ -260,8 +265,7 @@ namespace FROSch {
 		      }
 		  ee = ee+1;
 			//tmpElemGraph->describe(*fancy,Teuchos::VERB_EXTREME);
-			this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-			if(this->MpiComm_->getRank() == 0)std::cout<<"EE1\n";
+
 			for(int i  = 2;i<MLGatheringMaps_.size();i++){
 				{
 					tmpElemGraph->fillComplete();
@@ -274,8 +278,6 @@ namespace FROSch {
 				}
 			}
 
-			this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-			if(this->MpiComm_->getRank() == 0)std::cout<<"EE2\n";
 		 /*std::cout<<this->MpiComm_->getRank()<<"  "<<vaa<<std::endl;
 			if(this->MpiComm_->getRank() == 0) std::cout<<"++++++++++++++++++++++++++++++++++++++++\n";
 			ElemSGraph->describe(*fancy,Teuchos::VERB_EXTREME);
@@ -302,8 +304,6 @@ namespace FROSch {
 						//ElementNodeList_->describe(*fancy,Teuchos::VERB_EXTREME);
         }
 			}
-			this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-			if(this->MpiComm_->getRank() == 0)std::cout<<"EE3\n";
         return 0;
     }
 
@@ -530,8 +530,7 @@ namespace FROSch {
             }
 #ifdef HAVE_SHYLU_DDFROSCH_ZOLTAN2
         } else if (!DistributionList_->get("Type","linear").compare("ZoltanDual")) {
-					  this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
-						if(this->MpiComm_->getRank() == 0)std::cout<<"CO 1\n";
+
             CoarseSolveExporters_[0] = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseSpace_->getBasisMap(),GatheringMaps_[0]);
             CrsMatrixPtr tmpCoarseMatrix = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(GatheringMaps_[0],k0->getGlobalMaxNumRowEntries());
             tmpCoarseMatrix->doExport(*k0,*CoarseSolveExporters_[0],Xpetra::INSERT);
@@ -543,13 +542,11 @@ namespace FROSch {
 
 								tmpCoarseMatrix->doExport(*k0,*CoarseSolveExporters_[j],Xpetra::INSERT);
 						}
-						this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
-					 if(this->MpiComm_->getRank() == 0)std::cout<<"CO 2\n";
+
             // Matrix to the new communicator
             if (OnCoarseSolveComm_) {
                 CoarseMatrix_ = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(CoarseSolveMap_,k0->getGlobalMaxNumRowEntries());
-                CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-								if(CoarseSolveComm_->getRank() == 0) std::cout<<"CO 3\n";
+
                 ConstGOVecView indices;
                 ConstSCVecView values;
                 for (UN i=0; i<tmpCoarseMatrix->getNodeNumRows(); i++) {
@@ -563,8 +560,7 @@ namespace FROSch {
                     }
 
                 }
-								CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-								if(CoarseSolveComm_->getRank() == 0) std::cout<<"CO 4\n";
+
                 CoarseMatrix_->fillComplete(CoarseSolveMap_,CoarseSolveMap_);
                 //CoarseMatrix_->describe(*fancy,Teuchos::VERB_EXTREME);
                 CoarseSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(CoarseMatrix_,sublist(this->ParameterList_,"CoarseSolver")));
@@ -573,11 +569,8 @@ namespace FROSch {
                     Teuchos::TimeMonitor BuildDirectSolvesTimeMonitor(*BuildDirectSolvesTimer.at(current_level-1));
 #endif
                     CoarseSolver_->initialize();
-										CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-										if(CoarseSolveComm_->getRank() == 0) std::cout<<"CO 5\n";
                     CoarseSolver_->compute();
-										CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-										if(CoarseSolveComm_->getRank() == 0) std::cout<<"CO 6\n";
+
                 }
             }
 
@@ -806,21 +799,15 @@ namespace FROSch {
 					   }
 						 MLCoarseMap_ = Xpetra::MapFactory<LO,GO,NO>::Build(Xpetra::UseTpetra,-1,RowsCoarseSolve,0,CoarseSolveComm_);
 //---------------------GatheringMaps_ for Repeated Map-------------------------------------------------------------------------
-            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-						if(this->MpiComm_->getRank() == 0)std::cout<<"Test0\n";
+
 						buildElementNodeList();
-            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-						if(this->MpiComm_->getRank() == 0)std::cout<<"Test1\n";
             buildCoarseGraph();
-						  this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-						if(this->MpiComm_->getRank() == 0)std::cout<<"Test2\n";
+
             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > UniqueNodesMap;
             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > UniqueMap;
             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > UniqueMapAll;
 
             GOVec uniEle;
-						this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-					 if(this->MpiComm_->getRank() == 0)std::cout<<"Test3\n";
             if(OnCoarseSolveComm_){
                 {
 #ifdef FROSch_CoarseOperatorTimers
@@ -828,9 +815,10 @@ namespace FROSch {
 #endif
                     CoarseSolveRepeatedMap_ = FROSch::BuildRepMap_Zoltan<SC,LO,GO,NO>(SubdomainConnectGraph_,ElementNodeList_, DistributionList_,CoarseSolveComm_);
                     //---Write necessary Parameters for multilevel to ParameterList
-										CoarseSolveRepeatedMap_->describe(*fancy,Teuchos::VERB_EXTREME);
+										//CoarseSolveRepeatedMap_->describe(*fancy,Teuchos::VERB_EXTREME);
 										Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > RepMapVector(1);
                     RepMapVector[0] = CoarseSolveRepeatedMap_;
+
                     sublist(this->ParameterList_,"CoarseSolver")->set("Repeated Map Vector",RepMapVector);
                     //Set DofOderingVec and DofsPerNodeVec to ParameterList
                     Teuchos::ArrayRCP<DofOrdering> dofOrderings(1);
@@ -850,14 +838,12 @@ namespace FROSch {
                     //UniqueMapAll->describe(*fancy,Teuchos::VERB_EXTREME);
                     //-------------------------------------------------------------
                     uniEle = UniqueMapAll->getNodeElementList();
+									}
 
-                }
             }
             //Set Map on global Comm
             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > tmpMap = Xpetra::MapFactory<LO,GO,NO>::Build(Xpetra::UseTpetra,-1,uniEle,0,this->MpiComm_);
             //tmpMap->describe(*fancy,Teuchos::VERB_EXTREME);
-            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-						if(this->MpiComm_->getRank() == 0)std::cout<<"Test0\n";
 
 						for (int i=0; i<gatheringSteps-1; i++) {
 								numMyRows = 0;
@@ -874,8 +860,7 @@ namespace FROSch {
 						}
 						GatheringMaps_[gatheringSteps-1] = tmpMap;
 						CoarseSolveMap_ = Xpetra::MapFactory<LO,GO,NO>::Build(CoarseSpace_->getBasisMap()->lib(),-1,tmpMap->getNodeElementList(),0,CoarseSolveComm_);
-            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-						if(this->MpiComm_->getRank() == 0)std::cout<<"Test1\n";
+
 				}else if(!DistributionList_->get("Type","linear").compare("Zoltan2")){
             Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
 

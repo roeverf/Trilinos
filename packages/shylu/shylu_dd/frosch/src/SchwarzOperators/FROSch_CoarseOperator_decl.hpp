@@ -207,6 +207,7 @@ namespace FROSch {
   Teuchos::Array<TimePtr> BuildGlobalGraphTimer;
   Teuchos::Array<TimePtr> InterfaceInfoTimer;
   Teuchos::Array<TimePtr> BuildCoarseGraphTimer;
+  Teuchos::Array<TimePtr> BuildElementNodeListTimer;
 #endif
     };
 

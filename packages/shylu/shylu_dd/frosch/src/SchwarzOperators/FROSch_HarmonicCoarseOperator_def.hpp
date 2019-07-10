@@ -242,7 +242,11 @@ namespace FROSch {
                 this->InterfaceCoarseSpaces_[blockId]->addSubspace(interior->getEntityMap(),translations[i]);
             }
             if (useRotations) {
+               this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+               if(this->Verbose_)std::cout<<"Compute rotations\n";
                 MultiVectorPtrVecPtr rotations = computeRotations(blockId,dimension,nodeList,interior);
+                this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+                if(this->Verbose_)std::cout<<"Done\n";
                 for (UN i=0; i<rotations.size(); i++) {
                     this->InterfaceCoarseSpaces_[blockId]->addSubspace(interior->getEntityMap(),rotations[i]);
                 }

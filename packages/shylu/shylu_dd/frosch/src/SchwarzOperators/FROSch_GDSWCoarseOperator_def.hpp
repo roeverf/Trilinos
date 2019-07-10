@@ -260,7 +260,9 @@ namespace FROSch {
         this->NumberOfBlocks_++;
 
         }
+
         resetCoarseSpaceBlock(this->NumberOfBlocks_-1,dimension,dofsPerNode,nodesMap,dofsMaps,dirichletBoundaryDofs,nodeList);
+
 
         return 0;
     }
@@ -278,6 +280,9 @@ namespace FROSch {
 
         // Das könnte man noch ändern
         // TODO: DAS SOLLTE ALLES IN EINE FUNKTION IN HARMONICCOARSEOPERATOR
+				this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+				if(nodeListVec[0] == Teuchos::null) std::cout<<"NodeList incorrect\n";
+				if(this->MpiComm_->getRank() == 0) std::cout<<"GDSW 1\n";
         for (UN i=0; i<repeatedNodesMapVec.size(); i++) {
             this->GammaDofs_.resize(this->GammaDofs_.size()+1);
             this->IDofs_.resize(this->IDofs_.size()+1);
@@ -286,8 +291,12 @@ namespace FROSch {
             this->DofsPerNode_.resize(this->DofsPerNode_.size()+1);
             this->BlockCoarseDimension_.resize(this->BlockCoarseDimension_.size()+1);
             this->NumberOfBlocks_++;
+						this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+						if(this->MpiComm_->getRank() == 0) std::cout<<"GDSW 2\n";
             resetCoarseSpaceBlock(this->NumberOfBlocks_-1,dimension,dofsPerNodeVec[i],repeatedNodesMapVec[i],repeatedDofMapsVec[i],dirichletBoundaryDofsVec[i],nodeListVec[i]);
         }
+				this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+				if(this->MpiComm_->getRank() == 0) std::cout<<"GDSW 3\n";
         return 0;
     }
 

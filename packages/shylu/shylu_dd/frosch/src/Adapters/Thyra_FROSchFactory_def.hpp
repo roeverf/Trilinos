@@ -45,12 +45,12 @@
 #include "Thyra_FROSchFactory_decl.hpp"
 
 namespace Thyra {
-    
+
     using namespace FROSch;
     using namespace Teuchos;
     using namespace Thyra;
     using namespace Xpetra;
-    
+
     //Constructor
     template <class SC, class LO, class GO, class NO>
     FROSchFactory<SC,LO,GO,NO>::FROSchFactory():
@@ -75,7 +75,7 @@ namespace Thyra {
             return false;
         }
     }
-            
+
     //--------------------------------------------------------------
     //Create Default Prec -> Not used here (maybe somewhere else?)
     template<class SC, class LO, class GO , class NO>
@@ -83,7 +83,7 @@ namespace Thyra {
     {
         return rcp(new DefaultPreconditioner<SC>);
     }
-            
+
     //-------------------------------------------------------------
     //Main Function to use FROSch as Prec
     template<class SC, class LO , class GO, class NO>
@@ -91,18 +91,18 @@ namespace Thyra {
                                                            PreconditionerBase<SC>* prec,
                                                            const ESupportSolveUse supportSolveUse) const
     {
-        
+
         RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout));
-                
+
         //PreCheck
         TEUCHOS_ASSERT(nonnull(fwdOpSrc));
         //TEUCHOS_ASSERT(this->isCompatible(*fwdOpSrc));
         TEUCHOS_ASSERT(prec);
-        
+
         // Retrieve wrapped concrete Xpetra matrix from FwdOp
         const RCP<const LinearOpBase<SC> > fwdOp = fwdOpSrc->getOp();
         TEUCHOS_TEST_FOR_EXCEPT(is_null(fwdOp));
-        
+
         // Check whether it is Epetra/Tpetra
         bool bIsEpetra  = ThyraUtils<SC,LO,GO,NO>::isEpetra(fwdOp);
         bool bIsTpetra  = ThyraUtils<SC,LO,GO,NO>::isTpetra(fwdOp);
@@ -110,34 +110,34 @@ namespace Thyra {
         TEUCHOS_TEST_FOR_EXCEPT((bIsEpetra == true  && bIsTpetra == true));
         TEUCHOS_TEST_FOR_EXCEPT((bIsEpetra == bIsTpetra) && bIsBlocked == false);
         TEUCHOS_TEST_FOR_EXCEPT((bIsEpetra != bIsTpetra) && bIsBlocked == true);
-        
+
         // Retrieve Matrix
         RCP<Matrix<SC,LO,GO,NO> > A = Teuchos::null;
         RCP<const CrsMatrix<SC,LO,GO,NO> > xpetraFwdCrsMat = ThyraUtils<SC,LO,GO,NO>::toXpetra(fwdOp);
         TEUCHOS_TEST_FOR_EXCEPT(is_null(xpetraFwdCrsMat));
-        
+
         // FROSCH needs a non-const object as input
         RCP<CrsMatrix<SC,LO,GO,NO> > xpetraFwdCrsMatNonConst = rcp_const_cast<CrsMatrix<SC,LO,GO,NO> >(xpetraFwdCrsMat);
         TEUCHOS_TEST_FOR_EXCEPT(is_null(xpetraFwdCrsMatNonConst));
-        
+
         // wrap the forward operator as an Matrix that FROSch can work with
         A = rcp(new CrsMatrixWrap<SC,LO,GO,NO>(xpetraFwdCrsMatNonConst));
-        
+
         TEUCHOS_TEST_FOR_EXCEPT(is_null(A));
-        
+
         // Retrieve concrete preconditioner object
         const Ptr<DefaultPreconditioner<SC> > defaultPrec = ptr(dynamic_cast<DefaultPreconditioner<SC> *>(prec));
         TEUCHOS_TEST_FOR_EXCEPT(is_null(defaultPrec));
-        
+
         // extract preconditioner operator
         RCP<LinearOpBase<SC> > thyra_precOp = Teuchos::null;
         thyra_precOp = rcp_dynamic_cast<LinearOpBase<SC> >(defaultPrec->getNonconstUnspecifiedPrecOp(), true);
-        
+
         // Abstract SchwarzPreconditioner
         RCP<SchwarzPreconditioner<SC,LO,GO,NO> > SchwarzPreconditioner;
-        
+
         FROSCH_ASSERT(paramList_->isParameter("FROSch Preconditioner Type"),"FROSch Preconditioner Type is not defined!");
-        
+
         if (!paramList_->get("FROSch Preconditioner Type","TwoLevelPreconditioner").compare("AlgebraicOverlappingPreconditioner")) {
             RCP<Map<LO,GO,NO> > RepeatedMap = Teuchos::null;
             if (paramList_->isParameter("Repeated Map")) {
@@ -150,7 +150,7 @@ namespace Thyra {
             	#endif
                AOP->initialize(paramList_->get("Overlap",1),RepeatedMap);
             }
-            
+
             SchwarzPreconditioner = AOP;
         } else if (!paramList_->get("FROSch Preconditioner Type","TwoLevelPreconditioner").compare("GDSWPreconditioner")) {
             RCP<Map<LO,GO,NO> > RepeatedMap = Teuchos::null;
@@ -240,12 +240,13 @@ namespace Thyra {
             	#endif
 				TLP->initialize(paramList_->get("Dimension",3),paramList_->get("Overlap",1),RepeatedMap,paramList_->get("DofsPerNode",1),dofOrdering,CoordinatesList);
 			 }
-            SchwarzPreconditioner = TLP;            
+            SchwarzPreconditioner = TLP;
         } else if (!paramList_->get("FROSch Preconditioner Type","TwoLevelPreconditioner").compare("TwoLevelBlockPreconditioner")) {
             ArrayRCP<RCP<Map<LO,GO,NO> > > RepeatedMaps = Teuchos::null;
+            ArrayRCP<RCP<MultiVector<SC,LO,GO,NO> > > CoordinatesList = Teuchos::null;
             UNVecPtr dofsPerNodeVector;
             DofOrderingVecPtr dofOrderings;
-            
+
             FROSCH_ASSERT(paramList_->isParameter("DofsPerNode Vector"),"Currently, TwoLevelBlockPreconditioner cannot be constructed without DofsPerNode Vector.");
             FROSCH_ASSERT(paramList_->isParameter("DofOrdering Vector"),"Currently, TwoLevelBlockPreconditioner cannot be constructed without DofOrdering Vector.");
             if(paramList_->isParameter("Repeated Map Vector")) {
@@ -255,7 +256,11 @@ namespace Thyra {
             } else {
                 FROSCH_ASSERT(false,"Currently, TwoLevelBlockPreconditioner cannot be constructed without Repeated Maps.");
             }
-            
+
+            if(paramList_->isParameter("Coordinates List")){
+                CoordinatesList = ExtractVectorFromParameterList<RCP<MultiVector<SC,LO,GO,NO> > >(*paramList_,"Coordinates List");
+            }
+
             FROSCH_ASSERT(RepeatedMaps.size()==dofsPerNodeVector.size(),"RepeatedMaps.size()!=dofsPerNodeVector.size()");
             FROSCH_ASSERT(RepeatedMaps.size()==dofOrderings.size(),"RepeatedMaps.size()!=dofOrderings.size()");
 			RCP<TwoLevelBlockPreconditioner<SC,LO,GO,NO> > TLBP(new TwoLevelBlockPreconditioner<SC,LO,GO,NO>(A,paramList_));
@@ -263,7 +268,7 @@ namespace Thyra {
             	#ifdef FROSch_ThyraTimers
             	Teuchos::TimeMonitor initFROSchTimeMonitor(*initFROSchTimer);
             	#endif
-				TLBP->initialize(paramList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,paramList_->get("Overlap",1),RepeatedMaps);
+				TLBP->initialize(paramList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,paramList_->get("Overlap",1),RepeatedMaps,CoordinatesList);
 			 }            SchwarzPreconditioner = TLBP;
         } else {
             FROSCH_ASSERT(false,"FROSch Preconditioner Type is unknown.");
@@ -275,22 +280,22 @@ namespace Thyra {
 			#endif
 		}
         //-----------------------------------------------
-        
+
         RCP<LinearOpBase<SC> > thyraPrecOp = Teuchos::null;
         //FROSCh_XpetraOP
         RCP<const VectorSpaceBase<SC> > thyraRangeSpace  = ThyraUtils<SC,LO,GO,NO>::toThyra(SchwarzPreconditioner->getRangeMap());
         RCP<const VectorSpaceBase<SC> > thyraDomainSpace = ThyraUtils<SC,LO,GO,NO>::toThyra(SchwarzPreconditioner->getDomainMap());
-        
+
         RCP<Xpetra::Operator<SC,LO,GO,NO> > xpOp = rcp_dynamic_cast<Xpetra::Operator<SC,LO,GO,NO> >(SchwarzPreconditioner);
-        
+
         thyraPrecOp = fROSchLinearOp<SC, LO, GO, NO>(thyraRangeSpace,thyraDomainSpace,xpOp,bIsEpetra,bIsTpetra);
-        
+
         TEUCHOS_TEST_FOR_EXCEPT(is_null(thyraPrecOp));
-        
+
         //Set SchwarzPreconditioner
         defaultPrec->initializeUnspecified(thyraPrecOp);
     }
-            
+
     //-------------------------------------------------------------
     //uninitialize
     template <class SC, class LO, class GO, class NO>
@@ -299,21 +304,21 @@ namespace Thyra {
                                                              ESupportSolveUse* supportSolveUse) const
     {
         TEUCHOS_ASSERT(prec);
-        
+
         // Retrieve concrete preconditioner object
         const Ptr<DefaultPreconditioner<SC> > defaultPrec = ptr(dynamic_cast<DefaultPreconditioner<SC> *>(prec));
         TEUCHOS_TEST_FOR_EXCEPT(is_null(defaultPrec));
-        
+
         if (fwdOp) {
             // TODO: Implement properly instead of returning default value
             *fwdOp = Teuchos::null;
         }
-        
+
         if (supportSolveUse) {
             // TODO: Implement properly instead of returning default value
             *supportSolveUse = SUPPORT_SOLVE_UNSPECIFIED;
         }
-        
+
         defaultPrec->uninitialize();
     }
     //-----------------------------------------------------------------
@@ -324,14 +329,14 @@ namespace Thyra {
         TEUCHOS_TEST_FOR_EXCEPT(is_null(paramList));
         paramList_ = paramList;
     }
-    
+
     //------------------------------------------------------------------
     template <class SC, class LO, class GO, class NO>
     RCP<ParameterList> FROSchFactory<SC,LO,GO,NO>::getNonconstParameterList()
     {
         return paramList_;
     }
-    
+
     //-----------------------------------------------------------------------
     template <class SC, class LO, class GO, class NO>
     RCP<const ParameterList> FROSchFactory<SC,LO,GO,NO>::getParameterList() const
@@ -343,10 +348,10 @@ namespace Thyra {
     RCP<const ParameterList> FROSchFactory<SC,LO,GO,NO>::getValidParameters() const
     {
         static RCP<const ParameterList> validPL;
-        
+
         if (is_null(validPL))
         validPL = rcp(new ParameterList());
-        
+
         return validPL;
     }
     //-----------------------------------------------------------------------
@@ -363,8 +368,6 @@ namespace Thyra {
         paramList_ = Teuchos::null;
         return savedParamList;
     }
-    
+
 }
 #endif
-
-
