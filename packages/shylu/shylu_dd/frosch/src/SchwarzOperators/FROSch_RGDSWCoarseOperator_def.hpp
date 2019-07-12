@@ -95,8 +95,6 @@ namespace FROSch {
         bool useForCoarseSpace = coarseSpaceList->get("Use For Coarse Space",false);
         std::string option = coarseSpaceList->get("Option","1");
         DistanceFunction distanceFunction = ConstantDistanceFunction;
-				this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-				if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 1\n";
         if (!option.compare("1")) {
 
         } else if (!option.compare("2.2")) {
@@ -111,24 +109,20 @@ namespace FROSch {
             useRotations = false;
             if (this->Verbose_) std::cout << "\nWarning: Rotations cannot be used!\n";
         }
-				this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-				if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 2\n";
 
         this->DofsMaps_[blockId] = dofsMaps;
         this->DofsPerNode_[blockId] = dofsPerNode;
 
         Teuchos::Array<GO> tmpDirichletBoundaryDofs(dirichletBoundaryDofs()); // Here, we do a copy. Maybe, this is not necessary
         sortunique(tmpDirichletBoundaryDofs);
-				this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-				if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 3\n";
+
         this->DDInterface_.reset(new DDInterface<SC,LO,GO,NO>(dimension,this->DofsPerNode_[blockId],nodesMap));
         this->DDInterface_->resetGlobalDofs(dofsMaps);
         this->DDInterface_->removeDirichletNodes(tmpDirichletBoundaryDofs);
         if (this->ParameterList_->get("Test Unconnected Interface",true)) {
             this->DDInterface_->divideUnconnectedEntities(this->K_);
         }
-				this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-				if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 4\n";
+
         EntitySetPtrVecPtr entitySetVector;
         EntitySetPtr interface,interior,coarseNodes;
         MapPtr coarseNodesMap;
@@ -138,12 +132,10 @@ namespace FROSch {
 
         // Check for interface
         if (this->DofsPerNode_[blockId]*interface->getEntity(0)->getNumNodes()==0) {
+
             this->computeVolumeFunctions(blockId,dimension,nodesMap,nodeList,interior);
 
         } else {
-
-					this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-					if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 5\n";
             this->GammaDofs_[blockId] = LOVecPtr(this->DofsPerNode_[blockId]*interface->getEntity(0)->getNumNodes());
             this->IDofs_[blockId] = LOVecPtr(this->DofsPerNode_[blockId]*interior->getEntity(0)->getNumNodes());
 
@@ -155,56 +147,36 @@ namespace FROSch {
                     this->IDofs_[blockId][this->DofsPerNode_[blockId]*i+k] = interior->getEntity(0)->getLocalDofID(i,k);
                 }
             }
-						this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-						if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 6\n";
+
             this->InterfaceCoarseSpaces_[blockId].reset(new CoarseSpace<SC,LO,GO,NO>());
-						this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-						if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 6.1\n";
             if (useForCoarseSpace) {
                 this->DDInterface_->buildEntityHierarchy();
-								this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-								if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 6.2\n";
                 this->DDInterface_->computeDistancesToCoarseNodes(dimension,nodeList,distanceFunction);
-								this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-								if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 6.3\n";
+
                 /////////////////////////////////
                 // Coarse Node Basis Functions //
                 /////////////////////////////////
                 entitySetVector = this->DDInterface_->getEntitySetVector();
-								this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-								if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 6.4\n";
+
                 coarseNodes = this->DDInterface_->getCoarseNodes();
-								this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-								if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 6.5\n";
                 coarseNodes->buildEntityMap(nodesMap); //Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout)); coarseNodes->getEntityMap()->describe(*fancy,Teuchos::VERB_EXTREME);
                 this->kRowMap_ =coarseNodes->getEntityMap();
                 MultiVectorPtrVecPtr translations = this->computeTranslations(blockId,coarseNodes,entitySetVector,distanceFunction);
-								this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-								if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 6.51\n";
                 tra = translations.size();
                 for (UN i=0; i<translations.size(); i++) {
                     this->InterfaceCoarseSpaces_[blockId]->addSubspace(coarseNodes->getEntityMap(),translations[i]);
                 }
-								this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-								if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 6.52\n";
-								this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
                 if (useRotations) {
                     MultiVectorPtrVecPtr rotations = this->computeRotations(blockId,dimension,nodeList,coarseNodes,entitySetVector,distanceFunction);
 
-
-										this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-										if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 6.6\n";
 										rot = rotations.size();
                     for (UN i=0; i<rotations.size(); i++) {
                         this->InterfaceCoarseSpaces_[blockId]->addSubspace(coarseNodes->getEntityMap(),rotations[i]);
                     }
-										this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-										if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 6.7\n";
                 }
+
                 //this->DofsPerNodeCoarse_= translations.size()+useRotations*rotations.size();
                 this->InterfaceCoarseSpaces_[blockId]->assembleCoarseSpace();
-								this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-								if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 7\n";
                 // Count entities
                 GO numCoarseNodesGlobal;
                 numCoarseNodesGlobal = coarseNodes->getEntityMap()->getMaxAllGlobalIndex();
@@ -214,8 +186,6 @@ namespace FROSch {
                 if (numCoarseNodesGlobal<0) {
                     numCoarseNodesGlobal = 0;
                 }
-								this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-								if(this->MpiComm_->getRank() == 0) std::cout<<"RGDSW 8\n";
                 //dofPerNode next level
                 if(useRotations){
                     this->dofs = tra + rot;
@@ -284,8 +254,7 @@ namespace FROSch {
                             LO index = tmpCoarseNode->getCoarseNodeID();
                             // Offspring: loop over nodes
                             for (UN l=0; l<tmpEntity->getNumNodes(); l++) {
-                                tmpEntity->getDistanceToCoarseNode(l,m);
-                                tmpEntity->getDistanceToCoarseNode(l,numCoarseNodes);
+
                                 SC value = tmpEntity->getDistanceToCoarseNode(l,m)/tmpEntity->getDistanceToCoarseNode(l,numCoarseNodes);
                                 translations[k]->replaceLocalValue(tmpEntity->getGammaDofID(l,k),index,value);
                             }
@@ -312,8 +281,6 @@ namespace FROSch {
     {
         FROSCH_ASSERT(nodeList->getNumVectors()==dimension,"dimension of the nodeList is wrong.");
         FROSCH_ASSERT(dimension==this->DofsPerNode_[blockId],"dimension!=this->DofsPerNode_[blockId]");
-				this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-				if(this->MpiComm_->getRank() == 0) std::cout<<"Rot 0.1\n";
         UN rotationsPerEntity = 0;
         switch (dimension) {
             case 1:
@@ -329,8 +296,7 @@ namespace FROSch {
                 FROSCH_ASSERT(false,"The dimension is neither 2 nor 3!");
                 break;
         }
-				this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-				if(this->MpiComm_->getRank() == 0) std::cout<<"Rot 0\n";
+
         MultiVectorPtrVecPtr rotations(rotationsPerEntity);
         MapPtr serialGammaMap = Xpetra::MapFactory<LO,GO,NO>::Build(this->K_->getRangeMap()->lib(),this->GammaDofs_[blockId].size(),0,this->SerialComm_);
         for (UN i=0; i<rotationsPerEntity; i++) {
@@ -340,8 +306,7 @@ namespace FROSch {
                 rotations[i] = Teuchos::null;
             }
         }
-				this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-				if(this->MpiComm_->getRank() == 0) std::cout<<"Rot 1.0\n";
+
         SC x,y,z,rx,ry,rz;
         // Loop over entitySetVector
         for (UN i=0; i<entitySetVector.size(); i++) {
@@ -350,28 +315,20 @@ namespace FROSch {
                 InterfaceEntityPtr tmpEntity = entitySetVector[i]->getEntity(j);
                 LO coarseNodeID = tmpEntity->getCoarseNodeID();
                 UN numCoarseNodes = tmpEntity->getCoarseNodes()->getNumEntities();
-								this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-								if(this->MpiComm_->getRank() == 0) std::cout<<"Rot 1\n";
-								this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-								if(this->MpiComm_->getRank() == 0) std::cout<<"################################################################\n";
-                if (coarseNodeID==-1) {
-									this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-									if(this->MpiComm_->getRank() == 0) std::cout<<"Rot"<<numCoarseNodes<<std::endl;
-									this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-									if(this->MpiComm_->getRank() == 0) std::cout<<"################################################################\n";
+              /*  if(this->MpiComm_->getRank() == 0)std::cout<<this->MpiComm_->getRank()<<"  "<<coarseNodeID<<std::endl;*/
+
+               if (coarseNodeID==-1) {
                     FROSCH_ASSERT(numCoarseNodes!=0,"coarseNodeID==-1 but numCoarseNodes==0!");
                     for (UN m=0; m<numCoarseNodes; m++) {
                         InterfaceEntityPtr tmpCoarseNode = tmpEntity->getCoarseNodes()->getEntity(m);
                         LO index = tmpCoarseNode->getCoarseNodeID();
-                        // Offspring: loop over nodes
+                        //Offspring: loop over nodes
+                     for (UN l=0; l<tmpEntity->getNumNodes(); l++) {
+                          SC value = tmpEntity->getDistanceToCoarseNode(l,m)/tmpEntity->getDistanceToCoarseNode(l,numCoarseNodes);
 
-                        for (UN l=0; l<tmpEntity->getNumNodes(); l++) {
-                            SC value = tmpCoarseNode->getDistanceToCoarseNode(l,m)/tmpCoarseNode->getDistanceToCoarseNode(l,numCoarseNodes);
-
-                            // Rotations
-                            x = nodeList->getData(0)[tmpEntity->getLocalNodeID(j)];
-                            y = nodeList->getData(1)[tmpEntity->getLocalNodeID(j)];
-
+														// Rotations
+                           x = nodeList->getData(0)[tmpEntity->getLocalNodeID(l)];
+                           y = nodeList->getData(1)[tmpEntity->getLocalNodeID(l)];
                             // Rotation 1
                             rx = y;
                             ry = -x;
@@ -379,7 +336,7 @@ namespace FROSch {
                             rotations[0]->replaceLocalValue(tmpEntity->getGammaDofID(l,0),index,value*rx);
                             rotations[0]->replaceLocalValue(tmpEntity->getGammaDofID(l,1),index,value*ry);
                             if (dimension == 3) {
-                                z = nodeList->getData(2)[tmpEntity->getLocalNodeID(j)];
+                                z = nodeList->getData(2)[tmpEntity->getLocalNodeID(l)];
 
                                 rotations[0]->replaceLocalValue(tmpEntity->getGammaDofID(l,2),index,value*rz);
 
@@ -395,23 +352,19 @@ namespace FROSch {
                                 rx = 0;
                                 ry = z;
                                 rz = -y;
-                                rotations[2]->replaceLocalValue(tmpEntity->getGammaDofID(l,0),index,value*rx);
-                                rotations[2]->replaceLocalValue(tmpEntity->getGammaDofID(l,1),index,value*ry);
-                                rotations[2]->replaceLocalValue(tmpEntity->getGammaDofID(l,2),index,value*rz);
+                              rotations[2]->replaceLocalValue(tmpEntity->getGammaDofID(l,0),index,value*rx);
+                              rotations[2]->replaceLocalValue(tmpEntity->getGammaDofID(l,1),index,value*ry);
+                              rotations[2]->replaceLocalValue(tmpEntity->getGammaDofID(l,2),index,value*rz);
                             }
                         }
-
-                    }
+									}
+									//if(this->MpiComm_->getRank() == 0)std::cout<<"First if\n";
                 } else {
-									this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-									if(this->MpiComm_->getRank() == 0) std::cout<<"Rot 3\n";
-									this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-									if(this->MpiComm_->getRank() == 0) std::cout<<"################################################################\n";
                     // Coarse node: loop over nodes
                     for (UN l=0; l<entitySetVector[i]->getEntity(j)->getNumNodes(); l++) {
                         // Rotations
-                        x = nodeList->getData(0)[tmpEntity->getLocalNodeID(j)];
-                        y = nodeList->getData(1)[tmpEntity->getLocalNodeID(j)];
+                        x = nodeList->getData(0)[tmpEntity->getLocalNodeID(l)];
+                        y = nodeList->getData(1)[tmpEntity->getLocalNodeID(l)];
 
                         // Rotation 1
                         rx = y;
@@ -420,7 +373,7 @@ namespace FROSch {
                         rotations[0]->replaceLocalValue(tmpEntity->getGammaDofID(l,0),coarseNodeID,rx);
                         rotations[0]->replaceLocalValue(tmpEntity->getGammaDofID(l,1),coarseNodeID,ry);
                         if (dimension == 3) {
-                            z = nodeList->getData(2)[tmpEntity->getLocalNodeID(j)];
+                            z = nodeList->getData(2)[tmpEntity->getLocalNodeID(l)];
 
                             rotations[0]->replaceLocalValue(tmpEntity->getGammaDofID(l,2),coarseNodeID,rz);
 
@@ -439,6 +392,7 @@ namespace FROSch {
                             rotations[2]->replaceLocalValue(tmpEntity->getGammaDofID(l,0),coarseNodeID,rx);
                             rotations[2]->replaceLocalValue(tmpEntity->getGammaDofID(l,1),coarseNodeID,ry);
                             rotations[2]->replaceLocalValue(tmpEntity->getGammaDofID(l,2),coarseNodeID,rz);
+														//if(this->MpiComm_->getRank() == 0)std::cout<<"Second if\n";
                         }
                     }
                 }

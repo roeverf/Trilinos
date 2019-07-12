@@ -139,6 +139,9 @@ namespace FROSch {
         else{
             nodeListVec.resize(nmbBlocks);
         }
+
+
+
         //////////////////////////////////////////
         // Determine dirichletBoundaryDofs //
         //////////////////////////////////////////
@@ -236,6 +239,8 @@ namespace FROSch {
         ////////////
         // Checks //
         ////////////
+        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
+
         UN nmbBlocks = dofsPerNodeVec.size();
         for (UN i = 0; i < dofOrderingVec.size(); i++ ) {
             DofOrdering dofOrdering = dofOrderingVec[i];
@@ -265,8 +270,7 @@ namespace FROSch {
                 }
             }
         }
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0) std::cout<<"Test 1\n"<<this->K_->getGlobalNumRows()<<std::endl;
+
         //////////////////////////
         // Communicate nodeList //
         //////////////////////////
@@ -283,8 +287,6 @@ namespace FROSch {
         else{
             nodeListVec.resize(nmbBlocks);
         }
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0) std::cout<<"Test 2\n";
         //////////////////////////////////////////
         // Determine dirichletBoundaryDofs //
         //////////////////////////////////////////
@@ -316,8 +318,7 @@ namespace FROSch {
 
         }
 
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0) std::cout<<"Test 3\n";
+
         ////////////////////////////////////
         // Initialize OverlappingOperator //
         ////////////////////////////////////
@@ -327,12 +328,10 @@ namespace FROSch {
         } else {
             FROSCH_ASSERT(false,"OverlappingOperator Type unkown.");
         }
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0) std::cout<<"Test 4\n";
+
         ///////////////////////////////
         // Initialize CoarseOperator //
         ///////////////////////////////
-        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
 
         if (this->ParameterList_->get("TwoLevel",true)) {
             if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("IPOUHarmonicCoarseOperator")) {
@@ -359,16 +358,14 @@ namespace FROSch {
             else if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("RGDSWCoarseOperator")) {
                 this->ParameterList_->sublist("RGDSWCoarseOperator").sublist("CoarseSolver").sublist("MueLu").set("Dimension",(int)dimension);
                 RGDSWCoarseOperatorPtr rGDSWCoarseOperator = Teuchos::rcp_static_cast<RGDSWCoarseOperator<SC,LO,GO,NO> >(CoarseOperator_);
-                this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-                if(this->MpiComm_->getRank() == 0) std::cout<<"Test 5\n";
+
                 //nodeListVec[0]->describe(*fancy,Teuchos::VERB_EXTREME);
                 if (0>rGDSWCoarseOperator->initialize(dimension,dofsPerNodeVec,repeatedNodesMapVec,dofsMapsVec,dirichletBoundaryDofsVec,nodeListVec)) ret -=10;
             }
             else {
                 FROSCH_ASSERT(false,"CoarseOperator Type unkown.");
             }
-            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-            if(this->MpiComm_->getRank() == 0) std::cout<<"Test 6\n";
+
        }
 
         return ret;
