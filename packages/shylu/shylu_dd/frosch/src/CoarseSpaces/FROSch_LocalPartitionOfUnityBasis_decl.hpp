@@ -50,6 +50,10 @@
 #include <FROSch_CoarseSpace_def.hpp>
 
 #include "FROSch_Tools_def.hpp"
+#include <Teuchos_SerialQRDenseSolver.hpp>
+#include <Teuchos_SerialDenseVector.hpp>
+#include <Teuchos_SerialDenseMatrix.hpp>
+#include <Teuchos_SerialDenseHelpers.hpp>
 
 namespace FROSch {
 
@@ -58,34 +62,39 @@ namespace FROSch {
     class GO = typename Xpetra::Operator<SC, LO>::global_ordinal_type,
     class NO = typename Xpetra::Operator<SC, LO, GO>::node_type>
     class LocalPartitionOfUnityBasis {
-        
+
     public:
 
         typedef Teuchos::RCP<const Teuchos::Comm<int> > CommPtr;
-        
+
         typedef Xpetra::Map<LO,GO,NO> Map;
         typedef Teuchos::RCP<Map> MapPtr;
         typedef Teuchos::ArrayRCP<MapPtr> MapPtrVecPtr;
-        
+
         typedef Xpetra::MultiVector<SC,LO,GO,NO> MultiVector;
         typedef Teuchos::RCP<MultiVector> MultiVectorPtr;
         typedef Teuchos::ArrayRCP<MultiVectorPtr> MultiVectorPtrVecPtr;
-        typedef Teuchos::ArrayRCP<MultiVectorPtrVecPtr> MultiVectorPtrVecPtr2D;                
+        typedef Teuchos::ArrayRCP<MultiVectorPtrVecPtr> MultiVectorPtrVecPtr2D;
+
+        typedef Teuchos::RCP<Teuchos::SerialDenseMatrix<LO,SC> > SerialDenseMatrixPtr;
+        typedef Teuchos::ArrayRCP<SerialDenseMatrixPtr> SerialDenseMatrixVecPtr;
+        typedef Teuchos::ArrayRCP<SerialDenseMatrixVecPtr> SerialDenseMatrixVecPtr2D;
         
+
         typedef Teuchos::RCP<Teuchos::ParameterList> ParameterListPtr;
-        
+
         typedef Teuchos::RCP<CoarseSpace<SC,LO,GO,NO> > CoarseSpacePtr;
-        
+
         typedef unsigned UN;
         typedef Teuchos::ArrayRCP<UN> UNVecPtr;
-        
+
         typedef Teuchos::ArrayRCP<LO> LOVecPtr;
         typedef Teuchos::ArrayRCP<LOVecPtr> LOVecPtr2D;
-        
+
         typedef Teuchos::ArrayRCP<bool> BoolVecPtr;
         typedef Teuchos::ArrayRCP<BoolVecPtr> BoolVecPtr2D;
 
-        
+
         LocalPartitionOfUnityBasis(CommPtr mpiComm,
                                    CommPtr serialComm,
                                    UN dofsPerNode,
@@ -93,40 +102,40 @@ namespace FROSch {
                                    MultiVectorPtr nullSpaceBasis = MultiVectorPtr(),
                                    MultiVectorPtrVecPtr partitionOfUnity = MultiVectorPtrVecPtr(),
                                    MapPtrVecPtr partitionOfUnityMaps = MapPtrVecPtr());
-        
+
 //        virtual ~LocalPartitionOfUnityBasis();
-        
+
         int addPartitionOfUnity(MultiVectorPtrVecPtr partitionOfUnity,
                                 MapPtrVecPtr partitionOfUnityMaps);
-        
+
         int addGlobalBasis(MultiVectorPtr nullSpaceBasis);
-        
+
         int buildLocalPartitionOfUnityBasis();
-        
+
         MultiVectorPtrVecPtr getPartitionOfUnity() const;
-        
+
         MultiVectorPtr getNullspaceBasis() const;
-        
+
         CoarseSpacePtr getLocalPartitionOfUnitySpace() const;
-        
+
     protected:
-        
+
         CommPtr MpiComm_;
         CommPtr SerialComm_;
-        
+
         UN DofsPerNode_;
-        
+
         ParameterListPtr ParameterList_;
-        
+
         CoarseSpacePtr LocalPartitionOfUnitySpace_;
-        
+
         MultiVectorPtrVecPtr PartitionOfUnity_;
         MultiVectorPtr NullspaceBasis_;
-                
+
         MapPtrVecPtr PartitionOfUnityMaps_;
-        
+
     };
-    
+
 }
 
 #endif

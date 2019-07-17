@@ -169,7 +169,6 @@ namespace FROSch {
         Teuchos::RCP<Teuchos::ParameterList> coarseSpaceList = sublist(sublist(this->ParameterList_,"Blocks"),blockIdString.c_str());
 
         bool useForCoarseSpace = coarseSpaceList->get("Use For Coarse Space",true);
-
         if (useForCoarseSpace) {
             this->DofsMaps_[blockId] = dofsMaps;
             this->DofsPerNode_[blockId] = dofsPerNode;
