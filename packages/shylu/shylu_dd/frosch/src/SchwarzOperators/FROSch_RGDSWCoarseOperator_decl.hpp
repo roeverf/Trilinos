@@ -43,63 +43,63 @@
 #define _FROSCH_RGDSWCOARSEOPERATOR_DECL_HPP
 
 #include <FROSch_GDSWCoarseOperator_def.hpp>
-#define FROSch_RDSWOperatorTimers
+#define FROSch_RGDSWOperatorTimers
 
 namespace FROSch {
-    
+
     template <class SC = Xpetra::Operator<>::scalar_type,
     class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
     class GO = typename Xpetra::Operator<SC,LO>::global_ordinal_type,
     class NO = typename Xpetra::Operator<SC,LO,GO>::node_type>
     class RGDSWCoarseOperator : public GDSWCoarseOperator<SC,LO,GO,NO> {
-        
+
         public:
 
         typedef typename SchwarzOperator<SC,LO,GO,NO>::CommPtr CommPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtr MapPtr;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr MapPtrVecPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr CrsMatrixPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr MultiVectorPtr;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtrVecPtr MultiVectorPtrVecPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr ParameterListPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::DDInterfacePtr DDInterfacePtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtr EntitySetPtr;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtrVecPtr EntitySetPtrVecPtr;
         typedef const EntitySetPtr EntitySetConstPtr;
         typedef const EntitySetPtrVecPtr EntitySetPtrConstVecPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::InterfaceEntityPtr InterfaceEntityPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::UN UN;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVec LOVec;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr LOVecPtr;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr2D LOVecPtr2D;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVec GOVec;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr GOVecPtr;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr2D GOVecPtr2D;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVec2D GOVec2D;
 
         typedef typename SchwarzOperator<SC,LO,GO,NO>::SCVecPtr SCVecPtr;
-        
+
         typedef Teuchos::Array<InterfaceEntityPtr> InterfaceEntityPtrVec;
         typedef Teuchos::ArrayRCP<InterfaceEntityPtr> InterfaceEntityPtrVecPtr;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::CrsGraphPtr CrsGraphPtr;
-		
+
 		typedef typename SchwarzOperator<SC,LO,GO,NO>::Time Time;
 		typedef typename SchwarzOperator<SC,LO,GO,NO>::TimePtr TimePtr;
-        
-        
+
+
         RGDSWCoarseOperator(CrsMatrixPtr k,
                             ParameterListPtr parameterList);
-        
+
         virtual int resetCoarseSpaceBlock(UN blockId,
                                           UN dimension,
                                           UN dofsPerNode,
@@ -107,28 +107,38 @@ namespace FROSch {
                                           MapPtrVecPtr dofsMaps,
                                           GOVecPtr dirichletBoundaryDofs,
                                           MultiVectorPtr nodeList);
-        
+
         static int current_level;
         protected:
-        
-		#ifdef FROSch_RDSWOperatorTimers
-		std::vector<TimePtr> BuildCoarseSpaceTimer;
+
+		#ifdef FROSch_RGDSWOperatorTimers
 		std::vector <TimePtr> ResetCoarseSpaceTimer;
+    std::vector <TimePtr> DDInterfaceResetTimer;
+    std::vector <TimePtr> DDInterfaceResetGlobalTimer;
+    std::vector <TimePtr> DDInterfaceRemoveDDTimer;
+    std::vector <TimePtr> DDInterfaceBuildEntityHTimer;
+    std::vector <TimePtr> DDInterfaceDistToCNodesTimer;
+    std::vector <TimePtr> CompVolFuncTimer;
+    std::vector <TimePtr> CompTranslationsTimer;
+    std::vector <TimePtr> CompRotationsTimer;
+    std::vector <TimePtr> CNodesBuildEntityMapTimer;
+    std::vector <TimePtr> InterfaceCoarseSpaceResetTimer;
+    std::vector <TimePtr> InterfaceCoarseSpaceAssembleCSTimer;
 	    #endif
         virtual MultiVectorPtrVecPtr computeTranslations(UN blockId,
                                                          EntitySetPtr coarseNodes,
                                                          EntitySetPtrVecPtr entitySetVector,
                                                          DistanceFunction distanceFunction = ConstantDistanceFunction);
-        
+
         virtual MultiVectorPtrVecPtr computeRotations(UN blockId,
                                                       UN dimension,
                                                       MultiVectorPtr nodeList,
                                                       EntitySetPtr coarseNodes,
                                                       EntitySetPtrVecPtr entitySetVector,
                                                       DistanceFunction distanceFunction = ConstantDistanceFunction);
-        
+
     };
-    
+
 }
 
 #endif

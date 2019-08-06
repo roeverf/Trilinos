@@ -157,6 +157,10 @@ namespace FROSch {
         virtual int buildElementNodeList();
         virtual int buildGlobalGraph(Teuchos::RCP<DDInterface<SC,LO,GO,NO> > theDDInterface_);
         virtual int buildCoarseGraph();
+        MapPtr  RepMap_Zoltan(Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > Xgraph,
+                                                            Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > B,
+                                                            Teuchos::RCP<Teuchos::ParameterList> parameterList,
+                                                            Teuchos::RCP<const Teuchos::Comm<int> > TeuchosComm);
         CommPtr CoarseSolveComm_;
 
         bool OnCoarseSolveComm_;
@@ -208,6 +212,15 @@ namespace FROSch {
   Teuchos::Array<TimePtr> InterfaceInfoTimer;
   Teuchos::Array<TimePtr> BuildCoarseGraphTimer;
   Teuchos::Array<TimePtr> BuildElementNodeListTimer;
+  Teuchos::Array<TimePtr> CompAssembleCoarseSpaceTimer;
+  Teuchos::Array<TimePtr> CompBuildBasisMatrixTimer;
+  Teuchos::Array<TimePtr> CompCoarseSpaceTimer;
+  Teuchos::Array<TimePtr> ExportCMatrixTimer;
+  Teuchos::Array<TimePtr> ZoltanRepTimer;
+  Teuchos::Array<TimePtr> BuildZoltanRepTimer ;
+  Teuchos::Array<TimePtr> RepApplyTimer;
+  Teuchos::Array<TimePtr> ImportTimer;
+
 #endif
     };
 

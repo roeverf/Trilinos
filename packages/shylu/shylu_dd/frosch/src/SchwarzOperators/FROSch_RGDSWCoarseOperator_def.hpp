@@ -54,16 +54,38 @@ namespace FROSch {
     RGDSWCoarseOperator<SC,LO,GO,NO>::RGDSWCoarseOperator(CrsMatrixPtr k,
                                                           ParameterListPtr parameterList) :
     GDSWCoarseOperator<SC,LO,GO,NO> (k,parameterList)
-    #ifdef FROSch_RDSWOperatorTimers
-	,BuildCoarseSpaceTimer(this->level),
-	ResetCoarseSpaceTimer(this->level)
+    #ifdef FROSch_RGDSWOperatorTimers
+	,ResetCoarseSpaceTimer(this->level),
+	 DDInterfaceResetTimer(this->level),
+   DDInterfaceResetGlobalTimer(this->level),
+	 DDInterfaceRemoveDDTimer(this->level),
+	 DDInterfaceBuildEntityHTimer(this->level),
+	 DDInterfaceDistToCNodesTimer(this->level),
+	 CompVolFuncTimer(this->level),
+	 CompTranslationsTimer(this->level),
+	 CompRotationsTimer(this->level),
+	 CNodesBuildEntityMapTimer(this->level),
+	 InterfaceCoarseSpaceResetTimer(this->level),
+	 InterfaceCoarseSpaceAssembleCSTimer(this->level)
 	#endif
 	{
 		#ifdef FROSch_RGDSWOperatorTimers
         for(int i = 0;i<this->level;i++){
 			//BuildCoarseSpaceTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch RGDSWCoarseOperator BuildCoarseSpace " + std::to_string(i));
 			ResetCoarseSpaceTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch RGDSWCoarseOperator ResetCoarseSpace " + std::to_string(i));
-		}
+      DDInterfaceResetTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch RGDSWCoarseOperator DDInterfaceReset " + std::to_string(i));
+      DDInterfaceResetGlobalTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch RGDSWCoarseOperator InterfaceResetGlobalDofs " + std::to_string(i));
+      DDInterfaceRemoveDDTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch RGDSWCoarseOperator Remove DirichletDofs " + std::to_string(i));
+			DDInterfaceBuildEntityHTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch RGDSWCoarseOperator BuildEntityHierarchy " + std::to_string(i));
+			DDInterfaceDistToCNodesTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch RGDSWCoarseOperator DistanceToCoarseNode " + std::to_string(i));
+			CompVolFuncTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch RGDSWCoarseOperator ComputeVolumeFunctions " + std::to_string(i));
+			CompTranslationsTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch RGDSWCoarseOperator CompTranslations" + std::to_string(i));
+			CompRotationsTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch RGDSWCoarseOperator CompRotations " + std::to_string(i));
+			CNodesBuildEntityMapTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch RGDSWCoarseOperator CNodeEntityMap" + std::to_string(i));
+			InterfaceCoarseSpaceResetTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch RGDSWCoarseOperator InterfaceCoarseSpaceReset " + std::to_string(i));
+			InterfaceCoarseSpaceAssembleCSTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch RGDSWCoarseOperator AssembleCoarseSpace " + std::to_string(i));
+
+}
 		#endif
        current_level = current_level + 1;
     }
@@ -115,10 +137,24 @@ namespace FROSch {
 
         Teuchos::Array<GO> tmpDirichletBoundaryDofs(dirichletBoundaryDofs()); // Here, we do a copy. Maybe, this is not necessary
         sortunique(tmpDirichletBoundaryDofs);
-
+				{
+#ifdef FROSch_RGDSWOperatorTimers
+				Teuchos::TimeMonitor DDInterfaceResetTimeMonitor(*DDInterfaceResetTimer.at(current_level-1));
+#endif
         this->DDInterface_.reset(new DDInterface<SC,LO,GO,NO>(dimension,this->DofsPerNode_[blockId],nodesMap));
+			}
+			{
+				#ifdef FROSch_RGDSWOperatorTimers
+								Teuchos::TimeMonitor DDInterfaceResetGlobalTimeMonitor(*DDInterfaceResetGlobalTimer.at(current_level-1));
+				#endif
         this->DDInterface_->resetGlobalDofs(dofsMaps);
+			}
+			{
+				#ifdef FROSch_RGDSWOperatorTimers
+								Teuchos::TimeMonitor DDInterfaceRemoveDDTimeMonitor(*DDInterfaceRemoveDDTimer.at(current_level-1));
+				#endif
         this->DDInterface_->removeDirichletNodes(tmpDirichletBoundaryDofs);
+			}
         if (this->ParameterList_->get("Test Unconnected Interface",true)) {
             this->DDInterface_->divideUnconnectedEntities(this->K_);
         }
@@ -132,8 +168,12 @@ namespace FROSch {
 
         // Check for interface
         if (this->DofsPerNode_[blockId]*interface->getEntity(0)->getNumNodes()==0) {
-
+          {
+						#ifdef FROSch_RGDSWOperatorTimers
+										Teuchos::TimeMonitor CompVolFuncTimeMonitor(*CompVolFuncTimer.at(current_level-1));
+						#endif
             this->computeVolumeFunctions(blockId,dimension,nodesMap,nodeList,interior);
+					}
 
         } else {
             this->GammaDofs_[blockId] = LOVecPtr(this->DofsPerNode_[blockId]*interface->getEntity(0)->getNumNodes());
@@ -147,11 +187,25 @@ namespace FROSch {
                     this->IDofs_[blockId][this->DofsPerNode_[blockId]*i+k] = interior->getEntity(0)->getLocalDofID(i,k);
                 }
             }
-
+						{
+							#ifdef FROSch_RGDSWOperatorTimers
+											Teuchos::TimeMonitor InterfaceCoarseSpaceResetTimeMonitor(*InterfaceCoarseSpaceResetTimer.at(current_level-1));
+							#endif
             this->InterfaceCoarseSpaces_[blockId].reset(new CoarseSpace<SC,LO,GO,NO>());
+						}
             if (useForCoarseSpace) {
+							{
+								#ifdef FROSch_RGDSWOperatorTimers
+												Teuchos::TimeMonitor DDInterfaceBuildEntityHTimeMonitor(*DDInterfaceBuildEntityHTimer.at(current_level-1));
+								#endif
                 this->DDInterface_->buildEntityHierarchy();
+							}
+							{
+								#ifdef FROSch_RGDSWOperatorTimers
+												Teuchos::TimeMonitor DDInterfaceDistToCNodesTimeMonitor(*DDInterfaceDistToCNodesTimer.at(current_level-1));
+								#endif
                 this->DDInterface_->computeDistancesToCoarseNodes(dimension,nodeList,distanceFunction);
+							}
 
                 /////////////////////////////////
                 // Coarse Node Basis Functions //
@@ -159,15 +213,33 @@ namespace FROSch {
                 entitySetVector = this->DDInterface_->getEntitySetVector();
 
                 coarseNodes = this->DDInterface_->getCoarseNodes();
+								{
+									#ifdef FROSch_RGDSWOperatorTimers
+													Teuchos::TimeMonitor CNodesBuildEntityMapTimeMonitor(*CNodesBuildEntityMapTimer.at(current_level-1));
+									#endif
                 coarseNodes->buildEntityMap(nodesMap); //Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout)); coarseNodes->getEntityMap()->describe(*fancy,Teuchos::VERB_EXTREME);
-                this->kRowMap_ =coarseNodes->getEntityMap();
-                MultiVectorPtrVecPtr translations = this->computeTranslations(blockId,coarseNodes,entitySetVector,distanceFunction);
+							  }
+								this->kRowMap_ =coarseNodes->getEntityMap();
+                MultiVectorPtrVecPtr translations;
+								{
+									#ifdef FROSch_RGDSWOperatorTimers
+													Teuchos::TimeMonitor CompTranslationsTimeMonitor(*CompTranslationsTimer.at(current_level-1));
+									#endif
+								translations= this->computeTranslations(blockId,coarseNodes,entitySetVector,distanceFunction);
+							 }
                 tra = translations.size();
                 for (UN i=0; i<translations.size(); i++) {
                     this->InterfaceCoarseSpaces_[blockId]->addSubspace(coarseNodes->getEntityMap(),translations[i]);
                 }
                 if (useRotations) {
-                    MultiVectorPtrVecPtr rotations = this->computeRotations(blockId,dimension,nodeList,coarseNodes,entitySetVector,distanceFunction);
+                    MultiVectorPtrVecPtr rotations;
+										{
+
+												#ifdef FROSch_RGDSWOperatorTimers
+																Teuchos::TimeMonitor CompRotationsTimeMonitor(*CompRotationsTimer.at(current_level-1));
+												#endif
+											rotations= this->computeRotations(blockId,dimension,nodeList,coarseNodes,entitySetVector,distanceFunction);
+										}
 
 										rot = rotations.size();
                     for (UN i=0; i<rotations.size(); i++) {
@@ -176,7 +248,13 @@ namespace FROSch {
                 }
 
                 //this->DofsPerNodeCoarse_= translations.size()+useRotations*rotations.size();
+								{
+
+										#ifdef FROSch_RGDSWOperatorTimers
+														Teuchos::TimeMonitor InterfaceCoarseSpaceAssembleCSTimeMonitor(*InterfaceCoarseSpaceAssembleCSTimer.at(current_level-1));
+										#endif
                 this->InterfaceCoarseSpaces_[blockId]->assembleCoarseSpace();
+							 }
                 // Count entities
                 GO numCoarseNodesGlobal;
                 numCoarseNodesGlobal = coarseNodes->getEntityMap()->getMaxAllGlobalIndex();

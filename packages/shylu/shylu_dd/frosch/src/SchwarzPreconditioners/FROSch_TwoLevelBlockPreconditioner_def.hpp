@@ -54,14 +54,12 @@ namespace FROSch {
     CoarseOperator_ ()
     {
 
-      if(this->MpiComm_->getRank() == 0) std::cout<<"Size Matrix "<<k->getGlobalNumRows()<<std::endl;
+
         if (this->ParameterList_->get("TwoLevel",true)) {
             if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("IPOUHarmonicCoarseOperator")) {
 //                FROSCH_ASSERT(false,"not implemented for block.");
                 this->ParameterList_->sublist("IPOUHarmonicCoarseOperator").sublist("InterfacePartitionOfUnity").set("Test Unconnected Interface",false);
                 CoarseOperator_ = IPOUHarmonicCoarseOperatorPtr(new IPOUHarmonicCoarseOperator<SC,LO,GO,NO>(k,sublist(parameterList,"IPOUHarmonicCoarseOperator")));
-                this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-                if(this->MpiComm_->getRank() == 0)std::cout<<"TLBP 1\n";
             } else if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("GDSWCoarseOperator")) {
                 this->ParameterList_->sublist("GDSWCoarseOperator").set("Test Unconnected Interface",false);
                 CoarseOperator_ = GDSWCoarseOperatorPtr(new GDSWCoarseOperator<SC,LO,GO,NO>(k,sublist(parameterList,"GDSWCoarseOperator")));
@@ -335,13 +333,8 @@ namespace FROSch {
         ///////////////////////////////
         // Initialize CoarseOperator //
         ///////////////////////////////
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0) std::cout<<"TLBP 2.0\n";
         if (this->ParameterList_->get("TwoLevel",true)) {
             if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("IPOUHarmonicCoarseOperator")) {
-                this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-                if(this->MpiComm_->getRank() == 0) std::cout<<"TLBP 2\n";
-                this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
 
                 //this->ParameterList_->sublist("IPOUHarmonicCoarseOperator").sublist("CoarseSolver").sublist("MueLu").set("Dimension",(int)dimension);
                 // Build Null Space
@@ -352,8 +345,6 @@ namespace FROSch {
                     nullSpaceBasisVec[1] = BuildNullSpace<SC,LO,GO,NO>(dimension,LaplaceNullSpace,repeatedMapVec[1],dofsPerNodeVec[1],dofsMapsVec[1]);
 
                 } else if (!this->ParameterList_->get("Null Space Type","Laplace").compare("Linear Elasticity")) {
-                  this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-                  if(this->MpiComm_->getRank() == 0) std::cout<<"TLBP 2.1\n";
                     nullSpaceBasisVec.resize(1);
                     nullSpaceBasisVec[0]= BuildNullSpace(dimension,LinearElasticityNullSpace,repeatedMapVec[0],dofsPerNodeVec[0],dofsMapsVec[0],nodeListVec[0]);
                     //repeatedMapVec[0]->describe(*fancy,Teuchos::VERB_EXTREME);
@@ -363,8 +354,6 @@ namespace FROSch {
                 } else {
                     FROSCH_ASSERT(false,"Null Space Type unknown.");
                 }
-                this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-                if(this->MpiComm_->getRank() == 0) std::cout<<"TLBP 3\n";
                 IPOUHarmonicCoarseOperatorPtr iPOUHarmonicCoarseOperator = Teuchos::rcp_static_cast<IPOUHarmonicCoarseOperator<SC,LO,GO,NO> >(CoarseOperator_);
                 if (0>iPOUHarmonicCoarseOperator->initialize(dimension,dofsPerNodeVec,repeatedNodesMapVec,dofsMapsVec,nullSpaceBasisVec,nodeListVec,dirichletBoundaryDofsVec)) ret -=10;
             } else if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("GDSWCoarseOperator")) {
@@ -385,8 +374,7 @@ namespace FROSch {
                 FROSCH_ASSERT(false,"CoarseOperator Type unkown.");
             }
        }
-       this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-       if(this->MpiComm_->getRank() == 0) std::cout<<"TLBP 4\n";
+
         return ret;
     }
 

@@ -95,11 +95,13 @@ namespace FROSch {
         Teuchos::RCP<Teuchos::SerialQRDenseSolver<LO,SC> > QRPart = Teuchos::rcp(new Teuchos::SerialQRDenseSolver<LO,SC>());
         SerialDenseMatrixPtr denseMat;
         SerialDenseMatrixVecPtr2D denseMatrixBasis(PartitionOfUnity_.size());
+        SerialDenseMatrixVecPtr2D nullBasisNextLevel(PartitionOfUnity_.size());
         SerialDenseMatrixPtr Q;
         SerialDenseMatrixPtr R;
 
         Teuchos::RCP<Teuchos::SerialDenseVector<LO,SC> > denseVec;
         Teuchos::SerialDenseVector<LO,SC> dense;
+        Teuchos::SerialDenseVector<LO,SC> denseC;
         //MultiVectorPtrVecPtr2D tmpBasis(PartitionOfUnity_.size());
 
         for (UN i=0; i<PartitionOfUnity_.size(); i++) {
@@ -107,12 +109,15 @@ namespace FROSch {
                 FROSCH_ASSERT(PartitionOfUnityMaps_[i]->getNodeNumElements()>0,"PartitionOfUnityMaps_[i]->getNodeNumElements()==0");
                 //tmpBasis[i] = MultiVectorPtrVecPtr(PartitionOfUnity_[i]->getNumVectors());
                 denseMatrixBasis[i] = SerialDenseMatrixVecPtr(PartitionOfUnity_[i]->getNumVectors());
+                nullBasisNextLevel[i] = SerialDenseMatrixVecPtr(PartitionOfUnity_[i]->getNumVectors());
+
+                //std::cout<<MpiComm_->getRank()<<" Entity  "<<i<<" PartitionUnintyNumVec "<<PartitionOfUnity_[i]->getNumVectors()<<std::endl;
+
                 for (UN j=0; j<PartitionOfUnity_[i]->getNumVectors(); j++) {
                     MultiVectorPtr tmpBasisJ = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(NullspaceBasis_->getMap(),NullspaceBasis_->getNumVectors());
                     tmpBasisJ->elementWiseMultiply(1.0,*PartitionOfUnity_[i]->getVector(j),*NullspaceBasis_,1.0);
 
                     denseMat = Teuchos::rcp(new Teuchos::SerialDenseMatrix<LO,SC>(tmpBasisJ->getGlobalLength(),NullspaceBasis_->getNumVectors()));
-
                     for(int k = 0;k<NullspaceBasis_->getNumVectors();k++){
                             Teuchos::ArrayRCP<SC> cc = tmpBasisJ->getDataNonConst(k);
                             denseVec = Teuchos::rcp(new Teuchos::SerialDenseVector<LO,SC>(Teuchos::Copy,cc.getRawPtr(),tmpBasisJ->getGlobalLength()));
@@ -128,9 +133,26 @@ namespace FROSch {
                     }
                     if(QRPart->formedR()){
                       R = QRPart->getR();
+                /*
+                      if(i == 0){
+                        for(int h = 0;h<MpiComm_->getSize();h++){
+                          MpiComm_->barrier();
+                          if(MpiComm_->getRank() == h){
+                            std::cout <<"Rank "<<h<<" Loop "<<j<<'\n';
+                            R->print(std::cout);
+                            std::cout<<"------------------------------------\n";
+
+                          MpiComm_->barrier();
+                     }
+                    }
+
+*/
                       //if(MpiComm_->getRank() == 0) std::cout<<"R Num Rows "<<R->numRows()<<" R Num Cols "<<R->numCols()<<std::endl;
                     }
                     denseMatrixBasis[i][j] = Q;
+                    denseMat->multiply( Teuchos::NO_TRANS,Teuchos::TRANS,1.0,*R,*Q,0.0);
+                    nullBasisNextLevel[i][j] = R;
+                    //nullBasisNextLevel[i][j]->multiply( Teuchos::NO_TRANS,Teuchos::TRANS,1.0,*R,*Q,0.0);
                   /*  if (ParameterList_->get("Orthogonalize",true)) {
                         tmpBasis[i][j] = ModifiedGramSchmidt(tmpBasisJ.getConst());
                     } else {
@@ -142,6 +164,7 @@ namespace FROSch {
                 FROSCH_ASSERT(PartitionOfUnityMaps_[i]->getNodeNumElements()==0,"PartitionOfUnityMaps_[i]->getNodeNumElements()!=0");
             }
         }
+        //R.print(std::cout);
 
         //std::cout<<"Rank  "<<this->MpiComm_->getRank()<<"   "<<NullspaceBasis_->getNumVectors()<<std::endl;
         // Determine Number of Basisfunctions per Entity
@@ -173,25 +196,42 @@ namespace FROSch {
 
         // Kann man das schöner machen?
         Teuchos::ArrayRCP<SC> valsDens;
+        Teuchos::ArrayRCP<SC> valsDensC;
+        std::cout<<MpiComm_->getRank()<<" Global "<<PartitionOfUnityMaps_[2]->getMaxGlobalIndex()<<"  Local "<<PartitionOfUnityMaps_[2]->getMaxLocalIndex()<<std::endl;
         for (UN i=0; i<PartitionOfUnity_.size(); i++) {
             if (!PartitionOfUnityMaps_[i].is_null()) {
                 if (!PartitionOfUnity_[i].is_null()) {
                     for (UN j=0; j<maxNV[i]; j++) {
                         //MultiVectorPtrVecPtr tmpBasis2(PartitionOfUnity_[i]->getNumVectors());
                         MultiVectorPtr entityBasis = Xpetra::MultiVectorFactory<SC,LO,GO,NO >::Build(PartitionOfUnity_[i]->getMap(),PartitionOfUnity_[i]->getNumVectors());
+                        MultiVectorPtr coarseSerialBasis = Xpetra::MultiVectorFactory<SC,LO,GO,NO >::Build(PartitionOfUnityMaps_[i],PartitionOfUnity_[i]->getNumVectors());
                         entityBasis->scale(0.0);
+                        coarseSerialBasis->scale(0.0);
                         const LO column = j;
                         for (UN k=0; k<PartitionOfUnity_[i]->getNumVectors(); k++) {
                             if (j<denseMatrixBasis[i][k]->numCols()) {
                                 dense = Teuchos::getCol<LO,SC>( Teuchos::View, *denseMatrixBasis[i][k],column);
+                                denseC = Teuchos::getCol<LO,SC>(Teuchos::View,*nullBasisNextLevel[i][k],column);
                                 valsDens.resize(dense.length());
+                                valsDensC.resize(denseC.length());
                                 for(int h = 0;h<dense.length();h++){
                                   valsDens[h] = dense(h);
                                 }
+                                for(int h = 0;h<denseC.length();h++){
+                                  valsDensC[h] = denseC(h);
+                                }
+
                                 entityBasis->getDataNonConst(k).deepCopy(valsDens());
+                                coarseSerialBasis->getDataNonConst(k).deepCopy(valsDensC());
+                                //if(MpiComm_->getRank() == 0)coarseSerialBasis->describe(*fancy,Teuchos::VERB_EXTREME);
+
+
                                 //entityBasis->getDataNonConst(k).deepCopy(tmpBasis[i][k]->getData(j)()); // Here, we copy data. Do we need to do this?
                             }
+
                         }
+
+                        //if(MpiComm_->getRank() == 0)coarseSerialBasis->describe(*fancy,Teuchos::VERB_EXTREME);
                         LocalPartitionOfUnitySpace_->addSubspace(PartitionOfUnityMaps_[i],entityBasis);
                     }
                 } else {

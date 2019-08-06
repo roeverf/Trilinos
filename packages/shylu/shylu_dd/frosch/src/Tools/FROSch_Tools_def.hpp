@@ -46,6 +46,7 @@
 
 namespace FROSch {
 
+
     template <class LO,class GO,class NO>
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildUniqueMap(const Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > map)
     {
@@ -223,21 +224,37 @@ namespace FROSch {
         //Zoltan2 Problem
         typedef Zoltan2::XpetraCrsGraphAdapter<Xpetra::CrsGraph<LO,GO,NO> > inputAdapter;
         Teuchos::RCP<Teuchos::ParameterList> tmpList = Teuchos::sublist(parameterList,"Zoltan2 Parameter");
+        Teuchos::RCP<Teuchos::Time> ZoltanRepTimer =  Teuchos::TimeMonitor::getNewCounter("FROSch Tools Pure Zoltan Solve");
+        Teuchos::RCP<Teuchos::Time> BuildZoltanRepTimer = Teuchos::TimeMonitor::getNewCounter("FROSch Tools Pure Zoltan Build");
+        Teuchos::RCP<Teuchos::Time> ApplyTimer = Teuchos::TimeMonitor::getNewCounter("FROSch Tools applyPartitioningSolution");
+        Teuchos::RCP<Teuchos::Time> ImportTimer = Teuchos::TimeMonitor::getNewCounter("FROSch Tools RepMap Import");
 
         Teuchos::RCP<inputAdapter> adaptedMatrix = Teuchos::rcp(new inputAdapter(Xgraph,0,0));
         size_t MaxRow = B->getGlobalMaxNumRowEntries();
         Teuchos::RCP<const Xpetra::Map<LO, GO, NO> > ColMap = Xpetra::MapFactory<LO,GO,NO>::createLocalMap(Xpetra::UseTpetra,MaxRow,TeuchosComm);
-        Teuchos::RCP<Zoltan2::PartitioningProblem<inputAdapter> >problem =
-        Teuchos::RCP<Zoltan2::PartitioningProblem<inputAdapter> >(new Zoltan2::PartitioningProblem<inputAdapter> (adaptedMatrix.getRawPtr(), tmpList.get(),TeuchosComm));
-        problem->solve();
+        Teuchos::RCP<Zoltan2::PartitioningProblem<inputAdapter> >problem;
+        {
+          Teuchos::TimeMonitor BuildZoltanRepTimeMonitor(*BuildZoltanRepTimer);
+          problem = Teuchos::RCP<Zoltan2::PartitioningProblem<inputAdapter> >(new Zoltan2::PartitioningProblem<inputAdapter> (adaptedMatrix.getRawPtr(), tmpList.get(),TeuchosComm));
+        }
+        {
+          Teuchos::TimeMonitor ZoltanRepTimeMonitor(*ZoltanRepTimer);
+          problem->solve();
+        }
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > ReGraph;
-        adaptedMatrix->applyPartitioningSolution(*Xgraph,ReGraph,problem->getSolution());
+        {
+          Teuchos::TimeMonitor ApplyTimeMonitor(*ApplyTimer);
+          adaptedMatrix->applyPartitioningSolution(*Xgraph,ReGraph,problem->getSolution());
+        }
 
         Teuchos::RCP<Xpetra::Import<LO,GO,NO> > scatter = Xpetra::ImportFactory<LO,GO,NO>::Build(Xgraph->getRowMap(),ReGraph->getRowMap());
 
         Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > BB = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(ReGraph->getRowMap(),MaxRow);
-        BB->doImport(*B,*scatter,Xpetra::INSERT);
+        {
+          Teuchos::TimeMonitor ImportTimeMonitor(*ImportTimer);
+          BB->doImport(*B,*scatter,Xpetra::INSERT);
+        }
         // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         Teuchos::Array<GO> repeatedMapEntries(0);
         for (size_t i = 0; i<ReGraph->getRowMap()->getNodeNumElements(); i++) {

@@ -58,6 +58,7 @@
 #include <Zoltan2_PartitioningProblem.hpp>
 #include <Zoltan2_XpetraCrsGraphAdapter.hpp>
 #endif
+#include <Teuchos_TimeMonitor.hpp>
 
 
 
@@ -68,6 +69,8 @@ namespace FROSch {
     enum DofOrdering {NodeWise=0,DimensionWise=1,Custom=2};
 
     enum NullSpace {LaplaceNullSpace=0,LinearElasticityNullSpace=1};
+
+  
 
     template <class LO,class GO,class NO>
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildUniqueMap(const Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > map);
@@ -236,6 +239,8 @@ namespace FROSch {
         // Throw the error
         FROSCH_ASSERT(false, errMsg.str());
     }
+
+
 }
 
 #endif

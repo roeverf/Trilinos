@@ -43,18 +43,18 @@
 #define _FROSCH_HARMONICCOARSEOPERATOR_DECL_HPP
 
 #include <FROSch_CoarseOperator_def.hpp>
-
+#define FROSCH_HARMONIC_TIMERS
 
 namespace FROSch {
-    
+
     template <class SC = Xpetra::Operator<>::scalar_type,
     class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
     class GO = typename Xpetra::Operator<SC,LO>::global_ordinal_type,
     class NO = typename Xpetra::Operator<SC,LO,GO>::node_type>
     class HarmonicCoarseOperator : public CoarseOperator<SC,LO,GO,NO> {
-        
+
     public:
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtr MapPtr;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtr ConstMapPtr;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr MapPtrVecPtr;
@@ -66,12 +66,12 @@ namespace FROSch {
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtrVecPtr MultiVectorPtrVecPtr;
 
         typedef typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr ParameterListPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::CoarseSpacePtr CoarseSpacePtr;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::CoarseSpacePtrVecPtr CoarseSpacePtrVecPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtr EntitySetPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::SubdomainSolverPtr SubdomainSolverPtr;
 
         typedef typename SchwarzOperator<SC,LO,GO,NO>::UN UN;
@@ -86,31 +86,35 @@ namespace FROSch {
         typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVecView GOVecView;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVec2D GOVec2D;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::SCVec SCVec;
-        
+
+        typedef typename SchwarzOperator<SC,LO,GO,NO>::Time Time;
+    		typedef typename SchwarzOperator<SC,LO,GO,NO>::TimePtr TimePtr;
+
         HarmonicCoarseOperator(CrsMatrixPtr k,
                                ParameterListPtr parameterList);
-        
+
         virtual int initialize() = 0;
-        
+
         MapPtr computeCoarseSpace(CoarseSpacePtr coarseSpace);
-        
+        static int current_level;
+
     protected:
-        
+
         MapPtr assembleCoarseMap();
-        
+
         MapPtr assembleSubdomainMap();
-        
+
         int addZeroCoarseSpaceBlock(MapPtr dofsMap);
-        
+
         int computeVolumeFunctions(UN blockId,
                                    UN dimension,
                                    MapPtr nodesMap,
                                    MultiVectorPtr nodeList,
                                    EntitySetPtr interior);
-        
+
         virtual MultiVectorPtrVecPtr computeTranslations(UN blockId,
                                                          EntitySetPtr entitySet);
-        
+
         virtual MultiVectorPtrVecPtr computeRotations(UN blockId,
                                                       UN dimension,
                                                       MultiVectorPtr nodeList,
@@ -123,11 +127,11 @@ namespace FROSch {
                                                  CrsMatrixPtr kII,
                                                  CrsMatrixPtr kIGamma);
 
-        
+
         SubdomainSolverPtr ExtensionSolver_;
 
         CoarseSpacePtrVecPtr InterfaceCoarseSpaces_;
-        
+
         UNVecPtr Dimensions_;
         UNVecPtr DofsPerNode_;
 
@@ -137,9 +141,16 @@ namespace FROSch {
         MapPtrVecPtr2D DofsMaps_; // notwendig??
 
         UN NumberOfBlocks_;
-        
+        #ifdef FROSCH_HARMONIC_TIMERS
+        std::vector<TimePtr> AssembleSubdomainMapTimer;
+        std::vector<TimePtr> ExtractLSubMatTimer;
+        std::vector<TimePtr> BuildSubMatTimer;
+        std::vector<TimePtr> AssemCMapTimer;
+        std::vector<TimePtr> CompExtTimer;
+        std::vector<TimePtr> AddSubSpaceTimer;
+        #endif
     };
-    
+
 }
 
 #endif
