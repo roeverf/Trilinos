@@ -47,7 +47,7 @@
 #include <FROSch_SubdomainSolver_def.hpp>
 
 namespace FROSch {
-    
+
     template<class SC,class LO,class GO,class NO>
     SchwarzOperator<SC,LO,GO,NO>::SchwarzOperator(CommPtr comm) :
     MpiComm_ (comm),
@@ -60,7 +60,7 @@ namespace FROSch {
     {
         SerialComm_ = Teuchos::createSerialComm<int>();
     }
-    
+
     template<class SC,class LO,class GO,class NO>
     SchwarzOperator<SC,LO,GO,NO>::SchwarzOperator(CrsMatrixPtr k,
                                                   ParameterListPtr parameterList) :
@@ -71,18 +71,18 @@ namespace FROSch {
     Verbose_ (MpiComm_->getRank()==0),
     IsInitialized_ (false),
     IsComputed_ (false),
-	level(parameterList->get("Level",2))
+	  level(parameterList->get("Level",2))
     {
         FROSCH_ASSERT(getDomainMap()->isSameAs(*getRangeMap()),"SchwarzOperator assumes DomainMap==RangeMap");
         SerialComm_ = Teuchos::createSerialComm<int>();
     }
-    
+
     template<class SC,class LO,class GO,class NO>
     SchwarzOperator<SC,LO,GO,NO>::~SchwarzOperator()
     {
-        
+
     }
-    
+
     template<class SC,class LO,class GO,class NO>
     void SchwarzOperator<SC,LO,GO,NO>::apply(const MultiVector &x,
                                             MultiVector &y,
@@ -92,31 +92,31 @@ namespace FROSch {
     {
         return apply(x,y,false,mode,alpha,beta);
     }
-    
+
     template<class SC,class LO,class GO,class NO>
     typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtr SchwarzOperator<SC,LO,GO,NO>::getDomainMap() const
     {
         return K_->getDomainMap();
     }
-    
+
     template<class SC,class LO,class GO,class NO>
     typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtr SchwarzOperator<SC,LO,GO,NO>::getRangeMap() const
     {
         return K_->getRangeMap();
     }
-    
+
     template<class SC,class LO,class GO,class NO>
     bool SchwarzOperator<SC,LO,GO,NO>::isInitialized() const
     {
         return IsInitialized_;
     }
-    
+
     template<class SC,class LO,class GO,class NO>
     bool SchwarzOperator<SC,LO,GO,NO>::isComputed() const
     {
         return IsComputed_;
     }
-    
+
     template<class SC,class LO,class GO,class NO>
     int SchwarzOperator<SC,LO,GO,NO>::resetMatrix(SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr &k) {
     // Maybe set IsComputed_ = false ? -> Go through code to be saver/cleaner

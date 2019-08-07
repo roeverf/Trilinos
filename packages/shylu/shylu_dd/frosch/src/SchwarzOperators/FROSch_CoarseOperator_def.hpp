@@ -91,11 +91,7 @@ namespace FROSch {
 		CompAssembleCoarseSpaceTimer(this->level),
 		CompBuildBasisMatrixTimer(this->level),
 		CompCoarseSpaceTimer(this->level),
-		ExportCMatrixTimer(this->level),
-		ZoltanRepTimer(this->level),
-		BuildZoltanRepTimer(this->level),
-		RepApplyTimer(this->level),
-		ImportTimer(this->level)
+		ExportCMatrixTimer(this->level)
 #endif
 {
 	#ifdef FROSch_CoarseOperatorTimers
@@ -121,10 +117,6 @@ namespace FROSch {
 		CompBuildBasisMatrixTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch CoarsOperator CompBuildGlobalBasisMatrix "+std::to_string(i));
 		CompCoarseSpaceTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch CoarsseOperator CompCoarseSpace "+std::to_string(i));
 		ExportCMatrixTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch CoarsseOperator ExportCoarseMatrix "+std::to_string(i));
-		ZoltanRepTimer.at(i) =  Teuchos::TimeMonitor::getNewCounter("FROSch Tools Pure Zoltan Solve");
-    BuildZoltanRepTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch Tools Pure Zoltan Build");
-		RepApplyTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch Tools applyPartitioningSolution");
-		ImportTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch Tools RepMap Import");
 	}
 	#endif
         current_level = current_level+1;
@@ -494,69 +486,6 @@ namespace FROSch {
         return CoarseSpace_;
     }
 
-		template <class SC,class LO,class GO,class NO>
-    typename CoarseOperator<SC,LO,GO,NO>::MapPtr CoarseOperator<SC,LO,GO,NO>::RepMap_Zoltan(Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > Xgraph,
-                                                            Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> >  B,
-                                                            Teuchos::RCP<Teuchos::ParameterList> parameterList,
-                                                            Teuchos::RCP<const Teuchos::Comm<int> > TeuchosComm)
-    {
-
-        int MyPID=TeuchosComm->getRank();
-        Teuchos::RCP<Teuchos::FancyOStream> fancy = fancyOStream(Teuchos::rcpFromRef(std::cout));
-        //Zoltan2 Problem
-        typedef Zoltan2::XpetraCrsGraphAdapter<Xpetra::CrsGraph<LO,GO,NO> > inputAdapter;
-        Teuchos::RCP<Teuchos::ParameterList> tmpList = Teuchos::sublist(parameterList,"Zoltan2 Parameter");
-
-
-        Teuchos::RCP<inputAdapter> adaptedMatrix = Teuchos::rcp(new inputAdapter(Xgraph,0,0));
-        size_t MaxRow = B->getGlobalMaxNumRowEntries();
-        Teuchos::RCP<const Xpetra::Map<LO, GO, NO> > ColMap = Xpetra::MapFactory<LO,GO,NO>::createLocalMap(Xpetra::UseTpetra,MaxRow,TeuchosComm);
-        Teuchos::RCP<Zoltan2::PartitioningProblem<inputAdapter> >problem;
-        {
-					#ifdef FROSch_CoarseOperatorTimers
-          Teuchos::TimeMonitor BuildZoltanRepTimeMonitor(*BuildZoltanRepTimer.at(current_level-1));
-					#endif
-          problem = Teuchos::RCP<Zoltan2::PartitioningProblem<inputAdapter> >(new Zoltan2::PartitioningProblem<inputAdapter> (adaptedMatrix.getRawPtr(), tmpList.get(),TeuchosComm));
-        }
-        {
-          Teuchos::TimeMonitor ZoltanRepTimeMonitor(*ZoltanRepTimer.at(current_level-1));
-          problem->solve();
-        }
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > ReGraph;
-        {
-					#ifdef FROSch_CoarseOperatorTimers
-          Teuchos::TimeMonitor ApplyTimeMonitor(*ApplyTimer.at(current_level-1));
-					#endif
-          adaptedMatrix->applyPartitioningSolution(*Xgraph,ReGraph,problem->getSolution());
-        }
-				
-        Teuchos::RCP<Xpetra::Import<LO,GO,NO> > scatter = Xpetra::ImportFactory<LO,GO,NO>::Build(Xgraph->getRowMap(),ReGraph->getRowMap());
-
-        Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > BB = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(ReGraph->getRowMap(),MaxRow);
-        {
-					#ifdef FROSch_CoarseOperatorTimers
-          Teuchos::TimeMonitor ImportTimeMonitor(*ImportTimer.at(current_level-1));
-					#endif
-          BB->doImport(*B,*scatter,Xpetra::INSERT);
-        }
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        Teuchos::Array<GO> repeatedMapEntries(0);
-        for (size_t i = 0; i<ReGraph->getRowMap()->getNodeNumElements(); i++) {
-            Teuchos::ArrayView<const GO> arr;
-            Teuchos::ArrayView<const LO> cc;
-            GO gi = ReGraph->getRowMap()->getGlobalElement(i);
-            BB->getGlobalRowView(gi,arr);
-            for (unsigned j=0; j<arr.size(); j++) {
-                repeatedMapEntries.push_back(arr[j]);
-            }
-        }
-        sortunique(repeatedMapEntries);
-        Teuchos::RCP<Xpetra::Map<LO,GO,NO> > RepeatedMap = Xpetra::MapFactory<LO,GO,NO>::Build(ReGraph->getColMap()->lib(),-1,repeatedMapEntries(),0,ReGraph->getColMap()->getComm());
-        //RepeatedMap->describe(*fancy,Teuchos::VERB_EXTREME);
-        return RepeatedMap;
-    }
-
 
     template<class SC,class LO,class GO,class NO>
     int CoarseOperator<SC,LO,GO,NO>::setUpCoarseOperator()
@@ -912,7 +841,7 @@ namespace FROSch {
 #ifdef FROSch_CoarseOperatorTimers
                     Teuchos::TimeMonitor BuildCoarseRepMapTimeMonitor(*BuildCoarseRepMapTimer.at(current_level-1));
 #endif
-                    CoarseSolveRepeatedMap_ = RepMap_Zoltan(SubdomainConnectGraph_,ElementNodeList_, DistributionList_,CoarseSolveComm_);
+                    CoarseSolveRepeatedMap_ = FROSch::BuildRepMap_Zoltan<SC,LO,GO,NO>(SubdomainConnectGraph_,ElementNodeList_, DistributionList_,CoarseSolveComm_);
                     //---Write necessary Parameters for multilevel to ParameterList
 										//CoarseSolveRepeatedMap_->describe(*fancy,Teuchos::VERB_EXTREME);
 										Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > RepMapVector(1);
