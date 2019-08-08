@@ -43,16 +43,13 @@
 
 #include <Teuchos_TimeMonitor.hpp>
 #include <Teuchos_Array.hpp>
+#include <Teuchos_ArrayRCPDecl.hpp>
 
 namespace FROSch{
   class FROSchTimer {
   public:
     typedef Teuchos::Time Time;
     typedef Teuchos::RCP<Time> TimePtr;
-    typedef Teuchos::TimeMonitor TimeMonitor;
-
-    typedef Teuchos::Array<TimePtr> ArrayTimePtr;
-    typedef Teuchos::Array<TimeMonitor> ArrayMonitor;
 
     FROSchTimer(int NumEle,std::string theName);
     ~FROSchTimer();
@@ -65,9 +62,9 @@ namespace FROSch{
 
     int numEle;
     std::string name;
-    ArrayTimePtr theTimer;
-    ArrayMonitor theMonitor;
-  }
+    TimePtr theTimer;
+    //ArrayMonitor theMonitor;
+  };
 }
 
 #endif

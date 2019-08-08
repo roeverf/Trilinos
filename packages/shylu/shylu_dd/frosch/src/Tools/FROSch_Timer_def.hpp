@@ -48,12 +48,9 @@ namespace FROSch{
     FROSchTimer::FROSchTimer(int NumEle,std::string theName):
     numEle(NumEle),
     name(theName),
-    theTimer(NumEle),
-    theMonitor(NumEle)
+    theTimer(Teuchos::TimeMonitor::getNewCounter(theName+std::to_string(NumEle)))
     {
-        for(int i = 0;i<numEle;i++){
-          theTimer.at(i) = Teuchos::TimeMonitor::getNewCounter(name+std::to_string(i));
-        }
+
     }
 
     FROSchTimer::~FROSchTimer(){
@@ -61,11 +58,11 @@ namespace FROSch{
     }
 
     void FROSchTimer::start(int i){
-      theMonitor.at(i).reset(new Teuchos::TimeMonitor(*theTimer.at(i)));
+      Teuchos::TimeMonitor tmpMonitor(*theTimer);
     }
 
     void FROSchTimer::end(int i){
-      theMonitor.at(i).~TimeMonitor();
+
     }
 
 }

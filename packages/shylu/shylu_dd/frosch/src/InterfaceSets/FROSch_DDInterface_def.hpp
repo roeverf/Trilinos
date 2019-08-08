@@ -75,7 +75,9 @@ namespace FROSch {
     DDImport1Timer(2),
     DDImport2Timer(2),
     DDExport1Timer(2),
-    DDExport2Timer(2)
+    DDExport2Timer(2),
+    commMatTimer(2),
+    commMatTmpTimer(2)
     #endif
     {
         #ifdef FROSCH_INTERFACE_TIMERS
@@ -86,6 +88,8 @@ namespace FROSch {
           DDImport2Timer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch DDInterface 2ndImport "+std::to_string(i));
           DDExport1Timer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch DDInterface 1stExport "+std::to_string(i));
           DDExport2Timer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch DDInterface 2ndExport "+std::to_string(i));
+          commMatTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch DDInterface commMat fillComplete "+std::to_string(i));
+          commMatTmpTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch DDInterface commMatTmp fillComplete "+std::to_string(i));
         }
         #endif
         FROSCH_ASSERT(((Dimension_==2)||(Dimension_==3)),"Only dimension 2 and 3 are available");
@@ -647,17 +651,24 @@ namespace FROSch {
             commMat->insertGlobalValues(NodesMap_->getGlobalElement(i),myPID(),one());
         }
         Teuchos::RCP<Xpetra::Map<LO,GO,NO> > rangeMap = Xpetra::MapFactory<LO,GO,NO>::Build(NodesMap_->lib(),-1,myPID(),0,NodesMap_->getComm());
-
-        commMat->fillComplete(NodesMap_,rangeMap);
+        {
+          #ifdef FROSCH_INTERFACE_TIMERS
+          Teuchos::TimeMonitor commMatTimeMonitor(*commMatTimer.at(current_level));
+          #endif
+          commMat->fillComplete(NodesMap_,rangeMap);
+        }
         {
           #ifdef FROSCH_INTERFACE_TIMERS
           Teuchos::TimeMonitor DDExport2TimeMonitor(*DDExport2Timer.at(current_level));
           #endif
           commMatTmp->doExport(*commMat,*commExporter,Xpetra::INSERT);
         }
-
+        {
+          #ifdef FROSCH_INTERFACE_TIMERS
+          Teuchos::TimeMonitor commMatTmpTimeMonitor(*commMatTmpTimer.at(current_level));
+          #endif
         commMatTmp->fillComplete(UniqueNodesMap_,rangeMap);
-
+        }
         commMat = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(NodesMap_,10);
         {
           #ifdef FROSCH_INTERFACE_TIMERS

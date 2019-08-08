@@ -111,8 +111,8 @@ APPEND_SET(HEADERS
   Tools/FROSch_ExtractSubmatrices_def.hpp
   Tools/FROSch_SubdomainSolver_decl.hpp
   Tools/FROSch_SubdomainSolver_def.hpp
-  Tools/FROSch_Tools_decl.hpp
-  Tools/FROSch_Tools_def.hpp
+  Tools/FROSch_Tools_decl.hpp  
+  Tools/FROSch_Tools_def.hpp 
   Tools/FROSch_MLSubSolve_decl.hpp
   Tools/FROSch_MLSubSolve_def.hpp
 )

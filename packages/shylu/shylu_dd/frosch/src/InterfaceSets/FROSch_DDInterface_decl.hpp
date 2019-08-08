@@ -216,6 +216,8 @@ namespace FROSch {
         std::vector<TimePtr> DDExport1Timer;
         std::vector<TimePtr> DDImport2Timer;
         std::vector<TimePtr> DDExport2Timer;
+        std::vector<TimePtr> commMatTimer;
+        std::vector<TimePtr> commMatTmpTimer;  
         #endif
 
     };
