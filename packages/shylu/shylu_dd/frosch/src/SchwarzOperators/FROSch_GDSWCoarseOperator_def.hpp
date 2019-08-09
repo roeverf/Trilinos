@@ -50,7 +50,7 @@ namespace FROSch {
 	int GDSWCoarseOperator<SC,LO,GO,NO>::current_level = 0;
 
     template <class SC,class LO,class GO,class NO>
-    GDSWCoarseOperator<SC,LO,GO,NO>::GDSWCoarseOperator(CrsMatrixPtr k,
+    GDSWCoarseOperator<SC,LO,GO,NO>::GDSWCoarseOperator(ConstCrsMatrixPtr k,
                                                         ParameterListPtr parameterList) :
     HarmonicCoarseOperator<SC,LO,GO,NO> (k,parameterList),
     DDInterface_ ()
@@ -291,7 +291,7 @@ namespace FROSch {
             this->NumberOfBlocks_++;
             resetCoarseSpaceBlock(this->NumberOfBlocks_-1,dimension,dofsPerNodeVec[i],repeatedNodesMapVec[i],repeatedDofMapsVec[i],dirichletBoundaryDofsVec[i],nodeListVec[i]);
         }
-				
+
         return 0;
     }
 

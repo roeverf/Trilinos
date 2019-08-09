@@ -43,7 +43,7 @@
 #define _FROSCH_TWOLEVELBLOCKPRECONDITIONER_DECL_HPP
 
 #include <FROSch_OneLevelPreconditioner_def.hpp>
-
+#define TWOLEVEL_BLOCKPC_TIMERS
 namespace FROSch {
 
     template <class SC = Xpetra::Operator<>::scalar_type,
@@ -59,6 +59,7 @@ namespace FROSch {
         typedef typename SchwarzPreconditioner<SC,LO,GO,NO>::MapPtrVecPtr MapPtrVecPtr;
         typedef typename SchwarzPreconditioner<SC,LO,GO,NO>::MapPtrVecPtr2D MapPtrVecPtr2D;
         typedef typename SchwarzPreconditioner<SC,LO,GO,NO>::CrsMatrixPtr CrsMatrixPtr;
+         typedef typename SchwarzPreconditioner<SC,LO,GO,NO>::ConstCrsMatrixPtr ConstCrsMatrixPtr;
 
         typedef typename SchwarzPreconditioner<SC,LO,GO,NO>::MultiVectorPtr MultiVectorPtr;
         typedef typename Teuchos::ArrayRCP<MultiVectorPtr>                  MultiVectorPtrVecPtr;
@@ -81,8 +82,11 @@ namespace FROSch {
         typedef typename SchwarzPreconditioner<SC,LO,GO,NO>::GOVecPtr2D GOVecPtr2D;
         typedef typename Teuchos::ArrayRCP<DofOrdering> DofOrderingVecPtr;
 
+        typedef Teuchos::Time Time;
+        typedef Teuchos::RCP<Time> TimePtr;
 
-        TwoLevelBlockPreconditioner(CrsMatrixPtr k,
+
+        TwoLevelBlockPreconditioner(ConstCrsMatrixPtr k,
                                     ParameterListPtr parameterList);
 
         int initialize(UN dimension,
@@ -112,12 +116,18 @@ namespace FROSch {
 
         std::string description() const;
 
-        int resetMatrix(CrsMatrixPtr &k);
+        int resetMatrix(ConstCrsMatrixPtr &k);
 
         int preApplyCoarse(MultiVectorPtr &x,MultiVectorPtr &y);
+        static int current_level;
 
     protected:
-
+      #ifdef TWOLEVEL_BLOCKPC_TIMERS
+        Teuchos::Array<TimePtr> OverOpInitTimer;
+        Teuchos::Array<TimePtr> CoarseInitTimer;
+        Teuchos::Array<TimePtr> OverOpCompTimer;
+        Teuchos::Array<TimePtr> CoarseCompTimer;
+      #endif
         CoarseOperatorPtr CoarseOperator_;
 
     };

@@ -54,12 +54,12 @@ namespace Thyra {
     //Constructor
     template <class SC, class LO, class GO, class NO>
     FROSchFactory<SC,LO,GO,NO>::FROSchFactory():
-    #ifdef FROSch_ThyraTimers
+     #ifdef FROSch_ThyraTimers
     initFROSchTimer(Teuchos::TimeMonitor::getNewCounter("FROSch Thyra: Initialize FROSch PC")),
-	computeFROSchTimer(Teuchos::TimeMonitor::getNewCounter("FROSch Thyra: Compute FROSch PC"))
+	  computeFROSchTimer(Teuchos::TimeMonitor::getNewCounter("FROSch Thyra: Compute FROSch PC"))
     #endif
     {
-    	paramList_ = rcp(new ParameterList());
+        paramList_ = rcp(new ParameterList());
     }
     //-----------------------------------------------------------
     //Check Type -> so far redundant
@@ -112,18 +112,17 @@ namespace Thyra {
         TEUCHOS_TEST_FOR_EXCEPT((bIsEpetra != bIsTpetra) && bIsBlocked == true);
 
         // Retrieve Matrix
-        RCP<Matrix<SC,LO,GO,NO> > A = Teuchos::null;
         RCP<const CrsMatrix<SC,LO,GO,NO> > xpetraFwdCrsMat = ThyraUtils<SC,LO,GO,NO>::toXpetra(fwdOp);
         TEUCHOS_TEST_FOR_EXCEPT(is_null(xpetraFwdCrsMat));
 
-        // FROSCH needs a non-const object as input
+        // AH 08/07/2019: Going from const to non-const to const. One should be able to improve this.
         RCP<CrsMatrix<SC,LO,GO,NO> > xpetraFwdCrsMatNonConst = rcp_const_cast<CrsMatrix<SC,LO,GO,NO> >(xpetraFwdCrsMat);
         TEUCHOS_TEST_FOR_EXCEPT(is_null(xpetraFwdCrsMatNonConst));
 
-        // wrap the forward operator as an Matrix that FROSch can work with
-        A = rcp(new CrsMatrixWrap<SC,LO,GO,NO>(xpetraFwdCrsMatNonConst));
+        RCP<Matrix<SC,LO,GO,NO> > ANonConst = rcp(new CrsMatrixWrap<SC,LO,GO,NO>(xpetraFwdCrsMatNonConst));
+        TEUCHOS_TEST_FOR_EXCEPT(is_null(ANonConst));
 
-        TEUCHOS_TEST_FOR_EXCEPT(is_null(A));
+        RCP<const Matrix<SC,LO,GO,NO> > A = ANonConst.getConst();
 
         // Retrieve concrete preconditioner object
         const Ptr<DefaultPreconditioner<SC> > defaultPrec = ptr(dynamic_cast<DefaultPreconditioner<SC> *>(prec));
@@ -143,14 +142,13 @@ namespace Thyra {
             if (paramList_->isParameter("Repeated Map")) {
                 RepeatedMap = ExtractPtrFromParameterList<Map<LO,GO,NO> >(*paramList_,"Repeated Map");
             }
-			RCP<AlgebraicOverlappingPreconditioner<SC,LO,GO,NO> > AOP(new AlgebraicOverlappingPreconditioner<SC,LO,GO,NO>(A,paramList_));
+            RCP<AlgebraicOverlappingPreconditioner<SC,LO,GO,NO> > AOP(new AlgebraicOverlappingPreconditioner<SC,LO,GO,NO>(A,paramList_));
             {
-            	#ifdef FROSch_ThyraTimers
-            	Teuchos::TimeMonitor initFROSchTimeMonitor(*initFROSchTimer);
-            	#endif
-               AOP->initialize(paramList_->get("Overlap",1),RepeatedMap);
+              #ifdef FROSch_ThyraTimers
+             	Teuchos::TimeMonitor initFROSchTimeMonitor(*initFROSchTimer);
+             	#endif
+              AOP->initialize(paramList_->get("Overlap",1),RepeatedMap);
             }
-
             SchwarzPreconditioner = AOP;
         } else if (!paramList_->get("FROSch Preconditioner Type","TwoLevelPreconditioner").compare("GDSWPreconditioner")) {
             RCP<Map<LO,GO,NO> > RepeatedMap = Teuchos::null;
@@ -171,13 +169,13 @@ namespace Thyra {
             } else {
                 FROSCH_ASSERT(false,"ERROR: Specify a valid DofOrdering.");
             }
-			RCP<GDSWPreconditioner<SC,LO,GO,NO> > GP(new GDSWPreconditioner<SC,LO,GO,NO>(A,paramList_));
-			 {
-            	#ifdef FROSch_ThyraTimers
-            	Teuchos::TimeMonitor initFROSchTimeMonitor(*initFROSchTimer);
-            	#endif
-				GP->initialize(paramList_->get("Dimension",3),paramList_->get("DofsPerNode",1),dofOrdering,paramList_->get("Overlap",1),RepeatedMap,CoordinatesList);
-			 }
+            RCP<GDSWPreconditioner<SC,LO,GO,NO> > GP(new GDSWPreconditioner<SC,LO,GO,NO>(A,paramList_));
+            {
+              #ifdef FROSch_ThyraTimers
+             	Teuchos::TimeMonitor initFROSchTimeMonitor(*initFROSchTimer);
+             	#endif
+              GP->initialize(paramList_->get("Dimension",3),paramList_->get("DofsPerNode",1),dofOrdering,paramList_->get("Overlap",1),RepeatedMap,CoordinatesList);
+          }
             SchwarzPreconditioner = GP;
         } else if (!paramList_->get("FROSch Preconditioner Type","TwoLevelPreconditioner").compare("OneLevelPreconditioner")) {
             RCP<Map<LO,GO,NO> > RepeatedMap = Teuchos::null;
@@ -185,7 +183,12 @@ namespace Thyra {
                 RepeatedMap = ExtractPtrFromParameterList<Map<LO,GO,NO> >(*paramList_,"Repeated Map");
             }
             RCP<OneLevelPreconditioner<SC,LO,GO,NO> > OLP(new OneLevelPreconditioner<SC,LO,GO,NO>(A,paramList_));
-            OLP->initialize(paramList_->get("Overlap",1),RepeatedMap);
+            {
+              #ifdef FROSch_ThyraTimers
+             	Teuchos::TimeMonitor initFROSchTimeMonitor(*initFROSchTimer);
+             	#endif
+              OLP->initialize(paramList_->get("Overlap",1),RepeatedMap);
+            }
             SchwarzPreconditioner = OLP;
         } else if (!paramList_->get("FROSch Preconditioner Type","TwoLevelPreconditioner").compare("RGDSWPreconditioner")) {
             RCP<Map<LO,GO,NO> > RepeatedMap = Teuchos::null;
@@ -206,13 +209,13 @@ namespace Thyra {
             } else {
                 FROSCH_ASSERT(false,"ERROR: Specify a valid DofOrdering.");
             }
-			RCP<RGDSWPreconditioner<SC,LO,GO,NO> > RGP(new RGDSWPreconditioner<SC,LO,GO,NO>(A,paramList_));
-			 {
-            	#ifdef FROSch_ThyraTimers
-            	Teuchos::TimeMonitor initFROSchTimeMonitor(*initFROSchTimer);
-            	#endif
-				RGP->initialize(paramList_->get("Dimension",3),paramList_->get("DofsPerNode",1),dofOrdering,paramList_->get("Overlap",1),RepeatedMap,CoordinatesList);
-			 }
+            RCP<RGDSWPreconditioner<SC,LO,GO,NO> > RGP(new RGDSWPreconditioner<SC,LO,GO,NO>(A,paramList_));
+            {
+              #ifdef FROSch_ThyraTimers
+             	Teuchos::TimeMonitor initFROSchTimeMonitor(*initFROSchTimer);
+             	#endif
+              RGP->initialize(paramList_->get("Dimension",3),paramList_->get("DofsPerNode",1),dofOrdering,paramList_->get("Overlap",1),RepeatedMap,CoordinatesList);
+            }
             SchwarzPreconditioner = RGP;
         } else if (!paramList_->get("FROSch Preconditioner Type","TwoLevelPreconditioner").compare("TwoLevelPreconditioner")) {
             RCP<Map<LO,GO,NO> > RepeatedMap = Teuchos::null;
@@ -233,13 +236,13 @@ namespace Thyra {
             } else {
                 FROSCH_ASSERT(false,"ERROR: Specify a valid DofOrdering.");
             }
-			RCP<TwoLevelPreconditioner<SC,LO,GO,NO> > TLP(new TwoLevelPreconditioner<SC,LO,GO,NO>(A,paramList_));
-			 {
-            	#ifdef FROSch_ThyraTimers
-            	Teuchos::TimeMonitor initFROSchTimeMonitor(*initFROSchTimer);
-            	#endif
-				TLP->initialize(paramList_->get("Dimension",3),paramList_->get("Overlap",1),RepeatedMap,paramList_->get("DofsPerNode",1),dofOrdering,CoordinatesList);
-			 }
+            RCP<TwoLevelPreconditioner<SC,LO,GO,NO> > TLP(new TwoLevelPreconditioner<SC,LO,GO,NO>(A,paramList_));
+            {
+              #ifdef FROSch_ThyraTimers
+             	Teuchos::TimeMonitor initFROSchTimeMonitor(*initFROSchTimer);
+             	#endif
+              TLP->initialize(paramList_->get("Dimension",3),paramList_->get("Overlap",1),RepeatedMap,paramList_->get("DofsPerNode",1),dofOrdering,CoordinatesList);
+            }
             SchwarzPreconditioner = TLP;
         } else if (!paramList_->get("FROSch Preconditioner Type","TwoLevelPreconditioner").compare("TwoLevelBlockPreconditioner")) {
             ArrayRCP<RCP<Map<LO,GO,NO> > > RepeatedMaps = Teuchos::null;
@@ -258,27 +261,29 @@ namespace Thyra {
             }
 
             if(paramList_->isParameter("Coordinates List")){
-                CoordinatesList = ExtractVectorFromParameterList<RCP<MultiVector<SC,LO,GO,NO> > >(*paramList_,"Coordinates List");
+               CoordinatesList = ExtractVectorFromParameterList<RCP<MultiVector<SC,LO,GO,NO> > >(*paramList_,"Coordinates List");
             }
 
             FROSCH_ASSERT(RepeatedMaps.size()==dofsPerNodeVector.size(),"RepeatedMaps.size()!=dofsPerNodeVector.size()");
             FROSCH_ASSERT(RepeatedMaps.size()==dofOrderings.size(),"RepeatedMaps.size()!=dofOrderings.size()");
-			RCP<TwoLevelBlockPreconditioner<SC,LO,GO,NO> > TLBP(new TwoLevelBlockPreconditioner<SC,LO,GO,NO>(A,paramList_));
-             {
-            	#ifdef FROSch_ThyraTimers
-            	Teuchos::TimeMonitor initFROSchTimeMonitor(*initFROSchTimer);
-            	#endif
-				TLBP->initialize(paramList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,paramList_->get("Overlap",1),RepeatedMaps,CoordinatesList);
-			 }            SchwarzPreconditioner = TLBP;
+
+            RCP<TwoLevelBlockPreconditioner<SC,LO,GO,NO> > TLBP(new TwoLevelBlockPreconditioner<SC,LO,GO,NO>(A,paramList_));
+            {
+              #ifdef FROSch_ThyraTimers
+             	Teuchos::TimeMonitor initFROSchTimeMonitor(*initFROSchTimer);
+             	#endif
+              TLBP->initialize(paramList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,paramList_->get("Overlap",1),RepeatedMaps,CoordinatesList);
+            }
+            SchwarzPreconditioner = TLBP;
         } else {
             FROSCH_ASSERT(false,"FROSch Preconditioner Type is unknown.");
         }
         {
-			#ifdef FROSch_ThyraTimers
-			Teuchos::TimeMonitor computeFROSchTimeMonitor(*computeFROSchTimer);
-			SchwarzPreconditioner->compute();
-			#endif
-		}
+          #ifdef FROSch_ThyraTimers
+             	Teuchos::TimeMonitor computeFROSchTimeMonitor(*computeFROSchTimer);
+          #endif
+          SchwarzPreconditioner->compute();
+        }
         //-----------------------------------------------
 
         RCP<LinearOpBase<SC> > thyraPrecOp = Teuchos::null;

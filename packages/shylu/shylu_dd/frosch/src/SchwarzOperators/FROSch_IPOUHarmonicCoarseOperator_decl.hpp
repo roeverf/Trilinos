@@ -48,30 +48,31 @@
 
 
 namespace FROSch {
-    
+
     template <class SC = Xpetra::Operator<>::scalar_type,
     class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
     class GO = typename Xpetra::Operator<SC,LO>::global_ordinal_type,
     class NO = typename Xpetra::Operator<SC,LO,GO>::node_type>
     class  IPOUHarmonicCoarseOperator : public HarmonicCoarseOperator<SC,LO,GO,NO> {
-        
+
     public:
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::CommPtr CommPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtr MapPtr;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr MapPtrVecPtr;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr2D MapPtrVecPtr2D;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr CrsMatrixPtr;
-        
+        typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr ConstCrsMatrixPtr;
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr MultiVectorPtr;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtrVecPtr MultiVectorPtrVecPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr ParameterListPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::DDInterfacePtr DDInterfacePtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtr EntitySetPtr;
         typedef const EntitySetPtr EntitySetConstPtr;
         typedef Teuchos::ArrayRCP<EntitySetPtr> EntitySetPtrVecPtr;
@@ -79,47 +80,47 @@ namespace FROSch {
         typedef typename SchwarzOperator<SC,LO,GO,NO>::InterfaceEntityPtr InterfaceEntityPtr;
         typedef Teuchos::Array<InterfaceEntityPtr> InterfaceEntityPtrVec;
         typedef Teuchos::ArrayRCP<InterfaceEntityPtr> InterfaceEntityPtrVecPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::CrsGraphPtr CrsGraphPtr;
-        
-        
+
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::CoarseSpacePtr CoarseSpacePtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::InterfacePartitionOfUnityPtr InterfacePartitionOfUnityPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::LocalPartitionOfUnityBasisPtr LocalPartitionOfUnityBasisPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::SubdomainSolverPtr SubdomainSolverPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::UN UN;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::UNVecPtr UNVecPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVec LOVec;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr LOVecPtr;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr2D LOVecPtr2D;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVec GOVec;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr GOVecPtr;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVecView GOVecView;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr2D GOVecPtr2D;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVec2D GOVec2D;
 
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::SCVec SCVec;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::SCVecPtr SCVecPtr;
-        
+
         typedef typename SchwarzOperator<SC,LO,GO,NO>::BoolVecPtr BoolVecPtr;
-        
-        
-         IPOUHarmonicCoarseOperator(CrsMatrixPtr k,
+
+
+         IPOUHarmonicCoarseOperator(ConstCrsMatrixPtr k,
                                     ParameterListPtr parameterList);
-        
+
         virtual int initialize()
         {
             FROSCH_ASSERT(false," IPOUHarmonicCoarseOperator cannot be built without a repeated Map");
             return 0;
         };
-        
+
         int initialize(UN dimension,
                        UN dofsPerNode,
                        MapPtr nodesMap,
@@ -127,7 +128,7 @@ namespace FROSch {
                        MultiVectorPtr nullSpaceBasis,
                        MultiVectorPtr nodeList,
                        GOVecPtr dirichletBoundaryDofs);
-        
+
         int initialize(UN dimension,
                        UNVecPtr dofsPerNodeVec,
                        MapPtrVecPtr repeatedNodesMapVec,
@@ -135,14 +136,14 @@ namespace FROSch {
                        MultiVectorPtrVecPtr nullSpaceBasisVec,
                        MultiVectorPtrVecPtr nodeListVec,
                        GOVecPtr2D dirichletBoundaryDofsVec);
-        
+
         void describe(Teuchos::FancyOStream &out,
                       const Teuchos::EVerbosityLevel verbLevel=Teuchos::Describable::verbLevel_default) const;
-        
+
         std::string description() const;
-                
+
     protected:
-        
+
         int buildCoarseSpace(UN dimension,
                              UN dofsPerNode,
                              MapPtr nodesMap,
@@ -150,8 +151,8 @@ namespace FROSch {
                              MultiVectorPtr nullSpaceBasis,
                              GOVecPtr dirichletBoundaryDofs,
                              MultiVectorPtr nodeList);
-        
-        
+
+
         int buildCoarseSpace(UN dimension,
                              UNVecPtr dofsPerNodeVec,
                              MapPtrVecPtr repeatedNodesMapVec,
@@ -159,7 +160,7 @@ namespace FROSch {
                              MultiVectorPtrVecPtr nullSpaceBasisVec,
                              GOVecPtr2D dirichletBoundaryDofsVec,
                              MultiVectorPtrVecPtr nodeListVec);
-        
+
         virtual int resetCoarseSpaceBlock(UN blockId,
                                           UN dimension,
                                           UN dofsPerNode,
@@ -168,20 +169,20 @@ namespace FROSch {
                                           MultiVectorPtr nullSpaceBasis,
                                           GOVecPtr dirichletBoundaryDofs,
                                           MultiVectorPtr nodeList);
-        
-        
+
+
         /*
          Todo: Das müssen Vektoren werden!
          vvvvvvvvvv
-         */        
+         */
         InterfacePartitionOfUnityPtr InterfacePartitionOfUnity_;
-        
+
         LocalPartitionOfUnityBasisPtr LocalPartitionOfUnityBasis_;
         /*
          ^^^^^^^^^^
          */
     };
-    
+
 }
 
 #endif

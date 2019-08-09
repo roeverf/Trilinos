@@ -64,6 +64,7 @@ namespace FROSch {
         typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtr ConstMapPtr;
 
         typedef typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr CrsMatrixPtr;
+        typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr ConstCrsMatrixPtr;
         typedef typename Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> >GOCrsMatrixPtr;
 
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVector MultiVector;
@@ -106,12 +107,12 @@ namespace FROSch {
         typedef Teuchos::Array<InterfaceEntityPtr> InterfaceEntityPtrVec;
         typedef Teuchos::ArrayRCP<InterfaceEntityPtr> InterfaceEntityPtrVecPtr;
 
-		typedef typename SchwarzOperator<SC,LO,GO,NO>::Time Time;
-		typedef typename SchwarzOperator<SC,LO,GO,NO>::TimePtr TimePtr;
+		    typedef typename SchwarzOperator<SC,LO,GO,NO>::Time Time;
+		    typedef typename SchwarzOperator<SC,LO,GO,NO>::TimePtr TimePtr;
 
 
 
-        CoarseOperator(CrsMatrixPtr k,
+        CoarseOperator(ConstCrsMatrixPtr k,
                        ParameterListPtr parameterList);
 
         ~CoarseOperator();

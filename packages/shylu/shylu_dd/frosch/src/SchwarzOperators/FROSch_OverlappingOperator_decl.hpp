@@ -44,7 +44,6 @@
 
 #include <FROSch_SchwarzOperator_def.hpp>
 
-#define FROSch_OverlappingOperatorTimers
 namespace FROSch {
     
     template <class SC = Xpetra::Operator<>::scalar_type,
@@ -58,8 +57,10 @@ namespace FROSch {
         typedef typename SchwarzOperator<SC,LO,GO,NO>::CommPtr CommPtr;
         
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtr MapPtr;
+        typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtr ConstMapPtr;
         
         typedef typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr CrsMatrixPtr;
+        typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr ConstCrsMatrixPtr;
         
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVector MultiVector;
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr MultiVectorPtr;
@@ -75,12 +76,9 @@ namespace FROSch {
         typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstSCVecPtr ConstSCVecPtr;
         
         typedef typename SchwarzOperator<SC,LO,GO,NO>::UN UN;
-		
-		typedef typename SchwarzOperator<SC,LO,GO,NO>::Time Time;
-		typedef typename SchwarzOperator<SC,LO,GO,NO>::TimePtr TimePtr;
         
 
-        OverlappingOperator(CrsMatrixPtr k,
+        OverlappingOperator(ConstCrsMatrixPtr k,
                             ParameterListPtr parameterList);
         
         ~OverlappingOperator();
@@ -96,7 +94,6 @@ namespace FROSch {
                           SC alpha=Teuchos::ScalarTraits<SC>::one(),
                           SC beta=Teuchos::ScalarTraits<SC>::zero()) const;
         
-		static int current_level;
     protected:
         
         enum CombinationType {Averaging,Full,Restricted};
@@ -105,9 +102,9 @@ namespace FROSch {
         
         virtual int computeOverlappingOperator();
         
-        CrsMatrixPtr OverlappingMatrix_;
+        ConstCrsMatrixPtr OverlappingMatrix_;
         
-        MapPtr OverlappingMap_;            
+        ConstMapPtr OverlappingMap_;            
         
         ImporterPtr Scatter_;
         
@@ -116,13 +113,6 @@ namespace FROSch {
         MultiVectorPtr Multiplicity_;
         
         CombinationType Combine_;
-		#ifdef FROSch_OverlappingOperatorTimers
-		Teuchos::Array<TimePtr> ApplyTimer;
-		Teuchos::Array<TimePtr> ApplyImportTimer;
-		Teuchos::Array<TimePtr> ApplyExportTimer;
-		Teuchos::Array<TimePtr> BuildDirectSolves;
-		Teuchos::Array<TimePtr> ApplyDirectSolves;
-		#endif
         
         int LevelID_;
         

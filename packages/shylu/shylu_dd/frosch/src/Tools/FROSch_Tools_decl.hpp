@@ -46,31 +46,26 @@
 
 #include <ShyLU_DDFROSch_config.h>
 
-
 #include <Xpetra_MatrixFactory.hpp>
+#include <Xpetra_CrsGraphFactory.hpp>
 #include <Xpetra_MultiVectorFactory.hpp>
 #include <Xpetra_VectorFactory.hpp>
 #include <Xpetra_ExportFactory.hpp>
-#include <Xpetra_CrsGraphFactory.hpp>
+
 #ifdef HAVE_SHYLU_DDFROSCH_ZOLTAN2
 #include <Zoltan2_MatrixAdapter.hpp>
 #include <Zoltan2_XpetraCrsMatrixAdapter.hpp>
 #include <Zoltan2_PartitioningProblem.hpp>
 #include <Zoltan2_XpetraCrsGraphAdapter.hpp>
 #endif
+
 #include <Teuchos_TimeMonitor.hpp>
-
-
-
-
 
 namespace FROSch {
 
     enum DofOrdering {NodeWise=0,DimensionWise=1,Custom=2};
 
     enum NullSpace {LaplaceNullSpace=0,LinearElasticityNullSpace=1};
-
-  
 
     template <class LO,class GO,class NO>
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildUniqueMap(const Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > map);
@@ -80,14 +75,25 @@ namespace FROSch {
                                                                                   Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > subMaps);
 
     template <class SC,class LO,class GO,class NO>
-    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildRepeatedMap(Teuchos::RCP<Xpetra::Matrix<SC,LO,GO,NO> > matrix);
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildRepeatedMap(Teuchos::RCP<const Xpetra::Matrix<SC,LO,GO,NO> > matrix);
 
+    /*
     template <class SC,class LO,class GO,class NO>
     int ExtendOverlapByOneLayer(Teuchos::RCP<Xpetra::Matrix<SC,LO,GO,NO> > &overlappingMatrix,
                                 Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &overlappingMap);
+     */
 
-  template <class SC,class LO,class GO,class NO>
-    int ExtendOverlapByOneLayerBlock(Teuchos::RCP<Xpetra::Matrix<SC,LO,GO,NO> > &overlappingMatrix,                                     Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &overlappingMapBlocks);
+    template <class SC,class LO,class GO,class NO>
+    int ExtendOverlapByOneLayer(Teuchos::RCP<const Xpetra::Matrix<SC,LO,GO,NO> > inputMatrix,
+                                Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > inputMap,
+                                Teuchos::RCP<const Xpetra::Matrix<SC,LO,GO,NO> > &outputMatrix,
+                                Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &outputMap);
+
+    template <class LO,class GO,class NO>
+    int ExtendOverlapByOneLayer(Teuchos::RCP<const Xpetra::CrsGraph<LO,GO,NO> > inputGraph,
+                                Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > inputMap,
+                                Teuchos::RCP<const Xpetra::CrsGraph<LO,GO,NO> > &outputGraph,
+                                Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &outputMap);
 
     template <class LO,class GO,class NO>
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > AssembleMaps(Teuchos::ArrayView<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > mapVector,
@@ -118,29 +124,25 @@ namespace FROSch {
                                                              unsigned dofOrdering);
 
     template <class LO,class GO,class NO>
-    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildNodeMapFromMap(Teuchos::RCP<Xpetra::Map<LO,GO,NO> > & theMap,unsigned dofsPerNode);
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromNodeMap(Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &nodesMap,
+                                                             unsigned dofsPerNode,
+                                                             unsigned dofOrdering);
 
     template <class LO,class GO,class NO>
     int BuildMapFromNodeMap(const Teuchos::RCP<Xpetra::Map<LO,GO,NO> > nodesMap,
-                            unsigned dofsPerNode,
-                            unsigned dofOrdering,
-                            Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &map,
-                            Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &dofMaps,
-                            GO offset = 0);
-
-    template <class LO,class GO,class NO>
-    int BuildMapFromNodeMapVec(const Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > nodesMapVec,
-                               Teuchos::ArrayRCP<unsigned> dofsPerNodeVec,
-                               Teuchos::ArrayRCP<FROSch::DofOrdering> dofOrderingVec,
-                               Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &mapVec,
-                               Teuchos::ArrayRCP<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > >&dofMapsVec);
+                             unsigned dofsPerNode,
+                             unsigned dofOrdering,
+                             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &map,
+                             Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &dofMaps,
+                             GO offset = 0);
 
     template <class LO,class GO,class NO>
     Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > BuildSubMaps(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &fullMap,
                                                                           Teuchos::ArrayRCP<GO> maxSubGIDVec);
 
     template <class SC,class LO,class GO,class NO>
-    Teuchos::ArrayRCP<GO> FindOneEntryOnly(Teuchos::RCP<Xpetra::Matrix<SC,LO,GO,NO> > &matrix);
+    Teuchos::ArrayRCP<GO> FindOneEntryOnlyRowsGlobal(Teuchos::RCP<const Xpetra::Matrix<SC,LO,GO,NO> > &matrix,
+                                                     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &repeatedMap);
 
     template <class SC,class LO>
     bool ismultiple(Teuchos::ArrayView<SC> A,
@@ -207,13 +209,11 @@ namespace FROSch {
     template <class SC, class LO,class GO,class NO>
     int RepartionMatrixZoltan2(Teuchos::RCP<Xpetra::Matrix<SC,LO,GO,NO> > &crsMatrix, Teuchos::RCP<Teuchos::ParameterList> parameterList);
 
-
     template <class SC, class LO, class GO, class NO>
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildRepMap_Zoltan(Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > Xgraph,
                                                             Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > B,
                                                             Teuchos::RCP<Teuchos::ParameterList> parameterList,
                                                             Teuchos::RCP<const Teuchos::Comm<int> > TeuchosComm);
-
 #endif
 
     /*!
@@ -227,20 +227,7 @@ namespace FROSch {
     \param[in] forschObj FROSch object that is asking for the missing package
     \param[in] packageName Name of the missing package
     */
-    inline void ThrowErrorMissingPackage(const std::string& froschObj,
-                                         const std::string& packageName)
-    {
-        // Create the error message
-        std::stringstream errMsg;
-        errMsg << froschObj << " is asking for the Trilinos packate '"<< packageName << "', "
-        "but this package is not included in your build configuration. "
-        "Please enable '" << packageName << "' in your build configuration to be used with ShyLU_DDFROSch.";
-
-        // Throw the error
-        FROSCH_ASSERT(false, errMsg.str());
-    }
-
-
+    //void ThrowErrorMissingPackage(const std::string& froschObj, const std::string& packageName);
 }
 
 #endif

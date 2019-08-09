@@ -47,7 +47,7 @@
 namespace FROSch {
     
     template <class SC,class LO,class GO,class NO>
-    RGDSWPreconditioner<SC,LO,GO,NO>::RGDSWPreconditioner(CrsMatrixPtr k,
+    RGDSWPreconditioner<SC,LO,GO,NO>::RGDSWPreconditioner(ConstCrsMatrixPtr k,
                                                           ParameterListPtr parameterList) :
     AlgebraicOverlappingPreconditioner<SC,LO,GO,NO> (k,parameterList),
     CoarseLevelOperator_ (new RGDSWCoarseOperator<SC,LO,GO,NO>(k,sublist(parameterList,"RGDSWOperator")))
@@ -229,16 +229,9 @@ namespace FROSch {
     int RGDSWPreconditioner<SC,LO,GO,NO>::compute()
     {
         int ret = 0;
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0) std::cout<<"Comp Ov Op\n";
         if (0>this->FirstLevelOperator_->compute()) ret -= 1;
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0) std::cout<<"Done\n"<<"Comp C OP\n";;
         if (0>CoarseLevelOperator_->compute()) ret -= 10;
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0) std::cout<<"Done\n";
         return ret;
-        
     }
     
     template <class SC,class LO,class GO,class NO>

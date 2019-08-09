@@ -43,8 +43,6 @@
 #define _FROSCH_ALGEBRAICOVERLAPPINGOPERATOR_DECL_HPP
 
 #include <FROSch_OverlappingOperator_def.hpp>
-#include <boost/assign/list_of.hpp>
-#define FROSch_AlgebraicOverlappingTimers
 
 namespace FROSch {
     
@@ -61,13 +59,14 @@ namespace FROSch {
         typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtr MapPtr;
         
         typedef typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr CrsMatrixPtr;
+        typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr ConstCrsMatrixPtr;
+        
+        typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstGraphPtr ConstGraphPtr;                
         
         typedef typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr ParameterListPtr;
         
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::Time Time;
-		typedef typename SchwarzOperator<SC,LO,GO,NO>::TimePtr TimePtr;
-		
-        AlgebraicOverlappingOperator(CrsMatrixPtr k,
+        
+        AlgebraicOverlappingOperator(ConstCrsMatrixPtr k,
                                      ParameterListPtr parameterList);
         
         virtual int initialize()
@@ -85,14 +84,9 @@ namespace FROSch {
                       const Teuchos::EVerbosityLevel verbLevel=Teuchos::Describable::verbLevel_default) const;
         
         std::string description() const;
-        static int current_level;
-		
-    private:
-       #ifdef FROSch_AlgebraicOverlappingTimers
-		std::vector<TimePtr> BuildOverlappingMatricesTimer;
-		std::vector<TimePtr> InitOverlappingOperatorTimer;
-		std::vector<TimePtr> ComputeOverlappingOperatorTimer;
-		#endif
+        
+    protected:
+        
         int setUpAlgebraicOverlappingOperator();
         
         int buildOverlappingMatrices(int overlap,

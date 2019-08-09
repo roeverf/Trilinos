@@ -50,12 +50,13 @@
 #include <Xpetra_Operator_fwd.hpp>
 #include <Xpetra_MapFactory_fwd.hpp>
 #include <Xpetra_ExportFactory_fwd.hpp>
+#include <Xpetra_CrsGraphFactory.hpp>
 
 #include <FROSch_EntitySet_def.hpp>
 #include <FROSch_InterfaceEntity_decl.hpp>
 #include <Teuchos_TimeMonitor.hpp>
-
 #include <FROSch_ExtractSubmatrices_def.hpp>
+
 #define FROSCH_INTERFACE_TIMERS
 
 namespace FROSch {
@@ -77,6 +78,10 @@ namespace FROSch {
 
         typedef Xpetra::Matrix<SC,LO,GO,NO> CrsMatrix;
         typedef Teuchos::RCP<CrsMatrix> CrsMatrixPtr;
+        typedef Teuchos::RCP<const CrsMatrix> ConstCrsMatrixPtr;
+
+        typedef Xpetra::CrsGraph<LO,GO,NO> Graph;
+        typedef Teuchos::RCP<Graph> GraphPtr;
 
         typedef Xpetra::MultiVector<SC,LO,GO,NO> MultiVector;
         typedef Teuchos::RCP<MultiVector> MultiVectorPtr;
@@ -104,10 +109,8 @@ namespace FROSch {
         typedef Teuchos::ArrayRCP<GOVec> GOVecVecPtr;
 
         typedef Teuchos::ArrayRCP<SC> SCVecPtr;
-
         typedef Teuchos::Time Time;
-    		typedef Teuchos::RCP<Time> TimePtr;
-
+        typedef Teuchos::RCP<Time> TimePtr;
 
         DDInterface(UN dimension,
                     UN dofsPerNode,
@@ -119,7 +122,7 @@ namespace FROSch {
 
         int removeDirichletNodes(GOVecView dirichletBoundaryDofs);
 
-        int divideUnconnectedEntities(CrsMatrixPtr matrix);
+        int divideUnconnectedEntities(ConstCrsMatrixPtr matrix);
 
         int flagEntities(MultiVectorPtr nodeList = Teuchos::null);
 
@@ -173,7 +176,6 @@ namespace FROSch {
         EntitySetConstPtr & getConnectivityEntities() const;
 
         ConstMapPtr getNodesMap() const;
-
         static int current_level;
 
     protected:
@@ -210,16 +212,15 @@ namespace FROSch {
         MapPtr UniqueNodesMap_;
 
         #ifdef FROSCH_INTERFACE_TIMERS
-        std::vector<TimePtr> commLocCompTimer;
-        std::vector<TimePtr> idenLocCompTimer;
-        std::vector<TimePtr> DDImport1Timer;
-        std::vector<TimePtr> DDExport1Timer;
-        std::vector<TimePtr> DDImport2Timer;
-        std::vector<TimePtr> DDExport2Timer;
-        std::vector<TimePtr> commMatTimer;
-        std::vector<TimePtr> commMatTmpTimer;  
-        #endif
-
+         std::vector<TimePtr> commLocCompTimer;
+         std::vector<TimePtr> idenLocCompTimer;
+         std::vector<TimePtr> DDImport1Timer;
+         std::vector<TimePtr> DDExport1Timer;
+         std::vector<TimePtr> DDImport2Timer;
+         std::vector<TimePtr> DDExport2Timer;
+         std::vector<TimePtr> commMatTimer;
+         std::vector<TimePtr> commMatTmpTimer;
+         #endif
     };
 
 }

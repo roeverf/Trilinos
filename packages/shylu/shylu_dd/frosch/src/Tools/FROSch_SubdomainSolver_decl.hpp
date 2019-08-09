@@ -114,14 +114,14 @@ namespace FROSch {
    class LO,
    class GO,
    class NO>
-   class OneLevelPreconditioner;   
-   
+   class OneLevelPreconditioner;
+
    template<class SC,
    class LO,
    class GO,
    class NO>
    class GDSWPreconditioner;
-   
+
     template<class SC,
    class LO,
    class GO,
@@ -132,9 +132,9 @@ namespace FROSch {
     class GO,
     class NO>
     class TwoLevelBlockPreconditioner;
-   
-   
-	
+
+
+
     template <class SC = typename Xpetra::Operator<>::scalar_type,
     class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
     class GO = typename Xpetra::Operator<SC, LO>::global_ordinal_type,
@@ -153,12 +153,16 @@ namespace FROSch {
 
         typedef Xpetra::Matrix<SC,LO,GO,NO> CrsMatrix;
         typedef Teuchos::RCP<CrsMatrix> CrsMatrixPtr;
+        typedef Teuchos::RCP<const CrsMatrix> ConstCrsMatrixPtr;
+
 #ifdef HAVE_SHYLU_DDFROSCH_EPETRA
         typedef Epetra_CrsMatrix EpetraCrsMatrix;
         typedef Teuchos::RCP<EpetraCrsMatrix> EpetraCrsMatrixPtr;
+        typedef Teuchos::RCP<const EpetraCrsMatrix> ConstEpetraCrsMatrixPtr;
 #endif
         typedef Tpetra::CrsMatrix<SC,LO,GO,NO> TpetraCrsMatrix;
         typedef Teuchos::RCP<TpetraCrsMatrix> TpetraCrsMatrixPtr;
+        typedef Teuchos::RCP<const TpetraCrsMatrix> ConstTpetraCrsMatrixPtr;
 
         typedef Xpetra::MultiVector<SC,LO,GO,NO> MultiVector;
         typedef Teuchos::RCP<MultiVector> MultiVectorPtr;
@@ -213,7 +217,7 @@ namespace FROSch {
         @param parameterList Parameter list
         @param blockCoarseSize
         */
-        SubdomainSolver(CrsMatrixPtr k,
+        SubdomainSolver(ConstCrsMatrixPtr k,
                         ParameterListPtr parameterList,
                         GOVecPtr blockCoarseSize=Teuchos::null);
 
@@ -291,7 +295,7 @@ namespace FROSch {
     protected:
 
         //! Matrix
-        CrsMatrixPtr K_;
+        ConstCrsMatrixPtr K_;
 
         //! Paremter list
         ParameterListPtr ParameterList_;
@@ -331,9 +335,9 @@ namespace FROSch {
       Teuchos::RCP<TwoLevelBlockPreconditioner<SC,LO,GO,NO> > TLBP;
 #endif
 
-        
-        
-        
+
+
+
 
         bool IsInitialized_;
 

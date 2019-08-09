@@ -46,9 +46,6 @@
 #include <FROSch_OneLevelPreconditioner_def.hpp>
 #include <FROSch_AlgebraicOverlappingPreconditioner_def.hpp>
 #include <FROSch_GDSWCoarseOperator_def.hpp>
-#include <Teuchos_TimeMonitor.hpp>
-
-#define GDSWPreconditioner_TIMERS
 
 namespace FROSch {
     
@@ -64,6 +61,7 @@ namespace FROSch {
         typedef typename SchwarzPreconditioner<SC,LO,GO,NO>::MapPtrVecPtr MapPtrVecPtr;
         
         typedef typename SchwarzPreconditioner<SC,LO,GO,NO>::CrsMatrixPtr CrsMatrixPtr;
+        typedef typename SchwarzPreconditioner<SC,LO,GO,NO>::ConstCrsMatrixPtr ConstCrsMatrixPtr;
         
         typedef typename SchwarzPreconditioner<SC,LO,GO,NO>::MultiVectorPtr MultiVectorPtr;
 
@@ -75,10 +73,8 @@ namespace FROSch {
         
         typedef typename SchwarzPreconditioner<SC,LO,GO,NO>::GOVecPtr GOVecPtr;
         
-        typedef typename SchwarzPreconditioner<SC,LO,GO,NO>::Time_Type Time_Type;
-        typedef typename SchwarzPreconditioner<SC,LO,GO,NO>::TimePtr_Type TimePtr_Type;
         
-        GDSWPreconditioner(CrsMatrixPtr k,
+        GDSWPreconditioner(ConstCrsMatrixPtr k,
                            ParameterListPtr parameterList);
                 
         int initialize(bool useDefaultParameters = true);
@@ -144,9 +140,6 @@ namespace FROSch {
     protected:
         
         GDSWCoarseOperatorPtr CoarseLevelOperator_;
-#ifdef GDSWPreconditioner_TIMERS
-		  	
-#endif
         
     };
     

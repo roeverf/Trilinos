@@ -51,7 +51,6 @@
 #include <FROSch_GDSWCoarseOperator_def.hpp>
 #include <FROSch_RGDSWCoarseOperator_def.hpp>
 #include <FROSch_IPOUHarmonicCoarseOperator_def.hpp>
-#include <Teuchos_TimeMonitor.hpp>
 
 namespace FROSch {        
     
@@ -73,6 +72,7 @@ namespace FROSch {
         
         typedef Xpetra::Matrix<SC,LO,GO,NO> CrsMatrix;
         typedef Teuchos::RCP<CrsMatrix> CrsMatrixPtr;
+        typedef Teuchos::RCP<const CrsMatrix> ConstCrsMatrixPtr;
         
         typedef Xpetra::MultiVector<SC,LO,GO,NO> MultiVector;
         typedef Teuchos::RCP<MultiVector> MultiVectorPtr;
@@ -103,8 +103,6 @@ namespace FROSch {
         typedef Teuchos::Array<GO>          GOVec;
         typedef Teuchos::Array<GOVec>       GOVec2D;
         
-        typedef Teuchos::Time Time_Type;
-        typedef Teuchos::RCP<Time_Type> TimePtr_Type;
         
         SchwarzPreconditioner(ParameterListPtr parameterList,
                               CommPtr comm);
