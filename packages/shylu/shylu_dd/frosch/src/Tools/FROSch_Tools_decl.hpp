@@ -56,10 +56,9 @@
 #include <Zoltan2_MatrixAdapter.hpp>
 #include <Zoltan2_XpetraCrsMatrixAdapter.hpp>
 #include <Zoltan2_PartitioningProblem.hpp>
+#include <Zoltan2_MatrixAdapter.hpp>
 #include <Zoltan2_XpetraCrsGraphAdapter.hpp>
 #endif
-
-#include <Teuchos_TimeMonitor.hpp>
 
 namespace FROSch {
 
@@ -118,6 +117,11 @@ namespace FROSch {
                         Teuchos::ArrayRCP<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > >&dofMapsVec);
 
 
+                        template <class LO,class GO,class NO>
+                            Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromNodeMap(Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &nodesMap,
+                                                                                     unsigned dofsPerNode,
+                                                                                     unsigned dofOrdering);
+
     template <class LO,class GO,class NO>
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromDofMaps(const Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &dofMaps,
                                                              unsigned dofsPerNode,
@@ -129,16 +133,13 @@ namespace FROSch {
                                                              unsigned dofOrdering);
 
     template <class LO,class GO,class NO>
-    int BuildMapFromNodeMap(const Teuchos::RCP<Xpetra::Map<LO,GO,NO> > nodesMap,
-                             unsigned dofsPerNode,
-                             unsigned dofOrdering,
-                             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &map,
-                             Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > &dofMaps,
-                             GO offset = 0);
-
-    template <class LO,class GO,class NO>
     Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > BuildSubMaps(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &fullMap,
                                                                           Teuchos::ArrayRCP<GO> maxSubGIDVec);
+
+
+    template <class LO,class GO,class NO>
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildNodeMapFromMap(Teuchos::RCP<Xpetra::Map<LO,GO,NO> > & theMap,unsigned dofsPerNode);
+
 
     template <class SC,class LO,class GO,class NO>
     Teuchos::ArrayRCP<GO> FindOneEntryOnlyRowsGlobal(Teuchos::RCP<const Xpetra::Matrix<SC,LO,GO,NO> > &matrix,
@@ -210,10 +211,11 @@ namespace FROSch {
     int RepartionMatrixZoltan2(Teuchos::RCP<Xpetra::Matrix<SC,LO,GO,NO> > &crsMatrix, Teuchos::RCP<Teuchos::ParameterList> parameterList);
 
     template <class SC, class LO, class GO, class NO>
-    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildRepMap_Zoltan(Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > Xgraph,
-                                                            Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > B,
-                                                            Teuchos::RCP<Teuchos::ParameterList> parameterList,
-                                                            Teuchos::RCP<const Teuchos::Comm<int> > TeuchosComm);
+        Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildRepMap_Zoltan(Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > Xgraph,
+                                                                Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > B,
+                                                                Teuchos::RCP<Teuchos::ParameterList> parameterList,
+                                                                Teuchos::RCP<const Teuchos::Comm<int> > TeuchosComm);
+
 #endif
 
     /*!
@@ -227,7 +229,7 @@ namespace FROSch {
     \param[in] forschObj FROSch object that is asking for the missing package
     \param[in] packageName Name of the missing package
     */
-    //void ThrowErrorMissingPackage(const std::string& froschObj, const std::string& packageName);
+    void ThrowErrorMissingPackage(const std::string& froschObj, const std::string& packageName);
 }
 
 #endif

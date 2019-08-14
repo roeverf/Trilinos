@@ -50,67 +50,59 @@
 namespace FROSch {
 
     template <class SC = Xpetra::Operator<>::scalar_type,
-    class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
-    class GO = typename Xpetra::Operator<SC,LO>::global_ordinal_type,
-    class NO = typename Xpetra::Operator<SC,LO,GO>::node_type>
+              class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
+              class GO = typename Xpetra::Operator<SC,LO>::global_ordinal_type,
+              class NO = typename Xpetra::Operator<SC,LO,GO>::node_type>
     class  IPOUHarmonicCoarseOperator : public HarmonicCoarseOperator<SC,LO,GO,NO> {
 
+    protected:
+
+        using CommPtr                           = typename SchwarzOperator<SC,LO,GO,NO>::CommPtr;
+
+        using MapPtr                            = typename SchwarzOperator<SC,LO,GO,NO>::MapPtr;
+        using MapPtrVecPtr                      = typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr;
+        using MapPtrVecPtr2D                    = typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr2D;
+
+        using CrsMatrixPtr                      = typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr;
+        using ConstCrsMatrixPtr                 = typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr;
+
+        using MultiVectorPtr                    = typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr;
+        using MultiVectorPtrVecPtr              = typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtrVecPtr;
+
+        using ParameterListPtr                  = typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr;
+
+        using DDInterfacePtr                    = typename SchwarzOperator<SC,LO,GO,NO>::DDInterfacePtr;
+
+        using EntitySetPtr                      = typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtr;
+
+        using InterfaceEntityPtr                = typename SchwarzOperator<SC,LO,GO,NO>::InterfaceEntityPtr;
+
+        using CoarseSpacePtr                    = typename SchwarzOperator<SC,LO,GO,NO>::CoarseSpacePtr;
+
+        using InterfacePartitionOfUnityPtr      = typename SchwarzOperator<SC,LO,GO,NO>::InterfacePartitionOfUnityPtr;
+
+        using LocalPartitionOfUnityBasisPtr     = typename SchwarzOperator<SC,LO,GO,NO>::LocalPartitionOfUnityBasisPtr;
+
+        using SubdomainSolverPtr                = typename SchwarzOperator<SC,LO,GO,NO>::SubdomainSolverPtr;
+
+        using UN                                = typename SchwarzOperator<SC,LO,GO,NO>::UN;
+        using UNVecPtr                          = typename SchwarzOperator<SC,LO,GO,NO>::UNVecPtr;
+
+        using LOVec                             = typename SchwarzOperator<SC,LO,GO,NO>::LOVec;
+        using LOVecPtr                          = typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr;
+        using LOVecPtr2D                        = typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr2D;
+
+        using GOVec                             = typename SchwarzOperator<SC,LO,GO,NO>::GOVec;
+        using GOVecPtr                          = typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr;
+        using GOVecView                         = typename SchwarzOperator<SC,LO,GO,NO>::GOVecView;
+        using GOVecPtr2D                        = typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr2D;
+
+        using SCVec                             = typename SchwarzOperator<SC,LO,GO,NO>::SCVec;
+        using SCVecPtr                          = typename SchwarzOperator<SC,LO,GO,NO>::SCVecPtr;
+
+        using BoolVecPtr                        = typename SchwarzOperator<SC,LO,GO,NO>::BoolVecPtr;
+
     public:
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::CommPtr CommPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtr MapPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr MapPtrVecPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr2D MapPtrVecPtr2D;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr CrsMatrixPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr ConstCrsMatrixPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr MultiVectorPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtrVecPtr MultiVectorPtrVecPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr ParameterListPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::DDInterfacePtr DDInterfacePtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtr EntitySetPtr;
-        typedef const EntitySetPtr EntitySetConstPtr;
-        typedef Teuchos::ArrayRCP<EntitySetPtr> EntitySetPtrVecPtr;
-        typedef const EntitySetPtrVecPtr EntitySetPtrConstVecPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::InterfaceEntityPtr InterfaceEntityPtr;
-        typedef Teuchos::Array<InterfaceEntityPtr> InterfaceEntityPtrVec;
-        typedef Teuchos::ArrayRCP<InterfaceEntityPtr> InterfaceEntityPtrVecPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::CrsGraphPtr CrsGraphPtr;
-
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::CoarseSpacePtr CoarseSpacePtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::InterfacePartitionOfUnityPtr InterfacePartitionOfUnityPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::LocalPartitionOfUnityBasisPtr LocalPartitionOfUnityBasisPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::SubdomainSolverPtr SubdomainSolverPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::UN UN;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::UNVecPtr UNVecPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVec LOVec;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr LOVecPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr2D LOVecPtr2D;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVec GOVec;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr GOVecPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVecView GOVecView;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr2D GOVecPtr2D;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVec2D GOVec2D;
-
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::SCVec SCVec;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::SCVecPtr SCVecPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::BoolVecPtr BoolVecPtr;
-
 
          IPOUHarmonicCoarseOperator(ConstCrsMatrixPtr k,
                                     ParameterListPtr parameterList);
@@ -172,7 +164,7 @@ namespace FROSch {
 
 
         /*
-         Todo: Das müssen Vektoren werden!
+         Todo: This should be vectors!
          vvvvvvvvvv
          */
         InterfacePartitionOfUnityPtr InterfacePartitionOfUnity_;

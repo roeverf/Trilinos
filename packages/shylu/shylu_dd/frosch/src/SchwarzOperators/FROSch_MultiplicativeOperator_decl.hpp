@@ -47,40 +47,42 @@
 namespace FROSch {
 
     template <class SC = Xpetra::Operator<>::scalar_type,
-    class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
-    class GO = typename Xpetra::Operator<SC,LO>::global_ordinal_type,
-    class NO = typename Xpetra::Operator<SC,LO,GO>::node_type>
+              class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
+              class GO = typename Xpetra::Operator<SC,LO>::global_ordinal_type,
+              class NO = typename Xpetra::Operator<SC,LO,GO>::node_type>
     class MultiplicativeOperator : public SchwarzOperator<SC,LO,GO,NO> {
 
+    protected:
+
+        using CommPtr                   = typename SchwarzOperator<SC,LO,GO,NO>::CommPtr;
+
+        using MapPtr                    = typename SchwarzOperator<SC,LO,GO,NO>::MapPtr;
+        using ConstMapPtr               = typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtr;
+
+        using MultiVector               = typename SchwarzOperator<SC,LO,GO,NO>::MultiVector;
+        using MultiVectorPtr            = typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr;
+
+        using CrsMatrixPtr              = typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr;
+        using ConstCrsMatrixPtr         = typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr;
+
+        using SchwarzOperatorPtr        = typename SchwarzOperator<SC,LO,GO,NO>::SchwarzOperatorPtr;
+        using SchwarzOperatorPtrVec     = typename SchwarzOperator<SC,LO,GO,NO>::SchwarzOperatorPtrVec;
+        using SchwarzOperatorPtrVecPtr  = typename SchwarzOperator<SC,LO,GO,NO>::SchwarzOperatorPtrVecPtr;
+
+        using UN                        = typename SchwarzOperator<SC,LO,GO,NO>::UN;
+
+        using BoolVec                   = typename SchwarzOperator<SC,LO,GO,NO>::BoolVec;
+
+        using ParameterListPtr          = typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr;
+
     public:
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::CommPtr CommPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtr MapPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtr ConstMapPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVector MultiVector;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr MultiVectorPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr CrsMatrixPtr;
-          typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr ConstCrsMatrixPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::SchwarzOperatorPtr SchwarzOperatorPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::SchwarzOperatorPtrVec SchwarzOperatorPtrVec;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::SchwarzOperatorPtrVecPtr SchwarzOperatorPtrVecPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::UN UN;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::BoolVec BoolVec;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr ParameterListPtr;
 
         MultiplicativeOperator(ConstCrsMatrixPtr k,
                                ParameterListPtr parameterList);
 
-       MultiplicativeOperator(ConstCrsMatrixPtr k,
-                              SchwarzOperatorPtrVecPtr operators,
-                              ParameterListPtr parameterList);
+        MultiplicativeOperator(ConstCrsMatrixPtr k,
+                               SchwarzOperatorPtrVecPtr operators,
+                               ParameterListPtr parameterList);
 
         ~MultiplicativeOperator();
 

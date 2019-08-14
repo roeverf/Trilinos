@@ -41,13 +41,14 @@
 
 #ifndef _FROSCH_MULTIPLICATIVEOPERATOR_DEF_HPP
 #define _FROSCH_MULTIPLICATIVEOPERATOR_DEF_HPP
-#include <FROSch_SubdomainSolver_decl.hpp>
+
 #include <FROSch_MultiplicativeOperator_decl.hpp>
 
 namespace FROSch {
 
     template <class SC,class LO,class GO,class NO>
-    MultiplicativeOperator<SC,LO,GO,NO>::MultiplicativeOperator(ConstCrsMatrixPtr k, ParameterListPtr parameterList) :
+    MultiplicativeOperator<SC,LO,GO,NO>::MultiplicativeOperator(ConstCrsMatrixPtr k,
+                                                                ParameterListPtr parameterList) :
     SchwarzOperator<SC,LO,GO,NO> (k, parameterList),
     OperatorVector_ (0),
     EnableOperators_ (0)
@@ -56,7 +57,9 @@ namespace FROSch {
     }
 
     template <class SC,class LO,class GO,class NO>
-    MultiplicativeOperator<SC,LO,GO,NO>::MultiplicativeOperator(ConstCrsMatrixPtr k, SchwarzOperatorPtrVecPtr operators, ParameterListPtr parameterList) :
+    MultiplicativeOperator<SC,LO,GO,NO>::MultiplicativeOperator(ConstCrsMatrixPtr k,
+                                                                SchwarzOperatorPtrVecPtr operators,
+                                                                ParameterListPtr parameterList) :
     SchwarzOperator<SC,LO,GO,NO> (k, parameterList),
     OperatorVector_ (0),
     EnableOperators_ (0)

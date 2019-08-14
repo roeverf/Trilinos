@@ -187,11 +187,11 @@ namespace FROSch {
         	Teuchos::RCP< const Teuchos::Comm< int > > TC = K_->getMap()->getComm();
         	ParameterListPtr solverParameterList = sublist(ParameterList_,"GDSWPC");
 
-         Teuchos::RCP<Xpetra::Map<LO,GO,NO> > RepeatedMap = Teuchos::null;
+         Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > RepeatedMap = Teuchos::null;
          if (ParameterList_->isParameter("Repeated Map")) {
              RepeatedMap = ExtractPtrFromParameterList<Xpetra::Map<LO,GO,NO> >(*ParameterList_,"Repeated Map");
          }
-         Teuchos::RCP<Xpetra::MultiVector<SC,LO,GO,NO> > CoordinatesList = Teuchos::null;
+         Teuchos::RCP<const Xpetra::MultiVector<SC,LO,GO,NO> > CoordinatesList = Teuchos::null;
          if(ParameterList_->isParameter("Coordinates List")){
               CoordinatesList = ExtractPtrFromParameterList<Xpetra::MultiVector<SC,LO,GO,NO> >(*ParameterList_,"Coordinates List");
          }
@@ -204,11 +204,11 @@ namespace FROSch {
         	Teuchos::RCP< const Teuchos::Comm< int > > TC = K_->getMap()->getComm();
         	ParameterListPtr solverParameterList = sublist(ParameterList_,"RGDSWPC");
 
-         Teuchos::RCP<Xpetra::Map<LO,GO,NO> > RepeatedMap = Teuchos::null;
+         Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > RepeatedMap = Teuchos::null;
          if (ParameterList_->isParameter("Repeated Map")) {
              RepeatedMap = ExtractPtrFromParameterList<Xpetra::Map<LO,GO,NO> >(*ParameterList_,"Repeated Map");
          }
-         Teuchos::RCP<Xpetra::MultiVector<SC,LO,GO,NO> > CoordinatesList = Teuchos::null;
+         Teuchos::RCP<const Xpetra::MultiVector<SC,LO,GO,NO> > CoordinatesList = Teuchos::null;
          if(ParameterList_->isParameter("Coordinates List")){
               CoordinatesList = ExtractPtrFromParameterList<Xpetra::MultiVector<SC,LO,GO,NO> >(*ParameterList_,"Coordinates List");
          }
@@ -222,7 +222,7 @@ namespace FROSch {
         }
          else if(!ParameterList_->get("SolverType","Amesos").compare("TwoLevelBlockPreconditioner")) {
              Teuchos::RCP< const Teuchos::Comm< int > > TC = K_->getMap()->getComm();
-             Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > RepeatedMaps(1);
+             Teuchos::ArrayRCP<Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > > RepeatedMaps(1);
 
              UNVecPtr dofsPerNodeVector;
              Teuchos::ArrayRCP<DofOrdering> dofOrderings;
@@ -235,7 +235,7 @@ namespace FROSch {
              FROSCH_ASSERT(ParameterList_->isParameter("DofOrdering Vector"),"Currently, TwoLevelBlockPreconditioner cannot be constructed without DofOrdering Vector.");
 
              if(ParameterList_->isParameter("Repeated Map Vector")) {
-                 RepeatedMaps = ExtractVectorFromParameterList<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > >(*ParameterList_,"Repeated Map Vector");
+                 RepeatedMaps = ExtractVectorFromParameterList<Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > >(*ParameterList_,"Repeated Map Vector");
              }
 
 

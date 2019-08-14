@@ -322,15 +322,16 @@ namespace FROSch {
 		#endif
         FROSCH_ASSERT(this->IsInitialized_,"ERROR: CoarseOperator has to be initialized before calling compute()");
         // This is not optimal yet... Some work could be moved to Initialize
-        if (this->Verbose_) {
-            std::cerr << "WARNING: Some of the operations could be moved from initialize() to Compute().\n";
-        }
+
+				if (this->Verbose_) std::cout << "FROSch::CoarseOperator : WARNING: Some of the operations could probably be moved from initialize() to Compute().\n";
         if (!this->ParameterList_->get("Recycling","none").compare("basis") && this->IsComputed_) {
             this->setUpCoarseOperator();
             this->IsComputed_ = true;
-        } else if(!this->ParameterList_->get("Recycling","none").compare("all") && this->IsComputed_) {
-            // Maybe use some advanced settings in the future
-        } else {
+				} else if(!this->ParameterList_->get("Recycling","none").compare("all") && this->IsComputed_) {
+	            // Maybe use some advanced settings in the future
+	      }  else {
+
+
             clearCoarseSpace(); // AH 12/11/2018: If we do not clear the coarse space, we will always append just append the coarse space
             MapPtr subdomainMap;
 
@@ -704,7 +705,7 @@ namespace FROSch {
         if (NumProcsCoarseSolve_ >= this->MpiComm_->getSize() && DistributionList_->get("Type","linear").compare("Zoltan2")) {
             GatheringMaps_.resize(1);
             CoarseSolveExporters_.resize(1);
-            GatheringMaps_[0] = BuildUniqueMap<LO,GO,NO>(Phi_->getColMap()); // DO WE NEED THIS IN ANY CASE???
+            GatheringMaps_[0] = Teuchos::rcp_const_cast<Map>(BuildUniqueMap<LO,GO,NO>(Phi_->getColMap())); // DO WE NEED THIS IN ANY CASE???
             return 0;
         }
 
@@ -746,7 +747,7 @@ namespace FROSch {
 
             //------------------------------------------------------------------------------------------------------------------------
             // Use a separate Communicator for the coarse problem
-            MapPtr tmpCoarseMap = GatheringMaps_[GatheringMaps_.size()-1];
+          MapPtr tmpCoarseMap = GatheringMaps_[GatheringMaps_.size()-1];
 
             if (tmpCoarseMap->getNodeNumElements()>0) {
                 OnCoarseSolveComm_=true;
@@ -834,7 +835,7 @@ namespace FROSch {
             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > UniqueNodesMap;
             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > UniqueMap;
             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > UniqueMapAll;
-
+            ConstMapPtr ConstUniqueNodesMap;
             GOVec uniEle;
             if(OnCoarseSolveComm_){
                 {
@@ -844,6 +845,7 @@ namespace FROSch {
                     CoarseSolveRepeatedMap_ = FROSch::BuildRepMap_Zoltan<SC,LO,GO,NO>(SubdomainConnectGraph_,ElementNodeList_, DistributionList_,CoarseSolveComm_);
                     //---Write necessary Parameters for multilevel to ParameterList
 										//CoarseSolveRepeatedMap_->describe(*fancy,Teuchos::VERB_EXTREME);
+										ConstMapPtr CSolveRepMap = CoarseSolveRepeatedMap_;
 										Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > RepMapVector(1);
                     RepMapVector[0] = CoarseSolveRepeatedMap_;
 
@@ -856,13 +858,13 @@ namespace FROSch {
                     sublist(this->ParameterList_,"CoarseSolver")->set("DofOrdering Vector",dofOrderings);
                     sublist(this->ParameterList_,"CoarseSolver")->set("DofsPerNode Vector",dofsPerNodeVector);
 
-                    UniqueNodesMap = FROSch::BuildNodeMapFromMap<LO,GO,NO>(CoarseSolveRepeatedMap_,dofs);
-
-                    UniqueMap = FROSch::BuildUniqueMap<LO,GO,NO>(UniqueNodesMap);
+                    UniqueNodesMap = BuildNodeMapFromMap(CoarseSolveRepeatedMap_,dofs);
+										ConstUniqueNodesMap = UniqueNodesMap;
+                    UniqueMap = FROSch::BuildUniqueMap<LO,GO,NO>(ConstUniqueNodesMap);
 
                     Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > dofMaps;
                     //FROSch::BuildMapFromNodeMap<LO,GO,NO>(UniqueMap,dofs,DimensionWise,UniqueMapAll,dofMaps);
-										UniqueMapAll = FROSch::BuildMapFromNodeMap<LO,GO,NO>(UniqueMap,dofs,DimensionWise);
+										UniqueMapAll =BuildMapFromNodeMap(UniqueMap,dofs,DimensionWise);
                     //UniqueMapAll->describe(*fancy,Teuchos::VERB_EXTREME);
                     //-------------------------------------------------------------
                     uniEle = UniqueMapAll->getNodeElementList();
@@ -870,7 +872,7 @@ namespace FROSch {
 
             }
             //Set Map on global Comm
-            Teuchos::RCP<Xpetra::Map<LO,GO,NO> > tmpMap = Xpetra::MapFactory<LO,GO,NO>::Build(Xpetra::UseTpetra,-1,uniEle,0,this->MpiComm_);
+            MapPtr tmpMap = Xpetra::MapFactory<LO,GO,NO>::Build(Xpetra::UseTpetra,-1,uniEle,0,this->MpiComm_);
             //tmpMap->describe(*fancy,Teuchos::VERB_EXTREME);
 
 						for (int i=0; i<gatheringSteps-1; i++) {
@@ -890,49 +892,52 @@ namespace FROSch {
 						CoarseSolveMap_ = Xpetra::MapFactory<LO,GO,NO>::Build(CoarseSpace_->getBasisMap()->lib(),-1,tmpMap->getNodeElementList(),0,CoarseSolveComm_);
 
 				}else if(!DistributionList_->get("Type","linear").compare("Zoltan2")){
-            Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
+					Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
 
-            GatheringMaps_.resize(1);
-            CoarseSolveExporters_.resize(1);
+					GatheringMaps_.resize(1);
+					CoarseSolveExporters_.resize(1);
 
-            GatheringMaps_[0] = Teuchos::rcp_const_cast<Map> (BuildUniqueMap(k0->getRowMap()));
-            //
-            CoarseSolveExporters_[0] = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseSpace_->getBasisMap(),GatheringMaps_[0]);
+					GatheringMaps_[0] = Teuchos::rcp_const_cast<Map> (BuildUniqueMap(k0->getRowMap()));
+					//
+					CoarseSolveExporters_[0] = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseSpace_->getBasisMap(),GatheringMaps_[0]);
 
-            CrsMatrixPtr k0Unique = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(GatheringMaps_[0],k0->getGlobalMaxNumRowEntries());
+					CrsMatrixPtr k0Unique = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(GatheringMaps_[0],k0->getGlobalMaxNumRowEntries());
 
-            k0Unique->doExport(*k0,*CoarseSolveExporters_[0],Xpetra::INSERT);
-            k0Unique->fillComplete(GatheringMaps_[0],GatheringMaps_[0]);
-            if (NumProcsCoarseSolve_<this->MpiComm_->getSize()) {
-                ParameterListPtr tmpList = sublist(DistributionList_,"Zoltan2 Parameter");
-                tmpList->set("num_global_parts", NumProcsCoarseSolve_);
-                FROSch::RepartionMatrixZoltan2(k0Unique,tmpList);
-            }
+					k0Unique->doExport(*k0,*CoarseSolveExporters_[0],Xpetra::INSERT);
+					k0Unique->fillComplete(GatheringMaps_[0],GatheringMaps_[0]);
+					if (NumProcsCoarseSolve_<this->MpiComm_->getSize()) {
+							ParameterListPtr tmpList = sublist(DistributionList_,"Zoltan2 Parameter");
+							tmpList->set("num_global_parts", NumProcsCoarseSolve_);
+							FROSch::RepartionMatrixZoltan2(k0Unique,tmpList);
+					}
 
-            k0 = k0Unique;
+					k0 = k0Unique;
 
-            GatheringMaps_[0] = Teuchos::rcp_const_cast<Map>(k0->getRowMap());
-            CoarseSolveExporters_[0] = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseSpace_->getBasisMap(),GatheringMaps_[0]);
+					GatheringMaps_[0] = Teuchos::rcp_const_cast<Map>(k0->getRowMap());
+					CoarseSolveExporters_[0] = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseSpace_->getBasisMap(),GatheringMaps_[0]);
 
-            MapPtr tmpCoarseMap = GatheringMaps_[0];
+					ConstMapPtr tmpCoarseMap = GatheringMaps_[0];
 
-            if (tmpCoarseMap->getNodeNumElements()>0) {
-                OnCoarseSolveComm_=true;
-            }
+					if (tmpCoarseMap->getNodeNumElements()>0) {
+							OnCoarseSolveComm_=true;
+					}
 
-            GOVec elementList(tmpCoarseMap->getNodeElementList());
-            CoarseSolveComm_ = this->MpiComm_->split(!OnCoarseSolveComm_,this->MpiComm_->getRank());
-            CoarseSolveMap_ = Xpetra::MapFactory<LO,GO,NO>::Build(CoarseSpace_->getBasisMap()->lib(),-1,elementList,0,CoarseSolveComm_);
+					GOVec elementList(tmpCoarseMap->getNodeElementList());
+					CoarseSolveComm_ = this->MpiComm_->split(!OnCoarseSolveComm_,this->MpiComm_->getRank());
+					CoarseSolveMap_ = Xpetra::MapFactory<LO,GO,NO>::Build(CoarseSpace_->getBasisMap()->lib(),-1,elementList,0,CoarseSolveComm_);
+
 #endif
         } else {
             FROSCH_ASSERT(false,"Distribution type not defined...");
         }
 
-        if (this->Verbose_) {
-            std::cout << "### ------------------------------ ###" << std::endl;
-            std::cout << "### - NumProcs CoarseMatrix : " << NumProcsCoarseSolve_ << std::endl;
-            std::cout << "### ------------------------------ ### " << std::endl;
-        }
+				if (this->Verbose_) {
+				   std::cout << "\n\------------------------------------------------------------------------------\n\
+				    Coarse problem statistics\n\------------------------------------------------------------------------------\n\
+				    dimension of the coarse problem             --- " << CoarseSpace_->getBasisMap()->getMaxAllGlobalIndex()+1 <<
+						"\n\number of processes                         --- " << NumProcsCoarseSolve_ <<
+						"\n\------------------------------------------------------------------------------\n";
+				        }
         return 0;
     }
 

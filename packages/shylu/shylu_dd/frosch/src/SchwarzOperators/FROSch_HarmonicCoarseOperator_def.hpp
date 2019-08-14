@@ -41,13 +41,10 @@
 
 #ifndef _FROSCH_HARMONICCOARSEOPERATOR_DEF_HPP
 #define _FROSCH_HARMONICCOARSEOPERATOR_DEF_HPP
-#include <FROSch_SubdomainSolver_decl.hpp>
+
 #include <FROSch_HarmonicCoarseOperator_decl.hpp>
 
 namespace FROSch {
-
-  template<class SC,class LO,class GO,class NO>
-  int HarmonicCoarseOperator<SC,LO,GO,NO>::current_level = 0;
 
     template <class SC,class LO,class GO,class NO>
     HarmonicCoarseOperator<SC,LO,GO,NO>::HarmonicCoarseOperator(ConstCrsMatrixPtr k,
@@ -61,51 +58,18 @@ namespace FROSch {
     IDofs_ (0),
     DofsMaps_ (0),
     NumberOfBlocks_ (0)
-    #ifdef FROSCH_HARMONIC_TIMERS
-    ,AssembleSubdomainMapTimer(this->level),
-    ExtractLSubMatTimer(this->level),
-    BuildSubMatTimer(this->level),
-    AssemCMapTimer(this->level),
-    CompExtTimer(this->level),
-    AddSubSpaceTimer(this->level)
-    #endif
     {
-      #ifdef FROSCH_HARMONIC_TIMERS
-      for(int i = 0;i<this->level;i++){
-      AssembleSubdomainMapTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch HarmonicCoarseOperator assembleCoarseMap " + std::to_string(i));
-      ExtractLSubMatTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch HarmonicCoarseOperator ExtractLocalSubdomainMatrix" + std::to_string(i));
-      BuildSubMatTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch HarmonicCoarseOperator BuildSubmatrices" + std::to_string(i));
-      AssemCMapTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch HarmonicCoarseOperator assembleCoarseMap" + std::to_string(i));
-      CompExtTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch HarmonicCoarseOperator computeExtensions" + std::to_string(i));
-      AddSubSpaceTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch HarmonicCoarseOperator AddSubSpaceTimer" + std::to_string(i));
-      }
-      #endif
-      current_level = current_level + 1;
+
     }
 
     template <class SC,class LO,class GO,class NO>
     typename HarmonicCoarseOperator<SC,LO,GO,NO>::MapPtr HarmonicCoarseOperator<SC,LO,GO,NO>::computeCoarseSpace(CoarseSpacePtr coarseSpace)
     {
+        MapPtr repeatedMap = assembleSubdomainMap();
 
-        MapPtr repeatedMap;
-        {
-        #ifdef FROSCH_HARMONIC_TIMERS
-        Teuchos::TimeMonitor AssembleSubdomainMapTimeMonitor(*AssembleSubdomainMapTimer.at(current_level-1));
-        #endif
-        repeatedMap = assembleSubdomainMap();
+        // Build local saddle point problem
+        ConstCrsMatrixPtr repeatedMatrix = ExtractLocalSubdomainMatrix(this->K_.getConst(),repeatedMap.getConst()); // AH 12/11/2018: Should this be in initalize?
 
-       }
-        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
-        //repeatedMap->(*fancy,Teuchos::VERB_EXTREME);
-
-
-        ConstCrsMatrixPtr repeatedMatrix;
-        {
-          #ifdef FROSCH_HARMONIC_TIMERS
-          Teuchos::TimeMonitor ExtractLSubMatTimeMonitor(*ExtractLSubMatTimer.at(current_level-1));
-          #endif
-          repeatedMatrix = ExtractLocalSubdomainMatrix(this->K_.getConst(),repeatedMap.getConst()); // AH 12/11/2018: Should this be in initalize?
-        }
         // Extract submatrices
         GOVec indicesGammaDofsAll(0);
         GOVec indicesIDofsAll(0);
@@ -121,41 +85,21 @@ namespace FROSch {
             tmp += GammaDofs_[i].size()+IDofs_[i].size();
         }
 
-
         CrsMatrixPtr kII;
         CrsMatrixPtr kIGamma;
         CrsMatrixPtr kGammaI;
         CrsMatrixPtr kGammaGamma;
 
+        BuildSubmatrices(repeatedMatrix,indicesIDofsAll(),kII,kIGamma,kGammaI,kGammaGamma);
 
-        {
-          #ifdef FROSCH_HARMONIC_TIMERS
-          Teuchos::TimeMonitor BuildSubMatTimeMonitor(*BuildSubMatTimer.at(current_level-1));
-          #endif
-          BuildSubmatrices(repeatedMatrix,indicesIDofsAll(),kII,kIGamma,kGammaI,kGammaGamma);
-        }
         // Assemble coarse map
-        MapPtr coarseMap;
-        {
-          #ifdef FROSCH_HARMONIC_TIMERS
-          Teuchos::TimeMonitor AssemCMapTimeMonitor(*AssemCMapTimer.at(current_level-1));
-          #endif
-          coarseMap = assembleCoarseMap(); // AH 12/11/2018: Should this be in initalize?
-        }
+        MapPtr coarseMap = assembleCoarseMap(); // AH 12/11/2018: Should this be in initalize?
+
         // Build the saddle point harmonic extensions
-        MultiVectorPtr localCoarseSpaceBasis;
-        {
-          #ifdef FROSCH_HARMONIC_TIMERS
-          Teuchos::TimeMonitor CompExtTimeMonitor(*CompExtTimer.at(current_level-1));
-          #endif
-          localCoarseSpaceBasis= computeExtensions(repeatedMatrix->getRowMap(),coarseMap,indicesGammaDofsAll(),indicesIDofsAll(),kII,kIGamma);
-        }
-        {
-          #ifdef FROSCH_HARMONIC_TIMERS
-          Teuchos::TimeMonitor AddSubSpaceTimeMonitor(*AddSubSpaceTimer.at(current_level-1));
-          #endif
+        MultiVectorPtr localCoarseSpaceBasis = computeExtensions(repeatedMatrix->getRowMap(),coarseMap,indicesGammaDofsAll(),indicesIDofsAll(),kII,kIGamma);
+
         coarseSpace->addSubspace(coarseMap,localCoarseSpaceBasis);
-        }
+
         return repeatedMap;
     }
 
@@ -297,7 +241,6 @@ namespace FROSch {
                 this->InterfaceCoarseSpaces_[blockId]->addSubspace(interior->getEntityMap(),translations[i]);
             }
             if (useRotations) {
-
                 MultiVectorPtrVecPtr rotations = computeRotations(blockId,dimension,nodeList,interior);
                 for (UN i=0; i<rotations.size(); i++) {
                     this->InterfaceCoarseSpaces_[blockId]->addSubspace(interior->getEntityMap(),rotations[i]);
@@ -436,7 +379,6 @@ namespace FROSch {
         MultiVectorPtr mVPhi = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(localMap,coarseMap->getNodeNumElements());
         MultiVectorPtr mVtmp = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(kII->getRowMap(),coarseMap->getNodeNumElements());
         MultiVectorPtr mVPhiI = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(kII->getRowMap(),coarseMap->getNodeNumElements());
-        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
 
         //Build mVPhiGamma
         MultiVectorPtr mVPhiGamma = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(kIGamma->getDomainMap(),coarseMap->getNodeNumElements());
@@ -462,18 +404,16 @@ namespace FROSch {
         }
         // Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout)); this->Phi_->describe(*fancy,Teuchos::VERB_EXTREME);
         // Hier Multiplikation kIGamma*PhiGamma
-        if(kII->getGlobalNumRows()>0){
         kIGamma->apply(*mVPhiGamma,*mVtmp);
-        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
 
         mVtmp->scale(-Teuchos::ScalarTraits<SC>::one());
+
         // Jetzt der solver für kII
-       if(kII->getGlobalNumRows()>0){
         ExtensionSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(kII,sublist(this->ParameterList_,"ExtensionSolver")));
         ExtensionSolver_->initialize();
         ExtensionSolver_->compute();
         ExtensionSolver_->apply(*mVtmp,*mVPhiI);
-        }
+
         GOVec priorIndex(NumberOfBlocks_,0);
         GOVec postIndex(NumberOfBlocks_,0);
 
@@ -514,7 +454,6 @@ namespace FROSch {
                 }
                 itmp++;
             }
-        }
         }
         return mVPhi;
     }

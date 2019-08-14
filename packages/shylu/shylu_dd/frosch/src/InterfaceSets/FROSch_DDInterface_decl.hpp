@@ -54,63 +54,62 @@
 
 #include <FROSch_EntitySet_def.hpp>
 #include <FROSch_InterfaceEntity_decl.hpp>
-#include <Teuchos_TimeMonitor.hpp>
+
 #include <FROSch_ExtractSubmatrices_def.hpp>
 
-#define FROSCH_INTERFACE_TIMERS
 
 namespace FROSch {
 
     template <class SC = Xpetra::Operator<>::scalar_type,
-    class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
-    class GO = typename Xpetra::Operator<SC, LO>::global_ordinal_type,
-    class NO = typename Xpetra::Operator<SC, LO, GO>::node_type>
+              class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
+              class GO = typename Xpetra::Operator<SC, LO>::global_ordinal_type,
+              class NO = typename Xpetra::Operator<SC, LO, GO>::node_type>
     class DDInterface {
 
+    protected:
+
+        using CommPtr                   = Teuchos::RCP<const Teuchos::Comm<int> >;
+
+        using Map                       = Xpetra::Map<LO,GO,NO>;
+        using MapPtr                    = Teuchos::RCP<Map>;
+        using ConstMapPtr               = Teuchos::RCP<const Map>;
+        using MapPtrVecPtr              = Teuchos::ArrayRCP<MapPtr>;
+
+        using CrsMatrix                 = Xpetra::Matrix<SC,LO,GO,NO>;
+        using CrsMatrixPtr              = Teuchos::RCP<CrsMatrix>;
+        using ConstCrsMatrixPtr         = Teuchos::RCP<const CrsMatrix>;
+
+        using Graph                     = Xpetra::CrsGraph<LO,GO,NO>;
+        using GraphPtr                  = Teuchos::RCP<Graph>;
+
+        using MultiVector               = Xpetra::MultiVector<SC,LO,GO,NO>;
+        using MultiVectorPtr            = Teuchos::RCP<MultiVector>;
+
+        using EntitySetPtr              = Teuchos::RCP<EntitySet<SC,LO,GO,NO> >;
+        using EntitySetConstPtr         = const EntitySetPtr;
+        using EntitySetPtrVecPtr        = Teuchos::ArrayRCP<EntitySetPtr>;
+        using EntitySetPtrConstVecPtr   = const EntitySetPtrVecPtr;
+
+        using EntityFlagVecPtr          = Teuchos::ArrayRCP<EntityFlag>;
+
+        using InterfaceEntityPtr        = Teuchos::RCP<InterfaceEntity<SC,LO,GO,NO> >;
+        using InterfaceEntityPtrVecPtr  = Teuchos::ArrayRCP<InterfaceEntityPtr>;
+
+        using UN                        = unsigned;
+        using UNVecPtr                  = Teuchos::ArrayRCP<UN>;
+
+        using LOVecPtr                  = Teuchos::ArrayRCP<LO>;
+
+        using GOVec                     = Teuchos::Array<GO>;
+        using ConstGOVecView            = Teuchos::ArrayView<const GO>;
+        using GOVecPtr                  = Teuchos::ArrayRCP<GO>;
+        using GOVecView                 = Teuchos::ArrayView<GO>;
+        using GOVecVec                  = Teuchos::Array<GOVec>;
+        using GOVecVecPtr               = Teuchos::ArrayRCP<GOVec>;
+
+        using SCVecPtr                  = Teuchos::ArrayRCP<SC>;
+
     public:
-
-        typedef Teuchos::RCP<const Teuchos::Comm<int> > CommPtr;
-
-        typedef Xpetra::Map<LO,GO,NO> Map;
-        typedef Teuchos::RCP<Map> MapPtr;
-        typedef Teuchos::RCP<const Map> ConstMapPtr;
-        typedef Teuchos::ArrayRCP<MapPtr> MapPtrVecPtr;
-
-        typedef Xpetra::Matrix<SC,LO,GO,NO> CrsMatrix;
-        typedef Teuchos::RCP<CrsMatrix> CrsMatrixPtr;
-        typedef Teuchos::RCP<const CrsMatrix> ConstCrsMatrixPtr;
-
-        typedef Xpetra::CrsGraph<LO,GO,NO> Graph;
-        typedef Teuchos::RCP<Graph> GraphPtr;
-
-        typedef Xpetra::MultiVector<SC,LO,GO,NO> MultiVector;
-        typedef Teuchos::RCP<MultiVector> MultiVectorPtr;
-
-        typedef Teuchos::RCP<EntitySet<SC,LO,GO,NO> > EntitySetPtr;
-        typedef const EntitySetPtr EntitySetConstPtr;
-        typedef Teuchos::ArrayRCP<EntitySetPtr> EntitySetPtrVecPtr;
-        typedef const EntitySetPtrVecPtr EntitySetPtrConstVecPtr;
-
-        typedef Teuchos::ArrayRCP<EntityFlag> EntityFlagVecPtr;
-
-        typedef Teuchos::RCP<InterfaceEntity<SC,LO,GO,NO> > InterfaceEntityPtr;
-        typedef Teuchos::ArrayRCP<InterfaceEntityPtr> InterfaceEntityPtrVecPtr;
-
-        typedef unsigned UN;
-        typedef Teuchos::ArrayRCP<UN> UNVecPtr;
-
-        typedef Teuchos::ArrayRCP<LO> LOVecPtr;
-
-        typedef Teuchos::Array<GO> GOVec;
-        typedef Teuchos::ArrayView<const GO> ConstGOVecView;
-        typedef Teuchos::ArrayRCP<GO> GOVecPtr;
-        typedef Teuchos::ArrayView<GO> GOVecView;
-        typedef Teuchos::Array<GOVec> GOVecVec;
-        typedef Teuchos::ArrayRCP<GOVec> GOVecVecPtr;
-
-        typedef Teuchos::ArrayRCP<SC> SCVecPtr;
-        typedef Teuchos::Time Time;
-        typedef Teuchos::RCP<Time> TimePtr;
 
         DDInterface(UN dimension,
                     UN dofsPerNode,
@@ -176,7 +175,7 @@ namespace FROSch {
         EntitySetConstPtr & getConnectivityEntities() const;
 
         ConstMapPtr getNodesMap() const;
-        static int current_level;
+
 
     protected:
 #ifdef FROSCH_OFFSET_MAPS
@@ -210,17 +209,6 @@ namespace FROSch {
 
         MapPtr NodesMap_;
         MapPtr UniqueNodesMap_;
-
-        #ifdef FROSCH_INTERFACE_TIMERS
-         std::vector<TimePtr> commLocCompTimer;
-         std::vector<TimePtr> idenLocCompTimer;
-         std::vector<TimePtr> DDImport1Timer;
-         std::vector<TimePtr> DDExport1Timer;
-         std::vector<TimePtr> DDImport2Timer;
-         std::vector<TimePtr> DDExport2Timer;
-         std::vector<TimePtr> commMatTimer;
-         std::vector<TimePtr> commMatTmpTimer;
-         #endif
     };
 
 }

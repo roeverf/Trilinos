@@ -43,60 +43,50 @@
 #define _FROSCH_RGDSWCOARSEOPERATOR_DECL_HPP
 
 #include <FROSch_GDSWCoarseOperator_def.hpp>
-#define FROSch_RGDSWOperatorTimers
 
 namespace FROSch {
 
     template <class SC = Xpetra::Operator<>::scalar_type,
-    class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
-    class GO = typename Xpetra::Operator<SC,LO>::global_ordinal_type,
-    class NO = typename Xpetra::Operator<SC,LO,GO>::node_type>
+              class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
+              class GO = typename Xpetra::Operator<SC,LO>::global_ordinal_type,
+              class NO = typename Xpetra::Operator<SC,LO,GO>::node_type>
     class RGDSWCoarseOperator : public GDSWCoarseOperator<SC,LO,GO,NO> {
 
-        public:
+    protected:
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::CommPtr CommPtr;
+        using CommPtr                 = typename SchwarzOperator<SC,LO,GO,NO>::CommPtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtr MapPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr MapPtrVecPtr;
+        using MapPtr                  = typename SchwarzOperator<SC,LO,GO,NO>::MapPtr;
+        using MapPtrVecPtr            = typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr CrsMatrixPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr ConstCrsMatrixPtr;
+        using CrsMatrixPtr            = typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr;
+        using ConstCrsMatrixPtr       = typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr MultiVectorPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtrVecPtr MultiVectorPtrVecPtr;
+        using MultiVectorPtr          = typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr;
+        using MultiVectorPtrVecPtr    = typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtrVecPtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr ParameterListPtr;
+        using ParameterListPtr        = typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::DDInterfacePtr DDInterfacePtr;
+        using DDInterfacePtr          = typename SchwarzOperator<SC,LO,GO,NO>::DDInterfacePtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtr EntitySetPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtrVecPtr EntitySetPtrVecPtr;
-        typedef const EntitySetPtr EntitySetConstPtr;
-        typedef const EntitySetPtrVecPtr EntitySetPtrConstVecPtr;
+        using EntitySetPtr            = typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtr;
+        using EntitySetPtrVecPtr      = typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtrVecPtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::InterfaceEntityPtr InterfaceEntityPtr;
+        using InterfaceEntityPtr      = typename SchwarzOperator<SC,LO,GO,NO>::InterfaceEntityPtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::UN UN;
+        using UN                      = typename SchwarzOperator<SC,LO,GO,NO>::UN;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVec LOVec;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr LOVecPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr2D LOVecPtr2D;
+        using LOVec                   = typename SchwarzOperator<SC,LO,GO,NO>::LOVec;
+        using LOVecPtr                = typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr;
+        using LOVecPtr2D              = typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr2D;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVec GOVec;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr GOVecPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr2D GOVecPtr2D;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVec2D GOVec2D;
+        using GOVec                   = typename SchwarzOperator<SC,LO,GO,NO>::GOVec;
+        using GOVecPtr                = typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr;
+        using GOVecPtr2D              = typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr2D;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::SCVecPtr SCVecPtr;
+        using SCVecPtr                = typename SchwarzOperator<SC,LO,GO,NO>::SCVecPtr;
 
-        typedef Teuchos::Array<InterfaceEntityPtr> InterfaceEntityPtrVec;
-        typedef Teuchos::ArrayRCP<InterfaceEntityPtr> InterfaceEntityPtrVecPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::CrsGraphPtr CrsGraphPtr;
-
-		typedef typename SchwarzOperator<SC,LO,GO,NO>::Time Time;
-		typedef typename SchwarzOperator<SC,LO,GO,NO>::TimePtr TimePtr;
-
+    public:
 
         RGDSWCoarseOperator(ConstCrsMatrixPtr k,
                             ParameterListPtr parameterList);
@@ -109,23 +99,9 @@ namespace FROSch {
                                           GOVecPtr dirichletBoundaryDofs,
                                           MultiVectorPtr nodeList);
 
-        static int current_level;
-        protected:
 
-		#ifdef FROSch_RGDSWOperatorTimers
-		std::vector <TimePtr> ResetCoarseSpaceTimer;
-    std::vector <TimePtr> DDInterfaceResetTimer;
-    std::vector <TimePtr> DDInterfaceResetGlobalTimer;
-    std::vector <TimePtr> DDInterfaceRemoveDDTimer;
-    std::vector <TimePtr> DDInterfaceBuildEntityHTimer;
-    std::vector <TimePtr> DDInterfaceDistToCNodesTimer;
-    std::vector <TimePtr> CompVolFuncTimer;
-    std::vector <TimePtr> CompTranslationsTimer;
-    std::vector <TimePtr> CompRotationsTimer;
-    std::vector <TimePtr> CNodesBuildEntityMapTimer;
-    std::vector <TimePtr> InterfaceCoarseSpaceResetTimer;
-    std::vector <TimePtr> InterfaceCoarseSpaceAssembleCSTimer;
-	    #endif
+    protected:
+
         virtual MultiVectorPtrVecPtr computeTranslations(UN blockId,
                                                          EntitySetPtr coarseNodes,
                                                          EntitySetPtrVecPtr entitySetVector,

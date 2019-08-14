@@ -47,9 +47,6 @@
 namespace FROSch {
 
     template <class SC,class LO,class GO,class NO>
-    int DDInterface<SC,LO,GO,NO>::current_level = 0;
-
-    template <class SC,class LO,class GO,class NO>
     DDInterface<SC,LO,GO,NO>::DDInterface(UN dimension,
                                           UN dofsPerNode,
                                           MapPtr localToGlobalMap) :
@@ -69,49 +66,16 @@ namespace FROSch {
     EntitySetVector_ (),
     NodesMap_ (localToGlobalMap),
     UniqueNodesMap_ ()
-    #ifdef FROSCH_INTERFACE_TIMERS
-    ,commLocCompTimer(2),
-    idenLocCompTimer(2),
-    DDImport1Timer(2),
-    DDImport2Timer(2),
-    DDExport1Timer(2),
-    DDExport2Timer(2),
-    commMatTimer(2),
-    commMatTmpTimer(2)
-    #endif
     {
         FROSCH_ASSERT(((Dimension_==2)||(Dimension_==3)),"Only dimension 2 and 3 are available");
-
-        #ifdef FROSCH_INTERFACE_TIMERS
-         for(int i = 0;i<2;i++){
-           commLocCompTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch DDInterface communicateLocal "+std::to_string(i));
-           idenLocCompTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch DDInterface identifyLocal "+std::to_string(i));
-           DDImport1Timer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch DDInterface 1stImport "+std::to_string(i));
-           DDImport2Timer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch DDInterface 2ndImport "+std::to_string(i));
-           DDExport1Timer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch DDInterface 1stExport "+std::to_string(i));
-           DDExport2Timer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch DDInterface 2ndExport "+std::to_string(i));
-           commMatTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch DDInterface commMat fillComplete "+std::to_string(i));
-           commMatTmpTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch DDInterface commMatTmp fillComplete "+std::to_string(i));
-         }
-         #endif
-
 
         UniqueNodesMap_ = BuildUniqueMap<LO,GO,NO>(NodesMap_);
 
         GOVecVecPtr componentsSubdomains;
         GOVecVec componentsSubdomainsUnique;
-        {
-          #ifdef FROSCH_INTERFACE_TIMERS
-          Teuchos::TimeMonitor commLocCompTimeMonitor(*commLocCompTimer.at(current_level));
-          #endif
+
         communicateLocalComponents(componentsSubdomains,componentsSubdomainsUnique);
-       }
-       {
-         #ifdef FROSCH_INTERFACE_TIMERS
-         Teuchos::TimeMonitor idenLocCompTimeMonitor(*idenLocCompTimer.at(current_level));
-         #endif
         identifyLocalComponents(componentsSubdomains,componentsSubdomainsUnique);
-      }
     }
 
     template <class SC,class LO,class GO,class NO>
@@ -510,13 +474,7 @@ namespace FROSch {
 
             GraphPtr commGraph = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(tmpNodesMap,10);
             GraphPtr commGraphTmp = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(tmpUniqueNodesMap,10);
-#ifdef Tpetra_issue_1752
-            // AH 10/10/2017: Can we get away with using just one importer/exporter after the Tpetra issue is fixed?
-            Teuchos::RCP<Xpetra::Import<LO,GO,NO> > commImporter = Xpetra::ImportFactory<LO,GO,NO>::Build(tmpUniqueNodesMap,tmpNodesMap);
             Teuchos::RCP<Xpetra::Export<LO,GO,NO> > commExporter = Xpetra::ExportFactory<LO,GO,NO>::Build(tmpNodesMap,tmpUniqueNodesMap);
-#else
-            Teuchos::RCP<Xpetra::Export<LO,GO,NO> > commExporter = Xpetra::ExportFactory<LO,GO,NO>::Build(tmpNodesMap,tmpUniqueNodesMap);
-#endif
 
             Teuchos::Array<GO> myPID(1,tmpUniqueNodesMap->getComm()->getRank());
             for (int i=0; i<NumMyNodes_; i++) {
@@ -524,36 +482,16 @@ namespace FROSch {
             }
 
             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > rangeMap = Xpetra::MapFactory<LO,GO,NO>::Build(tmpNodesMap->lib(),-1,myPID(),0,tmpNodesMap->getComm());
-            {
-              #ifdef FROSCH_INTERFACE_TIMERS
-              Teuchos::TimeMonitor commMatTimeMonitor(*commMatTimer.at(current_level));
-              #endif
-              commGraph->fillComplete(tmpNodesMap,rangeMap);
 
-            }
-            {
-              #ifdef FROSCH_INTERFACE_TIMERS
-              Teuchos::TimeMonitor DDExport1TimeMonitor(*DDExport1Timer.at(current_level));
-              #endif
-              commGraphTmp->doExport(*commGraph,*commExporter,Xpetra::INSERT);
-            }
-            {
-              #ifdef FROSCH_INTERFACE_TIMERS
-              Teuchos::TimeMonitor commMatTmpTimeMonitor(*commMatTmpTimer.at(current_level));
-              #endif
-              commGraphTmp->fillComplete(tmpUniqueNodesMap,rangeMap);
-            }
+            commGraph->fillComplete(tmpNodesMap,rangeMap);
+
+            commGraphTmp->doExport(*commGraph,*commExporter,Xpetra::INSERT);
+
+            commGraphTmp->fillComplete(tmpUniqueNodesMap,rangeMap);
+
             commGraph = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(tmpNodesMap,10);
-#ifdef Tpetra_issue_1752
-            {
-              #ifdef FROSCH_INTERFACE_TIMERS
-              Teuchos::TimeMonitor DDImport1TimeMonitor(*DDImport1Timer.at(current_level));
-              #endif
-            commGraph->doImport(*commGraphTmp,*commImporter,Xpetra::INSERT);
-#else
+
             commGraph->doImport(*commGraphTmp,*commExporter,Xpetra::INSERT);
-#endif
-            }
 
             componentsSubdomains = GOVecVecPtr(NumMyNodes_);
             componentsSubdomainsUnique = GOVecVec(NumMyNodes_);
@@ -575,48 +513,24 @@ namespace FROSch {
         } else {
             GraphPtr commGraph = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(NodesMap_,10);
             GraphPtr commGraphTmp = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(UniqueNodesMap_,10);
-    #ifdef Tpetra_issue_1752
-            // AH 10/10/2017: Can we get away with using just one importer/exporter after the Tpetra issue is fixed?
-            Teuchos::RCP<Xpetra::Import<LO,GO,NO> > commImporter = Xpetra::ImportFactory<LO,GO,NO>::Build(UniqueNodesMap_,NodesMap_);
             Teuchos::RCP<Xpetra::Export<LO,GO,NO> > commExporter = Xpetra::ExportFactory<LO,GO,NO>::Build(NodesMap_,UniqueNodesMap_);
-    #else
-            Teuchos::RCP<Xpetra::Export<LO,GO,NO> > commExporter = Xpetra::ExportFactory<LO,GO,NO>::Build(NodesMap_,UniqueNodesMap_);
-    #endif
 
             Teuchos::Array<GO> myPID(1,UniqueNodesMap_->getComm()->getRank());
             for (int i=0; i<NumMyNodes_; i++) {
                 commGraph->insertGlobalIndices(NodesMap_->getGlobalElement(i),myPID());
             }
             Teuchos::RCP<Xpetra::Map<LO,GO,NO> > rangeMap = Xpetra::MapFactory<LO,GO,NO>::Build(NodesMap_->lib(),-1,myPID(),0,NodesMap_->getComm());
-            {
-              #ifdef FROSCH_INTERFACE_TIMERS
-              Teuchos::TimeMonitor commMatTimeMonitor(*commMatTimer.at(current_level));
-              #endif
-              commGraph->fillComplete(NodesMap_,rangeMap);
-            }
-            {
-              #ifdef FROSCH_INTERFACE_TIMERS
-              Teuchos::TimeMonitor DDExport1TimeMonitor(*DDExport1Timer.at(current_level));
-              #endif
-              commGraphTmp->doExport(*commGraph,*commExporter,Xpetra::INSERT);
-            }
-            {
-              #ifdef FROSCH_INTERFACE_TIMERS
-              Teuchos::TimeMonitor commMatTmpTimeMonitor(*commMatTmpTimer.at(current_level));
-              #endif
-              commGraphTmp->fillComplete(UniqueNodesMap_,rangeMap);
-            }
+
+            commGraph->fillComplete(NodesMap_,rangeMap);
+
+            commGraphTmp->doExport(*commGraph,*commExporter,Xpetra::INSERT);
+
+            commGraphTmp->fillComplete(UniqueNodesMap_,rangeMap);
+
             commGraph = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(NodesMap_,10);
-            {
-              #ifdef FROSCH_INTERFACE_TIMERS
-              Teuchos::TimeMonitor DDImport1TimeMonitor(*DDImport1Timer.at(current_level));
-              #endif
-    #ifdef Tpetra_issue_1752
-            commGraph->doImport(*commGraphTmp,*commImporter,Xpetra::INSERT);
-    #else
+
             commGraph->doImport(*commGraphTmp,*commExporter,Xpetra::INSERT);
-    #endif
-            }
+
             componentsSubdomains = GOVecVecPtr(NumMyNodes_);
             componentsSubdomainsUnique = GOVecVec(NumMyNodes_);
 
@@ -644,50 +558,24 @@ namespace FROSch {
     {
         GraphPtr commGraph = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(NodesMap_,10); // AH 08/07/2019: Can we put 1 instead of 10 here?
         GraphPtr commGraphTmp = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(UniqueNodesMap_,10); // We assume that any node is part of no more than 10 subdomains
-#ifdef Tpetra_issue_1752
-        // AH 10/10/2017: Can we get away with using just one importer/exporter after the Tpetra issue is fixed?
-        Teuchos::RCP<Xpetra::Import<LO,GO,NO> > commImporter = Xpetra::ImportFactory<LO,GO,NO>::Build(UniqueNodesMap_,NodesMap_);
         Teuchos::RCP<Xpetra::Export<LO,GO,NO> > commExporter = Xpetra::ExportFactory<LO,GO,NO>::Build(NodesMap_,UniqueNodesMap_);
-#else
-        Teuchos::RCP<Xpetra::Export<LO,GO,NO> > commExporter = Xpetra::ExportFactory<LO,GO,NO>::Build(NodesMap_,UniqueNodesMap_);
-#endif
 
         Teuchos::Array<GO> myPID(1,UniqueNodesMap_->getComm()->getRank());
         for (int i=0; i<NumMyNodes_; i++) {
             commGraph->insertGlobalIndices(NodesMap_->getGlobalElement(i),myPID());
         }
         MapPtr rangeMap = Xpetra::MapFactory<LO,GO,NO>::Build(NodesMap_->lib(),-1,myPID(),0,NodesMap_->getComm());
-        {
-          #ifdef FROSCH_INTERFACE_TIMERS
-          Teuchos::TimeMonitor commMatTimeMonitor(*commMatTimer.at(current_level));
-          #endif
-        //Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout)); commGraph->describe(*fancy,Teuchos::VERB_EXTREME); //!!!!!!!!!!!!!!!!!!!!
+
+        // AH 08/08/2019: Can this be done with the two-argument overload of Tpetra::Map::createOneToOne, with a custom TieBreak object that remembers the overlap; see lines 757-834 and 903-926 of tpetra/core/src/Tpetra_DirectoryImpl_def.hpp to see how the TieBreak object is used.
         commGraph->fillComplete(NodesMap_,rangeMap); // AH 08/07/2019: Can we remove some fillComplete?
-        }
-        //commGraph->describe(*fancy,Teuchos::VERB_EXTREME); //!!!!!!!!!!!!!!!!!!!!
-        {
-          #ifdef FROSCH_INTERFACE_TIMERS
-          Teuchos::TimeMonitor DDExport2TimeMonitor(*DDExport2Timer.at(current_level));
-          #endif
+
         commGraphTmp->doExport(*commGraph,*commExporter,Xpetra::INSERT);
-        }
-        {
-          #ifdef FROSCH_INTERFACE_TIMERS
-          Teuchos::TimeMonitor commMatTmpTimeMonitor(*commMatTmpTimer.at(current_level));
-          #endif
-          commGraphTmp->fillComplete(UniqueNodesMap_,rangeMap);
-        }
+
+        commGraphTmp->fillComplete(UniqueNodesMap_,rangeMap);
+
         commGraph = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(NodesMap_,10);
-        {
-          #ifdef FROSCH_INTERFACE_TIMERS
-          Teuchos::TimeMonitor DDImport2TimeMonitor(*DDImport2Timer.at(current_level));
-          #endif
-#ifdef Tpetra_issue_1752
-        commGraph->doImport(*commGraphTmp,*commImporter,Xpetra::INSERT);
-#else
+
         commGraph->doImport(*commGraphTmp,*commExporter,Xpetra::INSERT);
-#endif
-        }
 
         componentsSubdomains = GOVecVecPtr(NumMyNodes_);
         componentsSubdomainsUnique = GOVecVec(NumMyNodes_);

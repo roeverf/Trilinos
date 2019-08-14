@@ -43,53 +43,52 @@
 #define _FROSCH_HARMONICCOARSEOPERATOR_DECL_HPP
 
 #include <FROSch_CoarseOperator_def.hpp>
-#define FROSCH_HARMONIC_TIMERS
+
 
 namespace FROSch {
 
     template <class SC = Xpetra::Operator<>::scalar_type,
-    class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
-    class GO = typename Xpetra::Operator<SC,LO>::global_ordinal_type,
-    class NO = typename Xpetra::Operator<SC,LO,GO>::node_type>
+              class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
+              class GO = typename Xpetra::Operator<SC,LO>::global_ordinal_type,
+              class NO = typename Xpetra::Operator<SC,LO,GO>::node_type>
     class HarmonicCoarseOperator : public CoarseOperator<SC,LO,GO,NO> {
 
+    protected:
+
+        using MapPtr                  = typename SchwarzOperator<SC,LO,GO,NO>::MapPtr;
+        using ConstMapPtr             = typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtr;
+        using MapPtrVecPtr            = typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr;
+        using MapPtrVecPtr2D          = typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr2D;
+
+        using CrsMatrixPtr            = typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr;
+        using ConstCrsMatrixPtr       = typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr;
+
+        using MultiVectorPtr          = typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr;
+        using MultiVectorPtrVecPtr    = typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtrVecPtr;
+
+        using ParameterListPtr        = typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr;
+
+        using CoarseSpacePtr          = typename SchwarzOperator<SC,LO,GO,NO>::CoarseSpacePtr;
+        using CoarseSpacePtrVecPtr    = typename SchwarzOperator<SC,LO,GO,NO>::CoarseSpacePtrVecPtr;
+
+        using EntitySetPtr            = typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtr;
+
+        using SubdomainSolverPtr      = typename SchwarzOperator<SC,LO,GO,NO>::SubdomainSolverPtr;
+
+        using UN                      = typename SchwarzOperator<SC,LO,GO,NO>::UN;
+        using UNVec                   = typename SchwarzOperator<SC,LO,GO,NO>::UNVec;
+        using UNVecPtr                = typename SchwarzOperator<SC,LO,GO,NO>::UNVecPtr;
+
+        using LOVec                   = typename SchwarzOperator<SC,LO,GO,NO>::LOVec;
+        using LOVecPtr                = typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr;
+        using LOVecPtr2D              = typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr2D;
+
+        using GOVec                   = typename SchwarzOperator<SC,LO,GO,NO>::GOVec;
+        using GOVecView               = typename SchwarzOperator<SC,LO,GO,NO>::GOVecView;
+        using GOVec2D                 = typename SchwarzOperator<SC,LO,GO,NO>::GOVec2D;
+        using SCVec                   = typename SchwarzOperator<SC,LO,GO,NO>::SCVec;
+
     public:
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtr MapPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtr ConstMapPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr MapPtrVecPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr2D MapPtrVecPtr2D;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr CrsMatrixPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr ConstCrsMatrixPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr MultiVectorPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtrVecPtr MultiVectorPtrVecPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr ParameterListPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::CoarseSpacePtr CoarseSpacePtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::CoarseSpacePtrVecPtr CoarseSpacePtrVecPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtr EntitySetPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::SubdomainSolverPtr SubdomainSolverPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::UN UN;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::UNVec UNVec;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::UNVecPtr UNVecPtr;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVec LOVec;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr LOVecPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr2D LOVecPtr2D;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVec GOVec;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVecView GOVecView;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVec2D GOVec2D;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::SCVec SCVec;
-
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::Time Time;
-    		typedef typename SchwarzOperator<SC,LO,GO,NO>::TimePtr TimePtr;
 
         HarmonicCoarseOperator(ConstCrsMatrixPtr k,
                                ParameterListPtr parameterList);
@@ -97,7 +96,6 @@ namespace FROSch {
         virtual int initialize() = 0;
 
         MapPtr computeCoarseSpace(CoarseSpacePtr coarseSpace);
-        static int current_level;
 
     protected:
 
@@ -142,14 +140,7 @@ namespace FROSch {
         MapPtrVecPtr2D DofsMaps_; // notwendig??
 
         UN NumberOfBlocks_;
-        #ifdef FROSCH_HARMONIC_TIMERS
-        std::vector<TimePtr> AssembleSubdomainMapTimer;
-        std::vector<TimePtr> ExtractLSubMatTimer;
-        std::vector<TimePtr> BuildSubMatTimer;
-        std::vector<TimePtr> AssemCMapTimer;
-        std::vector<TimePtr> CompExtTimer;
-        std::vector<TimePtr> AddSubSpaceTimer;
-        #endif
+
     };
 
 }

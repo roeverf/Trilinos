@@ -96,13 +96,7 @@ namespace FROSch {
         ExtendOverlapByOneLayer<SC,LO,GO,NO>(matrix,overlappingMap,matrix,overlappingMap);
 
         Teuchos::RCP<Xpetra::Matrix<SC,LO,GO,NO> > tmpMatrix = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(overlappingMap,matrix->getGlobalMaxNumRowEntries());
-#ifdef Tpetra_issue_1752
-        // AH 10/10/2017: Can we get away with using just one importer/exporter after the Tpetra issue is fixed?
-        Teuchos::RCP<Xpetra::Import<LO,GO,NO> > scatter = Xpetra::ImportFactory<LO,GO,NO>::Build(uniqueMap,overlappingMap);
-        Teuchos::RCP<Xpetra::Export<LO,GO,NO> > gather = Xpetra::ExportFactory<LO,GO,NO>::Build(overlappingMap,uniqueMap);
 
-        tmpMatrix->doImport(*matrix,*scatter,Xpetra::ADD);
-#else
         Teuchos::RCP<Xpetra::Import<LO,GO,NO> > scatter;
         Teuchos::RCP<Xpetra::Export<LO,GO,NO> > gather = Xpetra::ExportFactory<LO,GO,NO>::Build(overlappingMap,uniqueMap);
 
@@ -112,7 +106,6 @@ namespace FROSch {
         } else {
             tmpMatrix->doImport(*matrix,*gather,Xpetra::ADD);
         }
-#endif
 
         Teuchos::Array<SC> one(1,Teuchos::ScalarTraits<SC>::one());
         Teuchos::Array<GO> myPID(1,uniqueMap->getComm()->getRank());
@@ -158,11 +151,8 @@ namespace FROSch {
         commMatTmp2->fillComplete();
         commMatTmp.reset();
         commMat = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(overlappingMap,10);
-#ifdef Tpetra_issue_1752
-        commMat->doImport(*commMatTmp2,*scatter,Xpetra::ADD);
-#else
+
         commMat->doImport(*commMatTmp2,*gather,Xpetra::ADD);
-#endif
 
         Teuchos::ArrayView<const GO> myGlobalElements = uniqueMap->getNodeElementList();
         Teuchos::Array<GO> repeatedIndices(uniqueMap->getNodeNumElements());
@@ -187,66 +177,6 @@ namespace FROSch {
         }
         sortunique(repeatedIndices);
         return Xpetra::MapFactory<LO,GO,NO>::Build(tmpMatrix->getRowMap()->lib(),-1,repeatedIndices(),0,matrix->getRowMap()->getComm());
-    }
-
-
-    template <class SC,class LO,class GO,class NO>
-    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildRepMap_Zoltan(Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > Xgraph,
-                                                            Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> >  B,
-                                                            Teuchos::RCP<Teuchos::ParameterList> parameterList,
-                                                            Teuchos::RCP<const Teuchos::Comm<int> > TeuchosComm)
-    {
-
-       int MyPID=TeuchosComm->getRank();
-        Teuchos::RCP<Teuchos::FancyOStream> fancy = fancyOStream(Teuchos::rcpFromRef(std::cout));
-        //Zoltan2 Problem
-        typedef Zoltan2::XpetraCrsGraphAdapter<Xpetra::CrsGraph<LO,GO,NO> > inputAdapter;
-        Teuchos::RCP<Teuchos::ParameterList> tmpList = Teuchos::sublist(parameterList,"Zoltan2 Parameter");
-        Teuchos::RCP<Teuchos::Time> ZoltanRepTimer =  Teuchos::TimeMonitor::getNewCounter("FROSch Tools Pure Zoltan Solve");
-        Teuchos::RCP<Teuchos::Time> BuildZoltanRepTimer = Teuchos::TimeMonitor::getNewCounter("FROSch Tools Pure Zoltan Build");
-        Teuchos::RCP<Teuchos::Time> ApplyTimer = Teuchos::TimeMonitor::getNewCounter("FROSch Tools applyPartitioningSolution");
-        Teuchos::RCP<Teuchos::Time> ImportTimer = Teuchos::TimeMonitor::getNewCounter("FROSch Tools RepMap Import");
-        Teuchos::RCP<inputAdapter> adaptedMatrix = Teuchos::rcp(new inputAdapter(Xgraph,0,0));
-        size_t MaxRow = B->getGlobalMaxNumRowEntries();
-        Teuchos::RCP<const Xpetra::Map<LO, GO, NO> > ColMap = Xpetra::MapFactory<LO,GO,NO>::createLocalMap(Xpetra::UseTpetra,MaxRow,TeuchosComm);
-        Teuchos::RCP<Zoltan2::PartitioningProblem<inputAdapter> >problem;
-        {
-          Teuchos::TimeMonitor BuildZoltanRepTimeMonitor(*BuildZoltanRepTimer);
-          problem = Teuchos::RCP<Zoltan2::PartitioningProblem<inputAdapter> >(new Zoltan2::PartitioningProblem<inputAdapter> (adaptedMatrix.getRawPtr(), tmpList.get(),TeuchosComm));
-        }
-        {
-          Teuchos::TimeMonitor ZoltanRepTimeMonitor(*ZoltanRepTimer);
-          problem->solve();
-        }
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > ReGraph;
-        {
-          Teuchos::TimeMonitor ApplyTimeMonitor(*ApplyTimer);
-          adaptedMatrix->applyPartitioningSolution(*Xgraph,ReGraph,problem->getSolution());
-        }
-
-        Teuchos::RCP<Xpetra::Import<LO,GO,NO> > scatter = Xpetra::ImportFactory<LO,GO,NO>::Build(Xgraph->getRowMap(),ReGraph->getRowMap());
-
-        Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > BB = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(ReGraph->getRowMap(),MaxRow);
-        {
-          Teuchos::TimeMonitor ImportTimeMonitor(*ImportTimer);
-          BB->doImport(*B,*scatter,Xpetra::INSERT);
-        }
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        Teuchos::Array<GO> repeatedMapEntries(0);
-        for (size_t i = 0; i<ReGraph->getRowMap()->getNodeNumElements(); i++) {
-            Teuchos::ArrayView<const GO> arr;
-            Teuchos::ArrayView<const LO> cc;
-            GO gi = ReGraph->getRowMap()->getGlobalElement(i);
-            BB->getGlobalRowView(gi,arr);
-            for (unsigned j=0; j<arr.size(); j++) {
-                repeatedMapEntries.push_back(arr[j]);
-            }
-        }
-        sortunique(repeatedMapEntries);
-        Teuchos::RCP<Xpetra::Map<LO,GO,NO> > RepeatedMap = Xpetra::MapFactory<LO,GO,NO>::Build(ReGraph->getColMap()->lib(),-1,repeatedMapEntries(),0,ReGraph->getColMap()->getComm());
-        //RepeatedMap->describe(*fancy,Teuchos::VERB_EXTREME);
-        return RepeatedMap;
     }
 
     /*
@@ -558,27 +488,6 @@ namespace FROSch {
     }
 
     template <class LO,class GO,class NO>
-    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildNodeMapFromMap(Teuchos::RCP<Xpetra::Map<LO,GO,NO> > & theMap,unsigned dofsPerNode){
-
-
-        GO maxIndex = theMap->getMaxGlobalIndex();
-        GO maxNode = (maxIndex +1)/dofsPerNode - 1;
-        Teuchos::Array<GO> vals;
-        Teuchos::ArrayView< const GO> elementList = theMap->getNodeElementList();
-        //vals.resize(elementList.size());
-
-        for(int i = 0;i<elementList.size();i++){
-            if(elementList[i]<= maxNode){
-                vals.push_back(elementList[i]);
-            }
-
-        }
-
-         return Xpetra::MapFactory<LO,GO,NO>::Build(theMap->lib(),-1,vals(),0,theMap->getComm());
-
-    }
-
-    template <class LO,class GO,class NO>
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromNodeMap(Teuchos::RCP<Xpetra::Map<LO,GO,NO> > &nodesMap,
                                                              unsigned dofsPerNode,
                                                              unsigned dofOrdering)
@@ -635,6 +544,27 @@ namespace FROSch {
             subMaps[j] = Xpetra::MapFactory<LO,GO,NO>::Build(fullMap->lib(),-1,indicesSubMaps[j](),0,fullMap->getComm());
         }
         return subMaps;
+    }
+
+    template <class LO,class GO,class NO>
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildNodeMapFromMap(Teuchos::RCP<Xpetra::Map<LO,GO,NO> > & theMap,unsigned dofsPerNode){
+
+
+        GO maxIndex = theMap->getMaxGlobalIndex();
+        GO maxNode = (maxIndex +1)/dofsPerNode - 1;
+        Teuchos::Array<GO> vals;
+        Teuchos::ArrayView< const GO> elementList = theMap->getNodeElementList();
+        //vals.resize(elementList.size());
+
+        for(int i = 0;i<elementList.size();i++){
+            if(elementList[i]<= maxNode){
+                vals.push_back(elementList[i]);
+            }
+
+        }
+
+         return Xpetra::MapFactory<LO,GO,NO>::Build(theMap->lib(),-1,vals(),0,theMap->getComm());
+
     }
 
     template <class SC,class LO,class GO,class NO>
@@ -998,13 +928,76 @@ namespace FROSch {
     }
 
 #ifdef HAVE_SHYLU_DDFROSCH_ZOLTAN2
+
+
+template <class SC,class LO,class GO,class NO>
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildRepMap_Zoltan(Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > Xgraph,
+                                                            Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> >  B,
+                                                            Teuchos::RCP<Teuchos::ParameterList> parameterList,
+                                                            Teuchos::RCP<const Teuchos::Comm<int> > TeuchosComm)
+    {
+
+       int MyPID=TeuchosComm->getRank();
+        Teuchos::RCP<Teuchos::FancyOStream> fancy = fancyOStream(Teuchos::rcpFromRef(std::cout));
+        //Zoltan2 Problem
+        typedef Zoltan2::XpetraCrsGraphAdapter<Xpetra::CrsGraph<LO,GO,NO> > inputAdapter;
+        Teuchos::RCP<Teuchos::ParameterList> tmpList = Teuchos::sublist(parameterList,"Zoltan2 Parameter");
+        Teuchos::RCP<Teuchos::Time> ZoltanRepTimer =  Teuchos::TimeMonitor::getNewCounter("FROSch Tools Pure Zoltan Solve");
+        Teuchos::RCP<Teuchos::Time> BuildZoltanRepTimer = Teuchos::TimeMonitor::getNewCounter("FROSch Tools Pure Zoltan Build");
+        Teuchos::RCP<Teuchos::Time> ApplyTimer = Teuchos::TimeMonitor::getNewCounter("FROSch Tools applyPartitioningSolution");
+        Teuchos::RCP<Teuchos::Time> ImportTimer = Teuchos::TimeMonitor::getNewCounter("FROSch Tools RepMap Import");
+        Teuchos::RCP<inputAdapter> adaptedMatrix = Teuchos::rcp(new inputAdapter(Xgraph,0,0));
+        size_t MaxRow = B->getGlobalMaxNumRowEntries();
+        Teuchos::RCP<const Xpetra::Map<LO, GO, NO> > ColMap = Xpetra::MapFactory<LO,GO,NO>::createLocalMap(Xpetra::UseTpetra,MaxRow,TeuchosComm);
+        Teuchos::RCP<Zoltan2::PartitioningProblem<inputAdapter> >problem;
+        {
+          Teuchos::TimeMonitor BuildZoltanRepTimeMonitor(*BuildZoltanRepTimer);
+          problem = Teuchos::RCP<Zoltan2::PartitioningProblem<inputAdapter> >(new Zoltan2::PartitioningProblem<inputAdapter> (adaptedMatrix.getRawPtr(), tmpList.get(),TeuchosComm));
+        }
+        {
+          Teuchos::TimeMonitor ZoltanRepTimeMonitor(*ZoltanRepTimer);
+          problem->solve();
+        }
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > ReGraph;
+        {
+          Teuchos::TimeMonitor ApplyTimeMonitor(*ApplyTimer);
+          adaptedMatrix->applyPartitioningSolution(*Xgraph,ReGraph,problem->getSolution());
+        }
+
+        Teuchos::RCP<Xpetra::Import<LO,GO,NO> > scatter = Xpetra::ImportFactory<LO,GO,NO>::Build(Xgraph->getRowMap(),ReGraph->getRowMap());
+
+        Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > BB = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(ReGraph->getRowMap(),MaxRow);
+        {
+          Teuchos::TimeMonitor ImportTimeMonitor(*ImportTimer);
+          BB->doImport(*B,*scatter,Xpetra::INSERT);
+        }
+        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+        Teuchos::Array<GO> repeatedMapEntries(0);
+        for (size_t i = 0; i<ReGraph->getRowMap()->getNodeNumElements(); i++) {
+            Teuchos::ArrayView<const GO> arr;
+            Teuchos::ArrayView<const LO> cc;
+            GO gi = ReGraph->getRowMap()->getGlobalElement(i);
+            BB->getGlobalRowView(gi,arr);
+            for (unsigned j=0; j<arr.size(); j++) {
+                repeatedMapEntries.push_back(arr[j]);
+            }
+        }
+        sortunique(repeatedMapEntries);
+        Teuchos::RCP<Xpetra::Map<LO,GO,NO> > RepeatedMap = Xpetra::MapFactory<LO,GO,NO>::Build(ReGraph->getColMap()->lib(),-1,repeatedMapEntries(),0,ReGraph->getColMap()->getComm());
+        //RepeatedMap->describe(*fancy,Teuchos::VERB_EXTREME);
+        return RepeatedMap;
+    }
+
+
+
     template <class SC, class LO,class GO,class NO>
     int RepartionMatrixZoltan2(Teuchos::RCP<Xpetra::Matrix<SC,LO,GO,NO> > &crsMatrix,
                                Teuchos::RCP<Teuchos::ParameterList> parameterList)
     {
         Teuchos::RCP<Teuchos::FancyOStream> fancy = fancyOStream(Teuchos::rcpFromRef(std::cout));
 
-        typedef Zoltan2::XpetraCrsMatrixAdapter<Xpetra::CrsMatrix<SC,LO,GO,NO> > inputAdapter;
+        using inputAdapter    = Zoltan2::XpetraCrsMatrixAdapter<Xpetra::CrsMatrix<SC,LO,GO,NO> >;
 
         Teuchos::RCP<Xpetra::CrsMatrixWrap<SC,LO,GO,NO> > tmpCrsWrap = Teuchos::rcp_dynamic_cast<Xpetra::CrsMatrixWrap<SC,LO,GO,NO> >(crsMatrix);
         Teuchos::RCP<Xpetra::CrsMatrix<SC,LO,GO,NO> > tmpCrsMatrix = tmpCrsWrap->getCrsMatrix();
@@ -1026,7 +1019,7 @@ namespace FROSch {
     }
 #endif
 
-  /*  void ThrowErrorMissingPackage(const std::string& froschObj, const std::string& packageName)
+    void ThrowErrorMissingPackage(const std::string& froschObj, const std::string& packageName)
     {
       // Create the error message
       std::stringstream errMsg;
@@ -1038,7 +1031,7 @@ namespace FROSch {
       FROSCH_ASSERT(false, errMsg.str());
 
       return;
-    }*/
+    }
 } // namespace FROSch
 
 #endif

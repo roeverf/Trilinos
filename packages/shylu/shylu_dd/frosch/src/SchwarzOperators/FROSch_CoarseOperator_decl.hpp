@@ -55,62 +55,69 @@ namespace FROSch {
     class NO = typename Xpetra::Operator<SC,LO,GO>::node_type>
     class CoarseOperator : public SchwarzOperator<SC,LO,GO,NO> {
 
-    public:
+    protected:
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::CommPtr CommPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::Map Map;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtr MapPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr MapPtrVecPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtr ConstMapPtr;
+         using CommPtr               = typename SchwarzOperator<SC,LO,GO,NO>::CommPtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr CrsMatrixPtr;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr ConstCrsMatrixPtr;
-        typedef typename Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> >GOCrsMatrixPtr;
+         using Map                   = typename SchwarzOperator<SC,LO,GO,NO>::Map;
+         using MapPtr                = typename SchwarzOperator<SC,LO,GO,NO>::MapPtr;
+         using ConstMapPtr           = typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtr;
+         using MapPtrVecPtr          = typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr;
+        using ConstMapPtrVecPtr2D     = typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtrVecPtr2D;
+         //using ConstMapPtrVecPtr     = typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtrVecPtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVector MultiVector;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr MultiVectorPtr;
+         using CrsMatrixPtr          = typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr;
+         using ConstCrsMatrixPtr     = typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ExporterPtrVecPtr ExporterPtrVecPtr;
+         using MultiVector           = typename SchwarzOperator<SC,LO,GO,NO>::MultiVector;
+         using MultiVectorPtr        = typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr;
+         using ConstMultiVectorPtr     = typename SchwarzOperator<SC,LO,GO,NO>::ConstMultiVectorPtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ParameterList ParameterList;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr ParameterListPtr;
+         using ExporterPtrVecPtr     = typename SchwarzOperator<SC,LO,GO,NO>::ExporterPtrVecPtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::CoarseSpacePtr CoarseSpacePtr;
+         using ParameterList         = typename SchwarzOperator<SC,LO,GO,NO>::ParameterList;
+         using ParameterListPtr      = typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::SubdomainSolverPtr SubdomainSolverPtr;
+         using CoarseSpacePtr        = typename SchwarzOperator<SC,LO,GO,NO>::CoarseSpacePtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::UN UN;
+         using SubdomainSolverPtr    = typename SchwarzOperator<SC,LO,GO,NO>::SubdomainSolverPtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVec GOVec;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr GOVecPtr;
-        typedef Teuchos::Array<GOVec> GOVec2D;
+         using UN                    = typename SchwarzOperator<SC,LO,GO,NO>::UN;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVec LOVec;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr2D LOVecPtr2D;
+         using GOVec                 = typename SchwarzOperator<SC,LO,GO,NO>::GOVec;
+         using GOVec2D               = Teuchos::Array<GOVec>;
+         using GOVecPtr              = typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::SCVec SCVec;
+         using LOVec                 = typename SchwarzOperator<SC,LO,GO,NO>::LOVec;
+         using LOVecPtr2D            = typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr2D;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstLOVecView ConstLOVecView;
+         using SCVec                 = typename SchwarzOperator<SC,LO,GO,NO>::SCVec;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstGOVecView ConstGOVecView;
+         using ConstLOVecView        = typename SchwarzOperator<SC,LO,GO,NO>::ConstLOVecView;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::ConstSCVecView ConstSCVecView;
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::CrsGraphPtr CrsGraphPtr;
+         using ConstGOVecView        = typename SchwarzOperator<SC,LO,GO,NO>::ConstGOVecView;
 
-        typedef typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtr EntitySetPtr;
-        typedef const EntitySetPtr EntitySetConstPtr;
-        typedef Teuchos::ArrayRCP<EntitySetPtr> EntitySetPtrVecPtr;
-        typedef const EntitySetPtrVecPtr EntitySetPtrConstVecPtr;
+         using ConstSCVecView        = typename SchwarzOperator<SC,LO,GO,NO>::ConstSCVecView;
+
+         using EntitySetPtr             = typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtr ;
+         using EntitySetConstPtr        = const EntitySetPtr;
+         using  EntitySetPtrVecPtr      = Teuchos::ArrayRCP<EntitySetPtr> ;
+         using EntitySetPtrConstVecPtr  = const EntitySetPtrVecPtr;
+
+         using InterfaceEntityPtr       = Teuchos::RCP<InterfaceEntity<SC,LO,GO,NO> >;
+         using InterfaceEntityPtrVec    =  Teuchos::Array<InterfaceEntityPtr>;
+         using InterfaceEntityPtrVecPtr = Teuchos::ArrayRCP<InterfaceEntityPtr>;
+
+         using Graph                    = Xpetra::CrsGraph<LO,GO,NO>;
+         using GraphPtr                 = Teuchos::RCP<Graph>;
+         using ConstGraphPtr            = Teuchos::RCP<const Graph>;
+         using CrsGraphPtr              = Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> >;
 
 
-        typedef Teuchos::RCP<InterfaceEntity<SC,LO,GO,NO> > InterfaceEntityPtr;
-        typedef Teuchos::Array<InterfaceEntityPtr> InterfaceEntityPtrVec;
-        typedef Teuchos::ArrayRCP<InterfaceEntityPtr> InterfaceEntityPtrVecPtr;
-
-		    typedef typename SchwarzOperator<SC,LO,GO,NO>::Time Time;
-		    typedef typename SchwarzOperator<SC,LO,GO,NO>::TimePtr TimePtr;
+         using TimePtr                  = typename SchwarzOperator<SC,LO,GO,NO>::TimePtr;
 
 
+public:
 
         CoarseOperator(ConstCrsMatrixPtr k,
                        ParameterListPtr parameterList);
