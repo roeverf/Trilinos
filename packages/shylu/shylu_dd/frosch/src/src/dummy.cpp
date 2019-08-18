@@ -37,34 +37,6 @@
 // Questions? Contact Alexander Heinlein (alexander.heinlein@uni-koeln.de)
 //
 // ************************************************************************
-//@HEAD
+//@HEADER
 
-#ifndef _FROSCH_TIMER_DEF_HPP
-#define _FROSCH_TIMER_DEF_HPP
-
-#include <FROSch_Timer_decl.hpp>
-
-namespace FROSch{
-    FROSchTimer::FROSchTimer(int NumEle,std::string theName):
-    numEle(NumEle),
-    name(theName),
-    theTimer(Teuchos::TimeMonitor::getNewCounter(theName+std::to_string(NumEle)))
-    {
-
-    }
-
-    FROSchTimer::~FROSchTimer(){
-
-    }
-
-    void FROSchTimer::start(int i){
-      Teuchos::TimeMonitor tmpMonitor(*theTimer);
-    }
-
-    void FROSchTimer::end(int i){
-
-    }
-
-}
-
-#endif
+void dummy() {}

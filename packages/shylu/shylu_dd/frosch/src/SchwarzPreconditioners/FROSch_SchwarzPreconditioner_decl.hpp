@@ -62,51 +62,51 @@ namespace FROSch {
 
     protected:
 
-      using CommPtr                             = Teuchos::RCP<const Teuchos::Comm<int> >;
+        using CommPtr                             = Teuchos::RCP<const Teuchos::Comm<int> >;
 
-using Map                                 = Xpetra::Map<LO,GO,NO>;
-using MapPtr                              = Teuchos::RCP<Map>;
-using ConstMapPtr                         = Teuchos::RCP<const Map>;
-using MapPtrVecPtr                        = Teuchos::ArrayRCP<MapPtr>;
-using ConstMapPtrVecPtr                   = Teuchos::ArrayRCP<ConstMapPtr>;
-using MapPtrVecPtr2D                      = Teuchos::ArrayRCP<MapPtrVecPtr>;
-using ConstMapPtrVecPtr2D                 = Teuchos::ArrayRCP<ConstMapPtrVecPtr>;
+        using Map                                 = Xpetra::Map<LO,GO,NO>;
+        using MapPtr                              = Teuchos::RCP<Map>;
+        using ConstMapPtr                         = Teuchos::RCP<const Map>;
+        using MapPtrVecPtr                        = Teuchos::ArrayRCP<MapPtr>;
+        using ConstMapPtrVecPtr                   = Teuchos::ArrayRCP<ConstMapPtr>;
+        using MapPtrVecPtr2D                      = Teuchos::ArrayRCP<MapPtrVecPtr>;
+        using ConstMapPtrVecPtr2D                 = Teuchos::ArrayRCP<ConstMapPtrVecPtr>;
 
-using CrsMatrix                           = Xpetra::Matrix<SC,LO,GO,NO>;
-using CrsMatrixPtr                        = Teuchos::RCP<CrsMatrix>;
-using ConstCrsMatrixPtr                   = Teuchos::RCP<const CrsMatrix>;
+        using CrsMatrix                           = Xpetra::Matrix<SC,LO,GO,NO>;
+        using CrsMatrixPtr                        = Teuchos::RCP<CrsMatrix>;
+        using ConstCrsMatrixPtr                   = Teuchos::RCP<const CrsMatrix>;
 
-using MultiVector                         = Xpetra::MultiVector<SC,LO,GO,NO>;
-using MultiVectorPtr                      = Teuchos::RCP<MultiVector>;
-using ConstMultiVectorPtr                 = Teuchos::RCP<const MultiVector>;
-using MultiVectorPtrVecPtr                = Teuchos::ArrayRCP<MultiVectorPtr>;
-using ConstMultiVectorPtrVecPtr           = Teuchos::ArrayRCP<ConstMultiVectorPtr>;
+        using MultiVector                         = Xpetra::MultiVector<SC,LO,GO,NO>;
+        using MultiVectorPtr                      = Teuchos::RCP<MultiVector>;
+        using ConstMultiVectorPtr                 = Teuchos::RCP<const MultiVector>;
+        using MultiVectorPtrVecPtr                = Teuchos::ArrayRCP<MultiVectorPtr>;
+        using ConstMultiVectorPtrVecPtr           = Teuchos::ArrayRCP<ConstMultiVectorPtr>;
 
-using ParameterListPtr                    = Teuchos::RCP<Teuchos::ParameterList>;
+        using ParameterListPtr                    = Teuchos::RCP<Teuchos::ParameterList>;
 
-using SumOperatorPtr                      = Teuchos::RCP<SumOperator<SC,LO,GO,NO> >;
-using MultiplicativeOperatorPtr           = Teuchos::RCP<MultiplicativeOperator<SC,LO,GO,NO> >;
-using OverlappingOperatorPtr              = Teuchos::RCP<OverlappingOperator<SC,LO,GO,NO> >;
-using AlgebraicOverlappingOperatorPtr     = Teuchos::RCP<AlgebraicOverlappingOperator<SC,LO,GO,NO> >;
-using CoarseOperatorPtr                   = Teuchos::RCP<CoarseOperator<SC,LO,GO,NO> >;
-using GDSWCoarseOperatorPtr               = Teuchos::RCP<GDSWCoarseOperator<SC,LO,GO,NO> >;
-using RGDSWCoarseOperatorPtr              = Teuchos::RCP<RGDSWCoarseOperator<SC,LO,GO,NO> >;
-using IPOUHarmonicCoarseOperatorPtr       = Teuchos::RCP<IPOUHarmonicCoarseOperator<SC,LO,GO,NO> >;
+        using SumOperatorPtr                      = Teuchos::RCP<SumOperator<SC,LO,GO,NO> >;
+        using MultiplicativeOperatorPtr           = Teuchos::RCP<MultiplicativeOperator<SC,LO,GO,NO> >;
+        using OverlappingOperatorPtr              = Teuchos::RCP<OverlappingOperator<SC,LO,GO,NO> >;
+        using AlgebraicOverlappingOperatorPtr     = Teuchos::RCP<AlgebraicOverlappingOperator<SC,LO,GO,NO> >;
+        using CoarseOperatorPtr                   = Teuchos::RCP<CoarseOperator<SC,LO,GO,NO> >;
+        using GDSWCoarseOperatorPtr               = Teuchos::RCP<GDSWCoarseOperator<SC,LO,GO,NO> >;
+        using RGDSWCoarseOperatorPtr              = Teuchos::RCP<RGDSWCoarseOperator<SC,LO,GO,NO> >;
+        using IPOUHarmonicCoarseOperatorPtr       = Teuchos::RCP<IPOUHarmonicCoarseOperator<SC,LO,GO,NO> >;
 
-using UN                                  = unsigned;
+        using UN                                  = unsigned;
 
-using GOVecPtr                            = Teuchos::ArrayRCP<GO>;
+        using GOVecPtr                            = Teuchos::ArrayRCP<GO>;
 
-using SCVecPtr                            = Teuchos::ArrayRCP<SC>;
+        using SCVecPtr                            = Teuchos::ArrayRCP<SC>;
 
-using UNVecPtr                            = Teuchos::ArrayRCP<UN>;
+        using UNVecPtr                            = Teuchos::ArrayRCP<UN>;
 
-using LOVecPtr                            = Teuchos::ArrayRCP<LO>;
+        using LOVecPtr                            = Teuchos::ArrayRCP<LO>;
 
-using GOVecPtr2D                          = Teuchos::ArrayRCP<GOVecPtr>;
+        using GOVecPtr2D                          = Teuchos::ArrayRCP<GOVecPtr>;
 
-using GOVec                               = Teuchos::Array<GO>;
-using GOVec2D                             = Teuchos::Array<GOVec>;
+        using GOVec                               = Teuchos::Array<GO>;
+        using GOVec2D                             = Teuchos::Array<GOVec>;
 
         using TimePtr                             = Teuchos::RCP<Teuchos::Time>;
 

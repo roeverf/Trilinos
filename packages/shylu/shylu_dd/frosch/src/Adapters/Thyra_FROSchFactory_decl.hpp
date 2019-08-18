@@ -64,7 +64,7 @@
 #include "Teuchos_ArrayRCP.hpp"
 #include "Teuchos_Array.hpp"
 #include <Teuchos_XMLParameterListCoreHelpers.hpp>
-
+#include "Teuchos_TimeMonitor.hpp"
 //Xpetra
 #include <Xpetra_CrsMatrixWrap.hpp>
 #include <Xpetra_CrsMatrix.hpp>
@@ -93,6 +93,7 @@
 #include <FROSch_Tools_def.hpp>
 
 #include "Kokkos_DefaultNode.hpp"
+#define FROSCCH_THYRA_TIMERS
 
 namespace Thyra {
 
@@ -102,7 +103,7 @@ namespace Thyra {
     template <class SC,class LO,class GO,class NO=KokkosClassic::DefaultNode::DefaultNodeType>
     class FROSchFactory : public Thyra::PreconditionerFactoryBase<SC> {
 
-    public:
+    protected:
 
         using Map                   = Xpetra::Map<LO,GO,NO>;
         using ConstMap              = const Map;
@@ -113,9 +114,6 @@ namespace Thyra {
         using ConstMultiVector      = const MultiVector;
         using MultiVectorPtr        = Teuchos::RCP<MultiVector>;
         using ConstMultiVectorPtr   = Teuchos::RCP<ConstMultiVector>;
-        using ConstMultiVectorPtrVecPtr = Teuchos::ArrayRCP<ConstMultiVectorPtr>;
-
-
 
         using DofOrderingVecPtr     = Teuchos::ArrayRCP<DofOrdering>;
 
@@ -129,7 +127,11 @@ namespace Thyra {
 
         using LOVecPtr              = Teuchos::ArrayRCP<LO>;
 
+        using TimePtr               = Teuchos::RCP<Teuchos::Time>;
+
         // More typedefs!!!
+
+    public:
 
         //Constructor
         FROSchFactory();
@@ -160,6 +162,10 @@ namespace Thyra {
         std::string description() const;
         private:
         Teuchos::RCP<ParameterList> paramList_;
+        #ifdef FROSCCH_THYRA_TIMERS
+        TimePtr initTimer;
+        TimePtr compTimer;
+        #endif
 
     };
 }

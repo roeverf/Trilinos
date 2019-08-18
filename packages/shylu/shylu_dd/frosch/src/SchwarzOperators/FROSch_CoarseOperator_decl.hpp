@@ -43,81 +43,81 @@
 #define _FROSCH_COARSEOPERATOR_DECL_HPP
 
 #include <FROSch_SchwarzOperator_def.hpp>
-#define FROSch_CoarseOperatorTimers
+#include <Teuchos_TimeMonitor.hpp>
+#define FROSch_CoarseOperatorTimer
+
 // TODO: Member sortieren!?
 
 
 namespace FROSch {
 
     template <class SC = Xpetra::Operator<>::scalar_type,
-    class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
-    class GO = typename Xpetra::Operator<SC,LO>::global_ordinal_type,
-    class NO = typename Xpetra::Operator<SC,LO,GO>::node_type>
+              class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
+              class GO = typename Xpetra::Operator<SC,LO>::global_ordinal_type,
+              class NO = typename Xpetra::Operator<SC,LO,GO>::node_type>
     class CoarseOperator : public SchwarzOperator<SC,LO,GO,NO> {
 
     protected:
 
-         using CommPtr               = typename SchwarzOperator<SC,LO,GO,NO>::CommPtr;
+        using CommPtr               = typename SchwarzOperator<SC,LO,GO,NO>::CommPtr;
 
-         using Map                   = typename SchwarzOperator<SC,LO,GO,NO>::Map;
-         using MapPtr                = typename SchwarzOperator<SC,LO,GO,NO>::MapPtr;
-         using ConstMapPtr           = typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtr;
-         using MapPtrVecPtr          = typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr;
-        using ConstMapPtrVecPtr2D     = typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtrVecPtr2D;
-         //using ConstMapPtrVecPtr     = typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtrVecPtr;
+        using Map                   = typename SchwarzOperator<SC,LO,GO,NO>::Map;
+        using MapPtr                = typename SchwarzOperator<SC,LO,GO,NO>::MapPtr;
+        using ConstMapPtr           = typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtr;
+        using MapPtrVecPtr          = typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr;
+        using ConstMapPtrVecPtr     = typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtrVecPtr;
 
-         using CrsMatrixPtr          = typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr;
-         using ConstCrsMatrixPtr     = typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr;
+        using CrsMatrixPtr          = typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr;
+        using ConstCrsMatrixPtr     = typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr;
 
-         using MultiVector           = typename SchwarzOperator<SC,LO,GO,NO>::MultiVector;
-         using MultiVectorPtr        = typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr;
-         using ConstMultiVectorPtr     = typename SchwarzOperator<SC,LO,GO,NO>::ConstMultiVectorPtr;
+        using MultiVector           = typename SchwarzOperator<SC,LO,GO,NO>::MultiVector;
+        using MultiVectorPtr        = typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr;
 
-         using ExporterPtrVecPtr     = typename SchwarzOperator<SC,LO,GO,NO>::ExporterPtrVecPtr;
+        using ExporterPtrVecPtr     = typename SchwarzOperator<SC,LO,GO,NO>::ExporterPtrVecPtr;
 
-         using ParameterList         = typename SchwarzOperator<SC,LO,GO,NO>::ParameterList;
-         using ParameterListPtr      = typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr;
+        using ParameterList         = typename SchwarzOperator<SC,LO,GO,NO>::ParameterList;
+        using ParameterListPtr      = typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr;
 
-         using CoarseSpacePtr        = typename SchwarzOperator<SC,LO,GO,NO>::CoarseSpacePtr;
+        using CoarseSpacePtr        = typename SchwarzOperator<SC,LO,GO,NO>::CoarseSpacePtr;
 
-         using SubdomainSolverPtr    = typename SchwarzOperator<SC,LO,GO,NO>::SubdomainSolverPtr;
+        using SubdomainSolverPtr    = typename SchwarzOperator<SC,LO,GO,NO>::SubdomainSolverPtr;
 
-         using UN                    = typename SchwarzOperator<SC,LO,GO,NO>::UN;
+        using UN                    = typename SchwarzOperator<SC,LO,GO,NO>::UN;
 
-         using GOVec                 = typename SchwarzOperator<SC,LO,GO,NO>::GOVec;
-         using GOVec2D               = Teuchos::Array<GOVec>;
-         using GOVecPtr              = typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr;
+        using GOVec                 = typename SchwarzOperator<SC,LO,GO,NO>::GOVec;
+        using GOVecPtr              = typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr;
+        using GOVec2D               = Teuchos::Array<GOVec>;
 
-         using LOVec                 = typename SchwarzOperator<SC,LO,GO,NO>::LOVec;
-         using LOVecPtr2D            = typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr2D;
+        using LOVec                 = typename SchwarzOperator<SC,LO,GO,NO>::LOVec;
+        using LOVecPtr2D            = typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr2D;
 
-         using SCVec                 = typename SchwarzOperator<SC,LO,GO,NO>::SCVec;
+        using IntVec                = typename SchwarzOperator<SC,LO,GO,NO>::IntVec;
+        using IntVec2D              = Teuchos::Array<IntVec>;
 
-         using ConstLOVecView        = typename SchwarzOperator<SC,LO,GO,NO>::ConstLOVecView;
+        using SCVec                 = typename SchwarzOperator<SC,LO,GO,NO>::SCVec;
 
-         using ConstGOVecView        = typename SchwarzOperator<SC,LO,GO,NO>::ConstGOVecView;
+        using ConstLOVecView        = typename SchwarzOperator<SC,LO,GO,NO>::ConstLOVecView;
 
-         using ConstSCVecView        = typename SchwarzOperator<SC,LO,GO,NO>::ConstSCVecView;
+        using ConstGOVecView        = typename SchwarzOperator<SC,LO,GO,NO>::ConstGOVecView;
 
-         using EntitySetPtr             = typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtr ;
-         using EntitySetConstPtr        = const EntitySetPtr;
-         using  EntitySetPtrVecPtr      = Teuchos::ArrayRCP<EntitySetPtr> ;
-         using EntitySetPtrConstVecPtr  = const EntitySetPtrVecPtr;
+        using ConstSCVecView        = typename SchwarzOperator<SC,LO,GO,NO>::ConstSCVecView;
 
-         using InterfaceEntityPtr       = Teuchos::RCP<InterfaceEntity<SC,LO,GO,NO> >;
-         using InterfaceEntityPtrVec    =  Teuchos::Array<InterfaceEntityPtr>;
-         using InterfaceEntityPtrVecPtr = Teuchos::ArrayRCP<InterfaceEntityPtr>;
-
-         using Graph                    = Xpetra::CrsGraph<LO,GO,NO>;
-         using GraphPtr                 = Teuchos::RCP<Graph>;
-         using ConstGraphPtr            = Teuchos::RCP<const Graph>;
-         using CrsGraphPtr              = Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> >;
+        using TimePtr               = typename SchwarzOperator<SC,LO,GO,NO>::TimePtr;
 
 
-         using TimePtr                  = typename SchwarzOperator<SC,LO,GO,NO>::TimePtr;
+        using GraphPtr             = typename SchwarzOperator<SC,LO,GO,NO>::GraphPtr;
+        using EntitySetPtr            = typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtr;
+        using EntitySetConstPtr       = const EntitySetPtr;
+        using EntitySetPtrVecPtr      = Teuchos::ArrayRCP<EntitySetPtr>;
+        using EntitySetPtrConstVecPtr =  const EntitySetPtrVecPtr;
 
 
-public:
+        using InterfaceEntityPtr        = Teuchos::RCP<InterfaceEntity<SC,LO,GO,NO> >;
+        using InterfaceEntityPtrVec     = Teuchos::Array<InterfaceEntityPtr>;
+        using InterfaceEntityPtrVecPtr  = Teuchos::ArrayRCP<InterfaceEntityPtr>;
+
+
+    public:
 
         CoarseOperator(ConstCrsMatrixPtr k,
                        ParameterListPtr parameterList);
@@ -151,6 +151,7 @@ public:
 
         virtual CoarseSpacePtr getCoarseSpace() const;
 
+
         static int current_level;
 
     protected:
@@ -162,9 +163,11 @@ public:
         CrsMatrixPtr buildCoarseMatrix();
 
         virtual int buildCoarseSolveMap(CrsMatrixPtr &k0);
+//functions for coarse RepeatedMap
         virtual int buildElementNodeList();
         virtual int buildGlobalGraph(Teuchos::RCP<DDInterface<SC,LO,GO,NO> > theDDInterface_);
         virtual int buildCoarseGraph();
+//
 
         CommPtr CoarseSolveComm_;
 
@@ -177,52 +180,53 @@ public:
         CrsMatrixPtr Phi_;
         CrsMatrixPtr CoarseMatrix_;
 
-        MapPtrVecPtr GatheringMaps_;
-        MapPtrVecPtr MLGatheringMaps_;
+        ConstMapPtrVecPtr GatheringMaps_;
+         MapPtrVecPtr MLGatheringMaps_;
         MapPtr CoarseSolveMap_;
         MapPtr CoarseSolveRepeatedMap_;
         MapPtr MLCoarseMap_;
-        GOVecPtr BlockCoarseDimension_;
-        UN maxNumNeigh_;
+
         SubdomainSolverPtr CoarseSolver_;
+
         ParameterListPtr DistributionList_;
 
         ExporterPtrVecPtr CoarseSolveExporters_;
         ExporterPtrVecPtr MLCoarseSolveExporters_;
         //Graph to compute Reapeated Map
-        CrsGraphPtr SubdomainConnectGraph_;
+        GraphPtr SubdomainConnectGraph_;
         //Element-Node-List to compute RepeatedMap
-        CrsGraphPtr ElementNodeList_;
+        GraphPtr ElementNodeList_;
         Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > GraphEntriesList_;
 
         ConstMapPtr kRowMap_;
         LO DofsPerNodeCoarse_;
         UN dofs;
+        UN maxNumNeigh_;
 
-#ifdef FROSch_CoarseOperatorTimers
-	 Teuchos::Array<TimePtr> ComputeTimer;
-	Teuchos::Array<TimePtr> ApplyTimer;
-	Teuchos::Array<TimePtr> ApplyPhiTTimer;
-	Teuchos::Array<TimePtr> ApplyExportTimer;
-	Teuchos::Array<TimePtr> ApplyCoarseSolveTimer;
-	Teuchos::Array<TimePtr> ApplyPhiTimer;
-	Teuchos::Array<TimePtr> ApplyImportTimer;
-	Teuchos::Array<TimePtr> SetUpTimer;
-	Teuchos::Array<TimePtr> BuildCoarseMatrixTimer;
-	Teuchos::Array<TimePtr> BuildCoarseSolveMapTimer;
-	Teuchos::Array<TimePtr> BuildCoarseRepMapTimer;
-	Teuchos::Array<TimePtr> ExportKOTimer;
-	Teuchos::Array<TimePtr> BuildDirectSolvesTimer;
-  Teuchos::Array<TimePtr> BuildGlobalGraphTimer;
-  Teuchos::Array<TimePtr> InterfaceInfoTimer;
-  Teuchos::Array<TimePtr> BuildCoarseGraphTimer;
-  Teuchos::Array<TimePtr> BuildElementNodeListTimer;
-  Teuchos::Array<TimePtr> CompAssembleCoarseSpaceTimer;
-  Teuchos::Array<TimePtr> CompBuildBasisMatrixTimer;
-  Teuchos::Array<TimePtr> CompCoarseSpaceTimer;
-  Teuchos::Array<TimePtr> ExportCMatrixTimer;
+    #ifdef FROSch_CoarseOperatorTimer
+	   Teuchos::Array<TimePtr> ComputeTimer;
+	   Teuchos::Array<TimePtr> ApplyTimer;
+	   Teuchos::Array<TimePtr> ApplyPhiTTimer;
+	   Teuchos::Array<TimePtr> ApplyExportTimer;
+	   Teuchos::Array<TimePtr> ApplyCoarseSolveTimer;
+	   Teuchos::Array<TimePtr> ApplyPhiTimer;
+	   Teuchos::Array<TimePtr> ApplyImportTimer;
+	   Teuchos::Array<TimePtr> SetUpTimer;
+	   Teuchos::Array<TimePtr> BuildCoarseMatrixTimer;
+	   Teuchos::Array<TimePtr> BuildCoarseSolveMapTimer;
+	   Teuchos::Array<TimePtr> BuildCoarseRepMapTimer;
+	   Teuchos::Array<TimePtr> ExportKOTimer;
+	   Teuchos::Array<TimePtr> BuildDirectSolvesTimer;
+     Teuchos::Array<TimePtr> BuildGlobalGraphTimer;
+     Teuchos::Array<TimePtr> InterfaceInfoTimer;
+     Teuchos::Array<TimePtr> BuildCoarseGraphTimer;
+     Teuchos::Array<TimePtr> BuildElementNodeListTimer;
+     Teuchos::Array<TimePtr> CompAssembleCoarseSpaceTimer;
+     Teuchos::Array<TimePtr> CompBuildBasisMatrixTimer;
+     Teuchos::Array<TimePtr> CompCoarseSpaceTimer;
+     Teuchos::Array<TimePtr> ExportCMatrixTimer;
+      #endif
 
-#endif
     };
 
 }

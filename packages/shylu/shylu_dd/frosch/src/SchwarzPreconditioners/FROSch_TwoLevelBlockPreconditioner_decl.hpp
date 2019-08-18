@@ -42,17 +42,21 @@
 #ifndef _FROSCH_TWOLEVELBLOCKPRECONDITIONER_DECL_HPP
 #define _FROSCH_TWOLEVELBLOCKPRECONDITIONER_DECL_HPP
 
+#define FROSCH_TLBP_TIMER
+
+
 #include <FROSch_OneLevelPreconditioner_def.hpp>
-#define TWOLEVEL_BLOCKPC_TIMERS
+
 namespace FROSch {
 
     template <class SC = Xpetra::Operator<>::scalar_type,
-    class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
-    class GO = typename Xpetra::Operator<SC, LO>::global_ordinal_type,
-    class NO = typename Xpetra::Operator<SC, LO, GO>::node_type>
+              class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
+              class GO = typename Xpetra::Operator<SC, LO>::global_ordinal_type,
+              class NO = typename Xpetra::Operator<SC, LO, GO>::node_type>
     class TwoLevelBlockPreconditioner : public OneLevelPreconditioner<SC,LO,GO,NO> {
 
-    public:
+    protected:
+
         using MapPtr                              = typename SchwarzPreconditioner<SC,LO,GO,NO>::MapPtr;
         using ConstMapPtr                         = typename SchwarzPreconditioner<SC,LO,GO,NO>::ConstMapPtr;
         using MapPtrVecPtr                        = typename SchwarzPreconditioner<SC,LO,GO,NO>::MapPtrVecPtr;
@@ -62,9 +66,11 @@ namespace FROSch {
 
         using CrsMatrixPtr                        = typename SchwarzPreconditioner<SC,LO,GO,NO>::CrsMatrixPtr;
         using ConstCrsMatrixPtr                   = typename SchwarzPreconditioner<SC,LO,GO,NO>::ConstCrsMatrixPtr;
+
         using MultiVectorPtr                      = typename SchwarzPreconditioner<SC,LO,GO,NO>::MultiVectorPtr;
         using MultiVectorPtrVecPtr                = typename SchwarzPreconditioner<SC,LO,GO,NO>::MultiVectorPtrVecPtr;
         using ConstMultiVectorPtrVecPtr           = typename SchwarzPreconditioner<SC,LO,GO,NO>::ConstMultiVectorPtrVecPtr;
+
         using ParameterListPtr                    = typename SchwarzPreconditioner<SC,LO,GO,NO>::ParameterListPtr;
 
         using AlgebraicOverlappingOperatorPtr     = typename SchwarzPreconditioner<SC,LO,GO,NO>::AlgebraicOverlappingOperatorPtr;
@@ -85,20 +91,10 @@ namespace FROSch {
 
         using TimePtr                             = typename SchwarzPreconditioner<SC,LO,GO,NO>::TimePtr;
 
+    public:
 
         TwoLevelBlockPreconditioner(ConstCrsMatrixPtr k,
                                     ParameterListPtr parameterList);
-
-
-       int initialize(UN dimension,
-                      UNVecPtr dofsPerNodeVec,
-                      DofOrderingVecPtr dofOrderingVec,
-                      ConstMapPtrVecPtr repeatedMapVec,
-                      int overlap = -1,
-                      ConstMultiVectorPtrVecPtr nullSpaceBasisVec = Teuchos::null,
-                      ConstMultiVectorPtrVecPtr nodeListVec = Teuchos::null,
-                      ConstMapPtrVecPtr2D dofsMapsVec = Teuchos::null,
-                      GOVecPtr2D dirichletBoundaryDofsVec = Teuchos::null);
 
         int initialize(UN dimension,
                        UNVecPtr dofsPerNodeVec,
@@ -123,13 +119,15 @@ namespace FROSch {
         static int current_level;
 
     protected:
-      #ifdef TWOLEVEL_BLOCKPC_TIMERS
-        Teuchos::Array<TimePtr> OverOpInitTimer;
-        Teuchos::Array<TimePtr> CoarseInitTimer;
-        Teuchos::Array<TimePtr> OverOpCompTimer;
-        Teuchos::Array<TimePtr> CoarseCompTimer;
-      #endif
+
         CoarseOperatorPtr CoarseOperator_;
+
+        #ifdef FROSCH_TLBP_TIMER
+        Teuchos::Array<TimePtr> initOTimer;
+        Teuchos::Array<TimePtr> initCTimer;
+        Teuchos::Array<TimePtr> compOTimer;
+        Teuchos::Array<TimePtr> compCTimer;
+        #endif
 
     };
 

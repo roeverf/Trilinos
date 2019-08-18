@@ -144,7 +144,7 @@ namespace FROSch {
     }
 
     template <class SC,class LO,class GO,class NO>
-    int  HarmonicCoarseOperator<SC,LO,GO,NO>::addZeroCoarseSpaceBlock(MapPtr dofsMap)
+    int  HarmonicCoarseOperator<SC,LO,GO,NO>::addZeroCoarseSpaceBlock(ConstMapPtr dofsMap)
     {
         // Das könnte man noch ändern
         GammaDofs_->resize(GammaDofs_.size()+1);
@@ -206,8 +206,8 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int HarmonicCoarseOperator<SC,LO,GO,NO>::computeVolumeFunctions(UN blockId,
                                                                     UN dimension,
-                                                                    MapPtr nodesMap,
-                                                                    MultiVectorPtr nodeList,
+                                                                    ConstMapPtr nodesMap,
+                                                                    ConstMultiVectorPtr nodeList,
                                                                     EntitySetPtr interior)
     {
         // Process the parameter list
@@ -220,7 +220,7 @@ namespace FROSch {
         bool useRotations = coarseSpaceList->get("Rotations",true);
         if (useRotations && nodeList.is_null()) {
             useRotations = false;
-            if (this->Verbose_) std::cout << "\nWarning: Rotations cannot be used!\n";
+            if (this->Verbose_) std::cout << "FROSch::HarmonicCoarseOperator : WARNING: Rotations cannot be used" << std::endl;
         }
 
         this->GammaDofs_[blockId] = LOVecPtr(this->DofsPerNode_[blockId]*interior->getEntity(0)->getNumNodes());
@@ -297,7 +297,7 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     typename HarmonicCoarseOperator<SC,LO,GO,NO>::MultiVectorPtrVecPtr HarmonicCoarseOperator<SC,LO,GO,NO>::computeRotations(UN blockId,
                                                                                                                              UN dimension,
-                                                                                                                             MultiVectorPtr nodeList,
+                                                                                                                             ConstMultiVectorPtr nodeList,
                                                                                                                              EntitySetPtr entitySet)
     {
         FROSCH_ASSERT(nodeList->getNumVectors()==dimension,"dimension of the nodeList is wrong.");
@@ -375,6 +375,7 @@ namespace FROSch {
                                                                                                                         CrsMatrixPtr kII,
                                                                                                                         CrsMatrixPtr kIGamma)
     {
+
         //this->Phi_ = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(this->K_->getRangeMap(),coarseMap,coarseMap->getNodeNumElements()); // Nonzeroes abhängig von dim/dofs!!!
         MultiVectorPtr mVPhi = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(localMap,coarseMap->getNodeNumElements());
         MultiVectorPtr mVtmp = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(kII->getRowMap(),coarseMap->getNodeNumElements());
@@ -402,6 +403,8 @@ namespace FROSch {
             jj += j;
             kk += k;
         }
+        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
+        //kII->describe(*fancy,Teuchos::VERB_EXTREME);
         // Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout)); this->Phi_->describe(*fancy,Teuchos::VERB_EXTREME);
         // Hier Multiplikation kIGamma*PhiGamma
         kIGamma->apply(*mVPhiGamma,*mVtmp);
@@ -409,10 +412,16 @@ namespace FROSch {
         mVtmp->scale(-Teuchos::ScalarTraits<SC>::one());
 
         // Jetzt der solver für kII
+        if(kII->getGlobalNumRows()>1){
+
         ExtensionSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(kII,sublist(this->ParameterList_,"ExtensionSolver")));
+
         ExtensionSolver_->initialize();
+
         ExtensionSolver_->compute();
+
         ExtensionSolver_->apply(*mVtmp,*mVPhiI);
+        }
 
         GOVec priorIndex(NumberOfBlocks_,0);
         GOVec postIndex(NumberOfBlocks_,0);

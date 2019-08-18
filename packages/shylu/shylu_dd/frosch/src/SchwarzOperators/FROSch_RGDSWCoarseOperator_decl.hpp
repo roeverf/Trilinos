@@ -43,6 +43,7 @@
 #define _FROSCH_RGDSWCOARSEOPERATOR_DECL_HPP
 
 #include <FROSch_GDSWCoarseOperator_def.hpp>
+#define FROSCH_RGDSWCOARSEOPERATOR_TIMER
 
 namespace FROSch {
 
@@ -57,12 +58,15 @@ namespace FROSch {
         using CommPtr                 = typename SchwarzOperator<SC,LO,GO,NO>::CommPtr;
 
         using MapPtr                  = typename SchwarzOperator<SC,LO,GO,NO>::MapPtr;
+        using ConstMapPtr             = typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtr;
         using MapPtrVecPtr            = typename SchwarzOperator<SC,LO,GO,NO>::MapPtrVecPtr;
+        using ConstMapPtrVecPtr       = typename SchwarzOperator<SC,LO,GO,NO>::ConstMapPtrVecPtr;
 
         using CrsMatrixPtr            = typename SchwarzOperator<SC,LO,GO,NO>::CrsMatrixPtr;
         using ConstCrsMatrixPtr       = typename SchwarzOperator<SC,LO,GO,NO>::ConstCrsMatrixPtr;
 
         using MultiVectorPtr          = typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtr;
+        using ConstMultiVectorPtr     = typename SchwarzOperator<SC,LO,GO,NO>::ConstMultiVectorPtr;
         using MultiVectorPtrVecPtr    = typename SchwarzOperator<SC,LO,GO,NO>::MultiVectorPtrVecPtr;
 
         using ParameterListPtr        = typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr;
@@ -70,7 +74,9 @@ namespace FROSch {
         using DDInterfacePtr          = typename SchwarzOperator<SC,LO,GO,NO>::DDInterfacePtr;
 
         using EntitySetPtr            = typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtr;
-        using EntitySetPtrVecPtr      = typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtrVecPtr;
+        using EntitySetConstPtr             = const EntitySetPtr;
+        using EntitySetPtrVecPtr            = Teuchos::ArrayRCP<EntitySetPtr>;
+        using EntitySetPtrConstVecPtr       = const EntitySetPtrVecPtr;
 
         using InterfaceEntityPtr      = typename SchwarzOperator<SC,LO,GO,NO>::InterfaceEntityPtr;
 
@@ -86,6 +92,8 @@ namespace FROSch {
 
         using SCVecPtr                = typename SchwarzOperator<SC,LO,GO,NO>::SCVecPtr;
 
+        using TimePtr               = typename  SchwarzOperator<SC,LO,GO,NO>::TimePtr;
+
     public:
 
         RGDSWCoarseOperator(ConstCrsMatrixPtr k,
@@ -94,10 +102,11 @@ namespace FROSch {
         virtual int resetCoarseSpaceBlock(UN blockId,
                                           UN dimension,
                                           UN dofsPerNode,
-                                          MapPtr nodesMap,
-                                          MapPtrVecPtr dofsMaps,
+                                          ConstMapPtr nodesMap,
+                                          ConstMapPtrVecPtr dofsMaps,
                                           GOVecPtr dirichletBoundaryDofs,
-                                          MultiVectorPtr nodeList);
+                                          ConstMultiVectorPtr nodeList);
+        static int current_level;
 
 
     protected:
@@ -109,10 +118,18 @@ namespace FROSch {
 
         virtual MultiVectorPtrVecPtr computeRotations(UN blockId,
                                                       UN dimension,
-                                                      MultiVectorPtr nodeList,
+                                                      ConstMultiVectorPtr nodeList,
                                                       EntitySetPtr coarseNodes,
                                                       EntitySetPtrVecPtr entitySetVector,
                                                       DistanceFunction distanceFunction = ConstantDistanceFunction);
+
+      #ifdef FROSCH_RGDSWCOARSEOPERATOR_TIMER
+      Teuchos::Array<TimePtr> resetCBlockTimer;
+      Teuchos::Array<TimePtr> compTransTimer;
+      Teuchos::Array<TimePtr> compRotTimer;
+      #endif
+
+
 
     };
 

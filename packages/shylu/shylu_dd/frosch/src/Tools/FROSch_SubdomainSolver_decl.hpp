@@ -46,7 +46,6 @@
 
 #include <ShyLU_DDFROSch_config.h>
 
-
 #ifdef HAVE_SHYLU_DDFROSCH_EPETRA
 #include "Epetra_LinearProblem.h"
 #endif
@@ -73,110 +72,68 @@
 #include <MueLu_Utilities.hpp>
 #endif
 
-#include <Xpetra_ThyraUtils.hpp>
-
-#ifdef HAVE_SHYLU_DDFROSCH_STRATIMIKOS
-//Thyra includes
-#include <Thyra_LinearOpWithSolveBase.hpp>
-#include <Thyra_VectorBase.hpp>
-#include <Thyra_SolveSupportTypes.hpp>
-#include <Thyra_LinearOpWithSolveBase.hpp>
-#include <Thyra_LinearOpWithSolveFactoryHelpers.hpp>
-#include <Thyra_TpetraLinearOp.hpp>
-#include <Thyra_TpetraMultiVector.hpp>
-#include <Thyra_TpetraVector.hpp>
-#include <Thyra_TpetraThyraWrappers.hpp>
-#include <Thyra_TpetraThyraWrappers_def.hpp>
-#include <Thyra_VectorBase.hpp>
-#include <Thyra_VectorStdOps.hpp>
-#ifdef HAVE_SHYLU_DDFROSCH_EPETRA
-#include <Thyra_EpetraLinearOp.hpp>
-#endif
-#include <Thyra_VectorSpaceBase_def.hpp>
-#include <Thyra_VectorSpaceBase_decl.hpp>
-#include <Thyra_TpetraMultiVector_decl.hpp>
-#include <Thyra_TpetraMultiVector_def.hpp>
-//#include "Thyra_Amesos2LinearOpWithSolveFactory.hpp"
-#include "Thyra_TpetraVectorSpace.hpp"
-#include "Thyra_TpetraLinearOp.hpp"
-#include "Thyra_LinearOpTester.hpp"
-#include "Thyra_LinearOpWithSolveTester.hpp"
-#include "Thyra_MultiVectorStdOps.hpp"
-//Stratimikos
-#include "Stratimikos_DefaultLinearSolverBuilder.hpp"
-#include <Stratimikos_FROSchXpetra.hpp>
-#endif
 #define FROSch_MultiLevel
 
 namespace FROSch {
 
-   template<class SC,
-   class LO,
-   class GO,
-   class NO>
-   class OneLevelPreconditioner;
+    template <class SC,
+    class LO ,
+    class GO ,
+    class NO >
+    class OneLevelPreconditioner;
 
    template<class SC,
-   class LO,
-   class GO,
-   class NO>
-   class GDSWPreconditioner;
-
-    template<class SC,
-   class LO,
-   class GO,
-   class NO>
-   class RGDSWPreconditioner;
-    template<class SC,
     class LO,
     class GO,
     class NO>
     class TwoLevelBlockPreconditioner;
 
 
-
     template <class SC = typename Xpetra::Operator<>::scalar_type,
-    class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
-    class GO = typename Xpetra::Operator<SC, LO>::global_ordinal_type,
-    class NO = typename Xpetra::Operator<SC, LO, GO>::node_type>
+              class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
+              class GO = typename Xpetra::Operator<SC, LO>::global_ordinal_type,
+              class NO = typename Xpetra::Operator<SC, LO, GO>::node_type>
     class SubdomainSolver : public Xpetra::Operator<SC,LO,GO,NO> {
 
-    public:
+    protected:
 
-      using Map                         = Xpetra::Map<LO,GO,NO>;
-      using MapPtr                      = Teuchos::RCP<Map>;
-      using ConstMapPtr                 = Teuchos::RCP<const Map>;
-      using MapPtrVecPtr                = Teuchos::ArrayRCP<MapPtr>;
+        using Map                         = Xpetra::Map<LO,GO,NO>;
+        using MapPtr                      = Teuchos::RCP<Map>;
+        using ConstMapPtr                 = Teuchos::RCP<const Map>;
+        using MapPtrVecPtr                = Teuchos::ArrayRCP<MapPtr>;
 
-      using GOVecPtr                    = Teuchos::ArrayRCP<GO>;
+        using GOVecPtr                    = Teuchos::ArrayRCP<GO>;
 
-      using CrsMatrix                   = Xpetra::Matrix<SC,LO,GO,NO>;
-      using CrsMatrixPtr                = Teuchos::RCP<CrsMatrix>;
-      using ConstCrsMatrixPtr           = Teuchos::RCP<const CrsMatrix>;
+        using CrsMatrix                   = Xpetra::Matrix<SC,LO,GO,NO>;
+        using CrsMatrixPtr                = Teuchos::RCP<CrsMatrix>;
+        using ConstCrsMatrixPtr           = Teuchos::RCP<const CrsMatrix>;
+
+        using UN                          = unsigned;
+        using UNVecPtr                    = Teuchos::ArrayRCP<UN>;
 
 #ifdef HAVE_SHYLU_DDFROSCH_EPETRA
-      using EpetraCrsMatrix             = Epetra_CrsMatrix;
-      using EpetraCrsMatrixPtr          = Teuchos::RCP<EpetraCrsMatrix>;
-      using ConstEpetraCrsMatrixPtr     = Teuchos::RCP<const EpetraCrsMatrix>;
+        using EpetraCrsMatrix             = Epetra_CrsMatrix;
+        using EpetraCrsMatrixPtr          = Teuchos::RCP<EpetraCrsMatrix>;
+        using ConstEpetraCrsMatrixPtr     = Teuchos::RCP<const EpetraCrsMatrix>;
 #endif
-      using TpetraCrsMatrix             = Tpetra::CrsMatrix<SC,LO,GO,NO>;
-      using TpetraCrsMatrixPtr          = Teuchos::RCP<TpetraCrsMatrix>;
-      using ConstTpetraCrsMatrixPtr     = Teuchos::RCP<const TpetraCrsMatrix>;
+        using TpetraCrsMatrix             = Tpetra::CrsMatrix<SC,LO,GO,NO>;
+        using TpetraCrsMatrixPtr          = Teuchos::RCP<TpetraCrsMatrix>;
+        using ConstTpetraCrsMatrixPtr     = Teuchos::RCP<const TpetraCrsMatrix>;
 
-      using MultiVector                 = Xpetra::MultiVector<SC,LO,GO,NO>;
-      using MultiVectorPtr              = Teuchos::RCP<MultiVector>;
-      using ConstMultiVectorPtr         = Teuchos::RCP<const MultiVector>;
+        using MultiVector                 = Xpetra::MultiVector<SC,LO,GO,NO>;
+        using MultiVectorPtr              = Teuchos::RCP<MultiVector>;
+        using ConstMultiVectorPtr         = Teuchos::RCP<const MultiVector>;
 #ifdef HAVE_SHYLU_DDFROSCH_EPETRA
-      using EpetraMultiVector           = Epetra_MultiVector;
-      using EpetraMultiVectorPtr        = Teuchos::RCP<EpetraMultiVector>;
+        using EpetraMultiVector           = Epetra_MultiVector;
+        using EpetraMultiVectorPtr        = Teuchos::RCP<EpetraMultiVector>;
 #endif
-      using TpetraMultiVector           = Tpetra::MultiVector<SC,LO,GO,NO>;
-      using TpetraMultiVectorPtr        = Teuchos::RCP<TpetraMultiVector>;
+        using TpetraMultiVector           = Tpetra::MultiVector<SC,LO,GO,NO>;
+        using TpetraMultiVectorPtr        = Teuchos::RCP<TpetraMultiVector>;
 
-      using ParameterListPtr            = Teuchos::RCP<Teuchos::ParameterList>;
+        using ParameterListPtr            = Teuchos::RCP<Teuchos::ParameterList>;
 
 #ifdef HAVE_SHYLU_DDFROSCH_EPETRA
-         using LinearProblemPtr            = Teuchos::RCP<Epetra_LinearProblem>;
+        using LinearProblemPtr            = Teuchos::RCP<Epetra_LinearProblem>;
 #endif
 
 #ifdef HAVE_SHYLU_DDFROSCH_AMESOS
@@ -184,24 +141,16 @@ namespace FROSch {
 #endif
 
 #ifdef HAVE_SHYLU_DDFROSCH_EPETRA
-      using Amesos2SolverEpetraPtr      = Teuchos::RCP<Amesos2::Solver<EpetraCrsMatrix,EpetraMultiVector> >;
+        using Amesos2SolverEpetraPtr      = Teuchos::RCP<Amesos2::Solver<EpetraCrsMatrix,EpetraMultiVector> >;
 #endif
-      using Amesos2SolverTpetraPtr      = Teuchos::RCP<Amesos2::Solver<TpetraCrsMatrix,TpetraMultiVector> >;
+        using Amesos2SolverTpetraPtr      = Teuchos::RCP<Amesos2::Solver<TpetraCrsMatrix,TpetraMultiVector> >;
 
 #ifdef HAVE_SHYLU_DDFROSCH_MUELU
-      using MueLuFactoryPtr             = Teuchos::RCP<MueLu::HierarchyManager<SC,LO,GO,NO> >;
-      using MueLuHierarchyPtr           = Teuchos::RCP<MueLu::Hierarchy<SC,LO,GO,NO> >;
+        using MueLuFactoryPtr             = Teuchos::RCP<MueLu::HierarchyManager<SC,LO,GO,NO> >;
+        using MueLuHierarchyPtr           = Teuchos::RCP<MueLu::Hierarchy<SC,LO,GO,NO> >;
 #endif
-#ifdef HAVE_SHYLU_DDFROSCH_STRATIMIKOS
-        typedef unsigned UN;
-        typedef typename Teuchos::RCP<Stratimikos::DefaultLinearSolverBuilder> SolverBuilderPtr;
-        typedef typename Teuchos::RCP<Thyra::LinearOpWithSolveBase<SC> > ThyraSolveBasePtr;
-        typedef Xpetra::ThyraUtils<SC,LO,GO,NO>       XpThyUtils;
-        typedef Teuchos::ArrayRCP<UN> UNVecPtr;
-        //typedef typename Teuchos::ArrayRCP<DofOrdering> DofOrderingVecPtr;
 
-
-#endif
+    public:
 
         /*!
         \brief Constructor
@@ -324,19 +273,10 @@ namespace FROSch {
         Teuchos::RCP<Belos::LinearProblem<SC,Xpetra::MultiVector<SC,LO,GO,NO>,Belos::OperatorT<Xpetra::MultiVector<SC,LO,GO,NO> > > >  BelosLinearProblem_;
         Teuchos::RCP<Belos::SolverManager<SC,Xpetra::MultiVector<SC,LO,GO,NO>,Belos::OperatorT<Xpetra::MultiVector<SC,LO,GO,NO> > > > BelosSolverManager_;
 #endif
-#ifdef HAVE_SHYLU_DDFROSCH_STRATIMIKOS
-         ThyraSolveBasePtr ThyraSolver_;
-#endif
 
 #ifdef FROSch_MultiLevel
-      Teuchos::RCP<GDSWPreconditioner<SC,LO,GO,NO> > GP;
-      Teuchos::RCP<RGDSWPreconditioner<SC,LO,GO,NO> > RGP;
-      Teuchos::RCP<TwoLevelBlockPreconditioner<SC,LO,GO,NO> > TLBP;
+        Teuchos::RCP<TwoLevelBlockPreconditioner<SC,LO,GO,NO> > TLBP;
 #endif
-
-
-
-
 
         bool IsInitialized_;
 

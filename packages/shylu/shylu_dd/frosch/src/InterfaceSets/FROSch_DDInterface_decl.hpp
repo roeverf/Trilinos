@@ -45,20 +45,23 @@
 #define FROSCH_ASSERT(A,S) if(!(A)) { std::cerr<<"Assertion failed. "<<S<<std::endl; std::cout.flush(); throw std::out_of_range("Assertion.");};
 
 //#define INTERFACE_OUTPUT
-//#define FROSCH_OFFSET_MAPS
 
 #include <Xpetra_Operator_fwd.hpp>
 #include <Xpetra_MapFactory_fwd.hpp>
 #include <Xpetra_ExportFactory_fwd.hpp>
 #include <Xpetra_CrsGraphFactory.hpp>
+#include <Teuchos_TimeMonitor.hpp>
 
 #include <FROSch_EntitySet_def.hpp>
 #include <FROSch_InterfaceEntity_decl.hpp>
 
 #include <FROSch_ExtractSubmatrices_def.hpp>
 
+#define FROSCH_DDINTERFACE_TIMER
 
 namespace FROSch {
+
+    enum CommunicationStrategy {CommCrsMatrix,CommCrsGraph,CreateOneToOneMap};
 
     template <class SC = Xpetra::Operator<>::scalar_type,
               class LO = typename Xpetra::Operator<SC>::local_ordinal_type,
@@ -74,6 +77,7 @@ namespace FROSch {
         using MapPtr                    = Teuchos::RCP<Map>;
         using ConstMapPtr               = Teuchos::RCP<const Map>;
         using MapPtrVecPtr              = Teuchos::ArrayRCP<MapPtr>;
+        using ConstMapPtrVecPtr         = Teuchos::ArrayRCP<ConstMapPtr>;
 
         using CrsMatrix                 = Xpetra::Matrix<SC,LO,GO,NO>;
         using CrsMatrixPtr              = Teuchos::RCP<CrsMatrix>;
@@ -84,6 +88,7 @@ namespace FROSch {
 
         using MultiVector               = Xpetra::MultiVector<SC,LO,GO,NO>;
         using MultiVectorPtr            = Teuchos::RCP<MultiVector>;
+        using ConstMultiVectorPtr       = Teuchos::RCP<const MultiVector>;
 
         using EntitySetPtr              = Teuchos::RCP<EntitySet<SC,LO,GO,NO> >;
         using EntitySetConstPtr         = const EntitySetPtr;
@@ -98,6 +103,11 @@ namespace FROSch {
         using UN                        = unsigned;
         using UNVecPtr                  = Teuchos::ArrayRCP<UN>;
 
+        using IntVec                    = Teuchos::Array<int>;
+        using IntVecVec                 = Teuchos::Array<IntVec>;
+        using IntVecVecPtr              = Teuchos::ArrayRCP<IntVec>;
+
+        using LOVec                     = Teuchos::Array<LO>;
         using LOVecPtr                  = Teuchos::ArrayRCP<LO>;
 
         using GOVec                     = Teuchos::Array<GO>;
@@ -107,32 +117,43 @@ namespace FROSch {
         using GOVecVec                  = Teuchos::Array<GOVec>;
         using GOVecVecPtr               = Teuchos::ArrayRCP<GOVec>;
 
+        using SCVec                     = Teuchos::Array<SC>;
         using SCVecPtr                  = Teuchos::ArrayRCP<SC>;
+        using TimePtr                   = Teuchos::RCP<Teuchos::Time>;
 
     public:
 
         DDInterface(UN dimension,
                     UN dofsPerNode,
-                    MapPtr localToGlobalMap);
+                    ConstMapPtr localToGlobalMap,
+                    Verbosity verbosity = All,
+                    CommunicationStrategy commStrategy = CommCrsGraph);
 
         ~DDInterface();
 
-        int resetGlobalDofs(MapPtrVecPtr dofsMaps);
+        int resetGlobalDofs(ConstMapPtrVecPtr dofsMaps);
 
         int removeDirichletNodes(GOVecView dirichletBoundaryDofs);
 
         int divideUnconnectedEntities(ConstCrsMatrixPtr matrix);
 
-        int flagEntities(MultiVectorPtr nodeList = Teuchos::null);
+        int flagEntities(ConstMultiVectorPtr nodeList = Teuchos::null);
 
         int removeEmptyEntities();
 
-        int sortVerticesEdgesFaces(MultiVectorPtr nodeList = Teuchos::null);
+        int sortVerticesEdgesFaces(ConstMultiVectorPtr nodeList = Teuchos::null);
+
+        int buildEntityMaps(bool buildVerticesMap = true,
+                            bool buildShortEdgesMap = true,
+                            bool buildStraightEdgesMap = true,
+                            bool buildEdgesMap = true,
+                            bool buildFacesMap = true,
+                            bool buildCoarseNodesMap = false);
 
         int buildEntityHierarchy();
 
         int computeDistancesToCoarseNodes(UN dimension,
-                                          MultiVectorPtr &nodeList = Teuchos::null,
+                                          ConstMultiVectorPtr &nodeList = Teuchos::null,
                                           DistanceFunction distanceFunction = ConstantDistanceFunction);
 
         //! This function extracts those entities which are to be used to build a connectivity graph on the subdomain
@@ -175,19 +196,16 @@ namespace FROSch {
         EntitySetConstPtr & getConnectivityEntities() const;
 
         ConstMapPtr getNodesMap() const;
-
+        static int current_level;
 
     protected:
-#ifdef FROSCH_OFFSET_MAPS
-        int communicateLocalComponents(GOVecVecPtr &componentsSubdomains,
-                                       GOVecVec &componentsSubdomainsUnique,
-                                       UN priorDofsPerNode = 0);
-#else
-        int communicateLocalComponents(GOVecVecPtr &componentsSubdomains,
-                                       GOVecVec &componentsSubdomainsUnique);
-#endif
-        int identifyLocalComponents(GOVecVecPtr &componentsSubdomains,
-                                    GOVecVec &componentsSubdomainsUnique);
+
+        int communicateLocalComponents(IntVecVecPtr &componentsSubdomains,
+                                       IntVecVec &componentsSubdomainsUnique,
+                                       CommunicationStrategy commStrategy = CommCrsGraph);
+
+        int identifyLocalComponents(IntVecVecPtr &componentsSubdomains,
+                                    IntVecVec &componentsSubdomainsUnique);
 
 
         CommPtr MpiComm_;
@@ -207,8 +225,18 @@ namespace FROSch {
         EntitySetPtr ConnectivityEntities_;
         EntitySetPtrVecPtr EntitySetVector_;
 
-        MapPtr NodesMap_;
-        MapPtr UniqueNodesMap_;
+        ConstMapPtr NodesMap_;
+        ConstMapPtr UniqueNodesMap_;
+
+        bool Verbose_;
+
+        Verbosity Verbosity_;
+
+        #ifdef FROSCH_DDINTERFACE_TIMER
+         std::vector<TimePtr> commLocCompTimer;
+         std::vector<TimePtr> idenLocCompTimer;
+        #endif
+
     };
 
 }

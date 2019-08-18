@@ -38,33 +38,45 @@
 //
 // ************************************************************************
 //@HEADER
-#ifndef _FROSCH_TIMER_DECL_HPP
-#define _FROSCH_TIMER_DECL_HPP
 
-#include <Teuchos_TimeMonitor.hpp>
-#include <Teuchos_Array.hpp>
-#include <Teuchos_ArrayRCPDecl.hpp>
+#ifndef _FROSCH_SCHWARZPRECONDITIONER_DEF_HPP
+#define _FROSCH_SCHWARZPRECONDITIONER_DEF_HPP
 
-namespace FROSch{
-  class FROSchTimer {
-  public:
-    typedef Teuchos::Time Time;
-    typedef Teuchos::RCP<Time> TimePtr;
+#include <FROSch_SchwarzPreconditioner_decl.hpp>
 
-    FROSchTimer(int NumEle,std::string theName);
-    ~FROSchTimer();
+namespace FROSch {
 
-    void start(int i);
-    void end(int i);
+    template <class SC,class LO,class GO,class NO>
+    SchwarzPreconditioner<SC,LO,GO,NO>::SchwarzPreconditioner(ParameterListPtr parameterList,
+                                                              CommPtr comm) :
+    MpiComm_ (comm),
+    ParameterList_ (parameterList),
+    UseTranspose_ (false),
+    IsInitialized_ (false),
+    IsComputed_ (false),
+    Verbose_ (comm->getRank()==0)
+    {
 
+    }
 
-  protected:
+    template <class SC,class LO,class GO,class NO>
+    SchwarzPreconditioner<SC,LO,GO,NO>::~SchwarzPreconditioner()
+    {
 
-    int numEle;
-    std::string name;
-    TimePtr theTimer;
-    //ArrayMonitor theMonitor;
-  };
+    }
+
+    template <class SC,class LO,class GO,class NO>
+    bool SchwarzPreconditioner<SC,LO,GO,NO>::isInitialized() const
+    {
+        return IsInitialized_; // TODO: Das hat noch keine Bedeutung
+    }
+
+    template <class SC,class LO,class GO,class NO>
+    bool SchwarzPreconditioner<SC,LO,GO,NO>::isComputed() const
+    {
+        return IsComputed_; // TODO: Das hat noch keine Bedeutung
+    }
+
 }
 
 #endif

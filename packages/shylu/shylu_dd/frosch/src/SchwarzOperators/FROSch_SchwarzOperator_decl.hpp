@@ -60,7 +60,7 @@
 #include <FROSch_LocalPartitionOfUnityBasis_def.hpp>
 
 #include <FROSch_SubdomainSolver_def.hpp>
-
+#include <Teuchos_TimeMonitor.hpp>
 // TODO: Auf const überprüfen
 // TODO: #ifndef überprüfen ??????
 
@@ -83,8 +83,8 @@ namespace FROSch {
         using MapPtr                            = Teuchos::RCP<Map>;
         using ConstMapPtr                       = Teuchos::RCP<const Map>;
         using MapPtrVecPtr                      = Teuchos::ArrayRCP<MapPtr>;
-        using MapPtrVecPtr2D                    = Teuchos::ArrayRCP<MapPtrVecPtr>;
         using ConstMapPtrVecPtr                 = Teuchos::ArrayRCP<ConstMapPtr>;
+        using MapPtrVecPtr2D                    = Teuchos::ArrayRCP<MapPtrVecPtr>;
         using ConstMapPtrVecPtr2D               = Teuchos::ArrayRCP<ConstMapPtrVecPtr>;
 
         using CrsMatrix                         = Xpetra::Matrix<SC,LO,GO,NO>;
@@ -97,8 +97,8 @@ namespace FROSch {
 
         using MultiVector                       = Xpetra::MultiVector<SC,LO,GO,NO>;
         using MultiVectorPtr                    = Teuchos::RCP<MultiVector>;
-        using MultiVectorPtrVecPtr              = Teuchos::ArrayRCP<MultiVectorPtr>;
         using ConstMultiVectorPtr               = Teuchos::RCP<const MultiVector>;
+        using MultiVectorPtrVecPtr              = Teuchos::ArrayRCP<MultiVectorPtr>;
         using ConstMultiVectorPtrVecPtr         = Teuchos::ArrayRCP<ConstMultiVectorPtr>;
 
         using Importer                          = Xpetra::Import<LO,GO,NO>;
@@ -154,8 +154,11 @@ namespace FROSch {
         using ConstSCVecPtr                     = Teuchos::ArrayRCP<const SC>;
         using ConstSCVecView                    = Teuchos::ArrayView<const SC>;
 
+        using IntVec                            = Teuchos::Array<int>;
+
         using BoolVec                           = Teuchos::Array<bool>;
         using BoolVecPtr                        = Teuchos::ArrayRCP<bool>;
+
         using TimePtr                           = Teuchos::RCP<Teuchos::Time>;
 
     public:

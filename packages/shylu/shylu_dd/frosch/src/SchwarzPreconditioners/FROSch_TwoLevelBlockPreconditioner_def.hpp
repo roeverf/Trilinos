@@ -47,32 +47,32 @@
 using namespace Teuchos;
 namespace FROSch {
 
-    template <class SC,class LO,class GO,class NO>
-    int TwoLevelBlockPreconditioner<SC,LO,GO,NO>::current_level = 0;
+  template <class SC,class LO,class GO,class NO>
+  int TwoLevelBlockPreconditioner<SC,LO,GO,NO>::current_level = 0;
 
     template <class SC,class LO,class GO,class NO>
     TwoLevelBlockPreconditioner<SC,LO,GO,NO>::TwoLevelBlockPreconditioner(ConstCrsMatrixPtr k,
-                                                                ParameterListPtr parameterList) :
+                                                                          ParameterListPtr parameterList) :
     OneLevelPreconditioner<SC,LO,GO,NO> (k,parameterList),
     CoarseOperator_ ()
-    #ifdef TWOLEVEL_BLOCKPC_TIMERS
-    ,OverOpInitTimer(2),
-    CoarseInitTimer(2),
-    OverOpCompTimer(2),
-    CoarseCompTimer(2)
+    #ifdef FROSCH_TLBP_TIMER
+    ,initOTimer(2),
+    initCTimer(2),
+    compOTimer(2),
+    compCTimer(2)
     #endif
     {
+      #ifdef FROSCH_TLBP_TIMER
+      for(int i = 0;i<2;i++){
+        initOTimer[i] = Teuchos::TimeMonitor::getNewCounter("FROSch TLBP init Overlap"+std::to_string(i));
+        initCTimer[i] = Teuchos::TimeMonitor::getNewCounter("FROSch TLBP init Coarse"+std::to_string(i));
+        compOTimer[i] = Teuchos::TimeMonitor::getNewCounter("FROSch TLBP comp Overlap"+std::to_string(i));
+        compCTimer[i] = Teuchos::TimeMonitor::getNewCounter("FROSch TLBP comp Coarse"+std::to_string(i));
+      }
+      #endif
 
-        #ifdef TWOLEVEL_BLOCKPC_TIMERS
-        for(int i = 0;i<2;i++){
-          OverOpInitTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch TLBPC Init OverlappingOperator"+std::to_string(i));
-          CoarseInitTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROsch TLBPC Init CoarseOperator"+std::to_string(i));
-          OverOpCompTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROsch TLBPC Comp OverlappingOperator"+std::to_string(i));
-          CoarseCompTimer.at(i) = Teuchos::TimeMonitor::getNewCounter("FROSch TLBPC Comp Coarse"+std::to_string(i));
-        }
-        #endif
+      current_level = current_level+1;
 
-        current_level = current_level+1;
         if (this->ParameterList_->get("TwoLevel",true)) {
             if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("IPOUHarmonicCoarseOperator")) {
 //                FROSCH_ASSERT(false,"not implemented for block.");
@@ -96,189 +96,23 @@ namespace FROSch {
         }
     }
 
+
     template <class SC,class LO,class GO,class NO>
-   int TwoLevelBlockPreconditioner<SC,LO,GO,NO>::initialize(UN dimension,
-                                                            UNVecPtr dofsPerNodeVec,
-                                                            DofOrderingVecPtr dofOrderingVec,
-                                                            ConstMapPtrVecPtr repeatedMapVec,
-                                                            int overlap,
+    int TwoLevelBlockPreconditioner<SC,LO,GO,NO>::initialize(UN dimension,
+                                                             UNVecPtr dofsPerNodeVec,
+                                                             DofOrderingVecPtr dofOrderingVec,
+                                                             int overlap,
+                                                             ConstMapPtrVecPtr repeatedMapVec,
+                                                             ConstMultiVectorPtrVecPtr nodeListVec,
                                                             ConstMultiVectorPtrVecPtr nullSpaceBasisVec,
-                                                            ConstMultiVectorPtrVecPtr nodeListVec,
-                                                            ConstMapPtrVecPtr2D dofsMapsVec,
-                                                            GOVecPtr2D dirichletBoundaryDofsVec)
+                                                             ConstMapPtrVecPtr2D dofsMapsVec,
+                                                             GOVecPtr2D dirichletBoundaryDofsVec)
     {
+      Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
 
         ////////////
         // Checks //
         ////////////
-
-        UN nmbBlocks = dofsPerNodeVec.size();
-        for (UN i = 0; i < dofOrderingVec.size(); i++ ) {
-            DofOrdering dofOrdering = dofOrderingVec[i];
-            FROSCH_ASSERT(dofOrdering == NodeWise || dofOrdering == DimensionWise || dofOrdering == Custom,"ERROR: Specify a valid DofOrdering.");
-        }
-
-        int ret = 0;
-        //        //////////
-        //        // Maps //
-        //        //////////
-        //        if (repeatedMapVec.is_null()) {
-        //            ConstMapPtr tmpMap =  this->K_->getRowMap();
-        //            MapPtrVecPtr subMapVec = BuildSubMaps(tmpMap,blockMaxGIDVec);// Todo: Achtung, die UniqueMap könnte unsinnig verteilt sein. Falls es eine repeatedMap gibt, sollte dann die uniqueMap neu gebaut werden können. In diesem Fall, sollte man das aber basierend auf der repeatedNodesMap tun
-        //            repeatedMapVec = BuildRepeatedSubMaps(this->K_,subMapVec);
-        //
-        //        }
-
-        // Build dofsMaps and repeatedNodesMap
-        ConstMapPtrVecPtr repeatedNodesMapVec;
-        if (dofsMapsVec.is_null()) {
-            if (0>BuildDofMapsVec(repeatedMapVec,dofsPerNodeVec,dofOrderingVec,repeatedNodesMapVec,dofsMapsVec)) ret -= 100; // Todo: Rückgabewerte
-        } else {
-            FROSCH_ASSERT(dofsMapsVec.size()==dofsPerNodeVec.size(),"dofsMapsVec.size()!=dofsPerNodeVec.size()");
-            for (UN j=0; j<dofsMapsVec.size(); j++) {
-                FROSCH_ASSERT(dofsMapsVec[j].size()==dofsPerNodeVec[j],"dofsMapsVec[block].size()!=dofsPerNodeVec[block]");
-                for (UN i=0; i<dofsMapsVec.size(); i++) {
-                    FROSCH_ASSERT(!dofsMapsVec[j][i].is_null(),"dofsMapsVec[block][i].is_null()");
-                }
-            }
-        }
-        //////////////////////////
-        // Communicate nodeList //
-        //////////////////////////
-        if (!nodeListVec.is_null()) {
-            for (UN i=0; i<nodeListVec.size(); i++) {
-                if (!nodeListVec[i]->getMap()->isSameAs(*repeatedNodesMapVec[i])) {
-                  Teuchos::RCP<Xpetra::MultiVector<SC,LO,GO,NO> > tmpNodeList = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(repeatedNodesMapVec[i],tmpNodeList->getNumVectors());
-                    Teuchos::RCP<Xpetra::Import<LO,GO,NO> > scatter = Xpetra::ImportFactory<LO,GO,NO>::Build(nodeListVec[i]->getMap(),repeatedNodesMapVec[i]);
-                    tmpNodeList->doImport(*nodeListVec[i],*scatter,Xpetra::INSERT);
-                    nodeListVec[i] = tmpNodeList.getConst();
-                }
-            }
-        }
-        else{
-            nodeListVec.resize(nmbBlocks);
-        }
-
-
-
-        //////////////////////////////////////////
-        // Determine dirichletBoundaryDofs //
-        //////////////////////////////////////////
-        ConstMapPtr repeatedMap = MergeMaps(repeatedMapVec);
-        if (dirichletBoundaryDofsVec.is_null()) {
-            dirichletBoundaryDofsVec.resize(repeatedMapVec.size());
-            LOVecPtr counterSub(repeatedMapVec.size(),0);
-            for (UN j=0; j<dirichletBoundaryDofsVec.size(); j++) {
-                dirichletBoundaryDofsVec[j] = GOVecPtr(repeatedMapVec[j]->getNodeNumElements());
-            }
-            GOVecPtr dirichletBoundaryDofs = FindOneEntryOnlyRowsGlobal(this->K_.getConst(),repeatedMap);
-            for (UN i=0; i<dirichletBoundaryDofs.size(); i++) {
-                LO subNumber = -1;
-                for (UN j = dofsMapsVec.size(); j > 0 ; j--) {
-                    for (UN k=0; k<dofsMapsVec[j-1].size(); k++) {
-                        if ( dirichletBoundaryDofs[i] <= dofsMapsVec[j-1][k]->getMaxAllGlobalIndex() ) {
-                            subNumber = j-1;
-                        }
-                    }
-                }
-                dirichletBoundaryDofsVec[subNumber][counterSub[subNumber]] = dirichletBoundaryDofs[i];
-                counterSub[subNumber]++;
-            }
-
-            //dirichletBoundaryDofsVec = GOVecPtr2D(repeatedMapVec.size());
-            for (UN i=0; i<dirichletBoundaryDofsVec.size(); i++) {
-                dirichletBoundaryDofsVec[i].resize(counterSub[i]);
-            }
-
-        }
-
-
-        ////////////////////////////////////
-        // Initialize OverlappingOperator //
-        ////////////////////////////////////
-
-        if (!this->ParameterList_->get("OverlappingOperator Type","AlgebraicOverlappingOperator").compare("AlgebraicOverlappingOperator")) {
-            AlgebraicOverlappingOperatorPtr algebraicOverlappigOperator = Teuchos::rcp_static_cast<AlgebraicOverlappingOperator<SC,LO,GO,NO> >(this->OverlappingOperator_);
-            {
-              #ifdef TWOLEVEL_BLOCKPC_TIMERS
-              Teuchos::TimeMonitor OverOpInitTimeMonitor(*OverOpInitTimer.at(current_level-1));
-              #endif
-              if (0>algebraicOverlappigOperator->initialize(overlap,repeatedMap)) ret -= 1;
-            }
-        } else {
-            FROSCH_ASSERT(false,"OverlappingOperator Type unkown.");
-        }
-
-        ///////////////////////////////
-        // Initialize CoarseOperator //
-        ///////////////////////////////
-
-        if (this->ParameterList_->get("TwoLevel",true)) {
-            if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("IPOUHarmonicCoarseOperator")) {
-                this->ParameterList_->sublist("IPOUHarmonicCoarseOperator").sublist("CoarseSolver").sublist("MueLu").set("Dimension",(int)dimension);
-                // Build Null Space
-                if (!this->ParameterList_->get("Null Space Type","Stokes").compare("Stokes")) {
-                    nullSpaceBasisVec.resize(2);
-                    nullSpaceBasisVec[0] = BuildNullSpace<SC,LO,GO,NO>(dimension,LaplaceNullSpace,repeatedMapVec[0],dofsPerNodeVec[0],dofsMapsVec[0]);
-                    nullSpaceBasisVec[1] = BuildNullSpace<SC,LO,GO,NO>(dimension,LaplaceNullSpace,repeatedMapVec[1],dofsPerNodeVec[1],dofsMapsVec[1]);
-                } else if (!this->ParameterList_->get("Null Space Type","Stokes").compare("Input")) {
-                    FROSCH_ASSERT(!nullSpaceBasisVec.is_null(),"Null Space Type is 'Input', but nullSpaceBasis.is_null().");
-                } else {
-                    FROSCH_ASSERT(false,"Null Space Type unknown.");
-                }
-                IPOUHarmonicCoarseOperatorPtr iPOUHarmonicCoarseOperator = Teuchos::rcp_static_cast<IPOUHarmonicCoarseOperator<SC,LO,GO,NO> >(CoarseOperator_);
-                {
-                  #ifdef TWOLEVEL_BLOCKPC_TIMERS
-                  Teuchos::TimeMonitor CoarseInitTimeMonitor(*CoarseInitTimer.at(current_level-1));
-                  #endif
-                  if (0>iPOUHarmonicCoarseOperator->initialize(dimension,dofsPerNodeVec,repeatedNodesMapVec,dofsMapsVec,nullSpaceBasisVec,nodeListVec,dirichletBoundaryDofsVec)) ret -=10;
-                }
-            } else if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("GDSWCoarseOperator")) {
-                this->ParameterList_->sublist("GDSWCoarseOperator").sublist("CoarseSolver").sublist("MueLu").set("Dimension",(int)dimension);
-                GDSWCoarseOperatorPtr gDSWCoarseOperator = Teuchos::rcp_static_cast<GDSWCoarseOperator<SC,LO,GO,NO> >(CoarseOperator_);
-                {
-                  #ifdef TWOLEVEL_BLOCKPC_TIMERS
-                  Teuchos::TimeMonitor CoarseInitTimeMonitor(*CoarseInitTimer.at(current_level-1));
-                  #endif
-                  if (0>gDSWCoarseOperator->initialize(dimension,dofsPerNodeVec,repeatedNodesMapVec,dofsMapsVec,dirichletBoundaryDofsVec,nodeListVec)) ret -=10;
-                }
-            }
-            else if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("RGDSWCoarseOperator")) {
-                this->ParameterList_->sublist("RGDSWCoarseOperator").sublist("CoarseSolver").sublist("MueLu").set("Dimension",(int)dimension);
-
-                RGDSWCoarseOperatorPtr rGDSWCoarseOperator = Teuchos::rcp_static_cast<RGDSWCoarseOperator<SC,LO,GO,NO> >(CoarseOperator_);
-                {
-                  #ifdef TWOLEVEL_BLOCKPC_TIMERS
-                  Teuchos::TimeMonitor CoarseInitTimeMonitor(*CoarseInitTimer.at(current_level-1));
-                  #endif
-                  if (0>rGDSWCoarseOperator->initialize(dimension,dofsPerNodeVec,repeatedNodesMapVec,dofsMapsVec,dirichletBoundaryDofsVec,nodeListVec)) ret -=10;
-                }
-
-            }
-            else {
-                FROSCH_ASSERT(false,"CoarseOperator Type unkown.");
-            }
-        }
-
-        return ret;
-    }
-
-    template <class SC,class LO,class GO,class NO>
-      int TwoLevelBlockPreconditioner<SC,LO,GO,NO>::initialize(UN dimension,
-                                                               UNVecPtr dofsPerNodeVec,
-                                                               DofOrderingVecPtr dofOrderingVec,
-                                                               int overlap,
-                                                               ConstMapPtrVecPtr repeatedMapVec,
-                                                               ConstMultiVectorPtrVecPtr nodeListVec,
-                                                               ConstMultiVectorPtrVecPtr nullSpaceBasisVec,
-                                                               ConstMapPtrVecPtr2D dofsMapsVec,
-                                                               GOVecPtr2D dirichletBoundaryDofsVec)
-    {
-        ////////////
-        // Checks //
-        ////////////
-        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
-
         UN nmbBlocks = dofsPerNodeVec.size();
         for (UN i = 0; i < dofOrderingVec.size(); i++ ) {
             DofOrdering dofOrdering = dofOrderingVec[i];
@@ -313,12 +147,13 @@ namespace FROSch {
         // Communicate nodeList //
         //////////////////////////
         if (!nodeListVec.is_null()) {
+          std::cout<<"Coord = null\n";
             for (UN i=0; i<nodeListVec.size(); i++) {
                 if (!nodeListVec[i]->getMap()->isSameAs(*repeatedNodesMapVec[i])) {
-                  Teuchos::RCP<Xpetra::MultiVector<SC,LO,GO,NO> > tmpNodeList = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(repeatedNodesMapVec[i],tmpNodeList->getNumVectors());
-                 Teuchos::RCP<Xpetra::Import<LO,GO,NO> > scatter = Xpetra::ImportFactory<LO,GO,NO>::Build(nodeListVec[i]->getMap(),repeatedNodesMapVec[i]);
-                 tmpNodeList->doImport(*nodeListVec[i],*scatter,Xpetra::INSERT);
-                 nodeListVec[i] = tmpNodeList.getConst();
+                    Teuchos::RCP<Xpetra::MultiVector<SC,LO,GO,NO> > tmpNodeList = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(repeatedNodesMapVec[i],tmpNodeList->getNumVectors());
+                    Teuchos::RCP<Xpetra::Import<LO,GO,NO> > scatter = Xpetra::ImportFactory<LO,GO,NO>::Build(nodeListVec[i]->getMap(),repeatedNodesMapVec[i]);
+                    tmpNodeList->doImport(*nodeListVec[i],*scatter,Xpetra::INSERT);
+                    nodeListVec[i] = tmpNodeList.getConst();
                 }
             }
         }
@@ -355,80 +190,69 @@ namespace FROSch {
             }
 
         }
-
-
         ////////////////////////////////////
         // Initialize OverlappingOperator //
         ////////////////////////////////////
         if (!this->ParameterList_->get("OverlappingOperator Type","AlgebraicOverlappingOperator").compare("AlgebraicOverlappingOperator")) {
             AlgebraicOverlappingOperatorPtr algebraicOverlappigOperator = Teuchos::rcp_static_cast<AlgebraicOverlappingOperator<SC,LO,GO,NO> >(this->OverlappingOperator_);
             {
-              #ifdef TWOLEVEL_BLOCKPC_TIMERS
-              Teuchos::TimeMonitor OverOpInitTimeMonitor(*OverOpInitTimer.at(current_level-1));
-              #endif
-              if (0>algebraicOverlappigOperator->initialize(overlap,repeatedMap)) ret -= 1;
+            #ifdef FROSCH_TLBP_TIMER
+            Teuchos::TimeMonitor initOTimeMonitor(*initOTimer[current_level-1]);
+            #endif
+            if (0>algebraicOverlappigOperator->initialize(overlap,repeatedMap)) ret -= 1;
             }
         } else {
             FROSCH_ASSERT(false,"OverlappingOperator Type unkown.");
         }
-
         ///////////////////////////////
         // Initialize CoarseOperator //
         ///////////////////////////////
         if (this->ParameterList_->get("TwoLevel",true)) {
             if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("IPOUHarmonicCoarseOperator")) {
-
-                //this->ParameterList_->sublist("IPOUHarmonicCoarseOperator").sublist("CoarseSolver").sublist("MueLu").set("Dimension",(int)dimension);
+                this->ParameterList_->sublist("IPOUHarmonicCoarseOperator").sublist("CoarseSolver").sublist("MueLu").set("Dimension",(int)dimension);
                 // Build Null Space
                 if (!this->ParameterList_->get("Null Space Type","Stokes").compare("Stokes")) {
-
                     nullSpaceBasisVec.resize(2);
                     nullSpaceBasisVec[0] = BuildNullSpace<SC,LO,GO,NO>(dimension,LaplaceNullSpace,repeatedMapVec[0],dofsPerNodeVec[0],dofsMapsVec[0]);
                     nullSpaceBasisVec[1] = BuildNullSpace<SC,LO,GO,NO>(dimension,LaplaceNullSpace,repeatedMapVec[1],dofsPerNodeVec[1],dofsMapsVec[1]);
-
-                } else if (!this->ParameterList_->get("Null Space Type","Laplace").compare("Linear Elasticity")) {
-                    nullSpaceBasisVec.resize(1);
-                    nullSpaceBasisVec[0]= BuildNullSpace(dimension,LinearElasticityNullSpace,repeatedMapVec[0],dofsPerNodeVec[0],dofsMapsVec[0],nodeListVec[0]);
-                    //repeatedMapVec[0]->describe(*fancy,Teuchos::VERB_EXTREME);
-                    //nullSpaceBasisVec[0]->describe(*fancy,Teuchos::VERB_EXTREME);
-                }else if (!this->ParameterList_->get("Null Space Type","Stokes").compare("Input")) {
+                } else if (!this->ParameterList_->get("Null Space Type","Stokes").compare("Input")) {
                     FROSCH_ASSERT(!nullSpaceBasisVec.is_null(),"Null Space Type is 'Input', but nullSpaceBasis.is_null().");
                 } else {
                     FROSCH_ASSERT(false,"Null Space Type unknown.");
                 }
                 IPOUHarmonicCoarseOperatorPtr iPOUHarmonicCoarseOperator = Teuchos::rcp_static_cast<IPOUHarmonicCoarseOperator<SC,LO,GO,NO> >(CoarseOperator_);
                 {
-                  #ifdef TWOLEVEL_BLOCKPC_TIMERS
-                  Teuchos::TimeMonitor CoarseInitTimeMonitor(*CoarseInitTimer.at(current_level-1));
-                  #endif
-                  if (0>iPOUHarmonicCoarseOperator->initialize(dimension,dofsPerNodeVec,repeatedNodesMapVec,dofsMapsVec,nullSpaceBasisVec,nodeListVec,dirichletBoundaryDofsVec)) ret -=10;
+                #ifdef FROSCH_TLBP_TIMER
+                Teuchos::TimeMonitor initCTimeMonitor(*initCTimer[current_level-1]);
+                #endif
+                if (0>iPOUHarmonicCoarseOperator->initialize(dimension,dofsPerNodeVec,repeatedNodesMapVec,dofsMapsVec,nullSpaceBasisVec,nodeListVec,dirichletBoundaryDofsVec)) ret -=10;
                 }
             } else if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("GDSWCoarseOperator")) {
                 this->ParameterList_->sublist("GDSWCoarseOperator").sublist("CoarseSolver").sublist("MueLu").set("Dimension",(int)dimension);
                 GDSWCoarseOperatorPtr gDSWCoarseOperator = Teuchos::rcp_static_cast<GDSWCoarseOperator<SC,LO,GO,NO> >(CoarseOperator_);
                 {
-                  #ifdef TWOLEVEL_BLOCKPC_TIMERS
-                  Teuchos::TimeMonitor CoarseInitTimeMonitor(*CoarseInitTimer.at(current_level-1));
+                  #ifdef FROSCH_TLBP_TIMER
+                  Teuchos::TimeMonitor initCTimeMonitor(*initCTimer[current_level-1]);
                   #endif
                 if (0>gDSWCoarseOperator->initialize(dimension,dofsPerNodeVec,repeatedNodesMapVec,dofsMapsVec,dirichletBoundaryDofsVec,nodeListVec)) ret -=10;
-                }
-
+              }
             }
             else if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("RGDSWCoarseOperator")) {
+
                 this->ParameterList_->sublist("RGDSWCoarseOperator").sublist("CoarseSolver").sublist("MueLu").set("Dimension",(int)dimension);
                 RGDSWCoarseOperatorPtr rGDSWCoarseOperator = Teuchos::rcp_static_cast<RGDSWCoarseOperator<SC,LO,GO,NO> >(CoarseOperator_);
                 {
-                  #ifdef TWOLEVEL_BLOCKPC_TIMERS
-                  Teuchos::TimeMonitor CoarseInitTimeMonitor(*CoarseInitTimer.at(current_level-1));
+                  #ifdef FROSCH_TLBP_TIMER
+                  Teuchos::TimeMonitor initCTimeMonitor(*initCTimer[current_level-1]);
                   #endif
-                  //nodeListVec[0]->describe(*fancy,Teuchos::VERB_EXTREME);
-                  if (0>rGDSWCoarseOperator->initialize(dimension,dofsPerNodeVec,repeatedNodesMapVec,dofsMapsVec,dirichletBoundaryDofsVec,nodeListVec)) ret -=10;
-                }
+                if (0>rGDSWCoarseOperator->initialize(dimension,dofsPerNodeVec,repeatedNodesMapVec,dofsMapsVec,dirichletBoundaryDofsVec,nodeListVec)) ret -=10;
+              }
+
             }
             else {
                 FROSCH_ASSERT(false,"CoarseOperator Type unkown.");
             }
-       }
+        }
 
         return ret;
     }
@@ -436,21 +260,24 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int TwoLevelBlockPreconditioner<SC,LO,GO,NO>::compute()
     {
+
+
         int ret = 0;
         {
-          #ifdef TWOLEVEL_BLOCKPC_TIMERS
-          Teuchos::TimeMonitor OverOpCompTimeMonitor(*OverOpCompTimer.at(current_level-1));
+          #ifdef FROSCH_TLBP_TIMER
+          Teuchos::TimeMonitor compOTimeMonitor(*compOTimer[current_level-1]);
           #endif
-          if (0>this->OverlappingOperator_->compute()) ret -= 1;
+        if (0>this->OverlappingOperator_->compute()) ret -= 1;
         }
+
+        {
+          #ifdef FROSCH_TLBP_TIMER
+          Teuchos::TimeMonitor compCTimeMonitor(*compCTimer[current_level-1]);
+          #endif
         if (this->ParameterList_->get("TwoLevel",true)) {
-          {
-            #ifdef TWOLEVEL_BLOCKPC_TIMERS
-            Teuchos::TimeMonitor CoarseCompTimeMonitor(*CoarseCompTimer.at(current_level-1));
-            #endif
             if (0>CoarseOperator_->compute()) ret -= 10;
-          }
         }
+      }
         return ret;
     }
 
@@ -480,7 +307,8 @@ namespace FROSch {
     }
 
     template <class SC,class LO,class GO,class NO>
-    int TwoLevelBlockPreconditioner<SC,LO,GO,NO>::preApplyCoarse(MultiVectorPtr &x,MultiVectorPtr &y)
+    int TwoLevelBlockPreconditioner<SC,LO,GO,NO>::preApplyCoarse(MultiVectorPtr &x,
+                                                                 MultiVectorPtr &y)
     {
         if (this->UseMultiplicative_) {
             this->MultiplicativeOperator_->preApplyCoarse(*x,*y);
