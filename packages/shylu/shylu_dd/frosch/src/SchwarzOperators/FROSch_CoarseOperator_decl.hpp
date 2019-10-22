@@ -48,6 +48,10 @@
 // #define FROSCH_COARSEOPERATOR_EXPORT_AND_IMPORT
 
 // TODO: Member sortieren!?
+#include <Zoltan2_MatrixAdapter.hpp>
+#include <Zoltan2_XpetraCrsMatrixAdapter.hpp>
+#include <Zoltan2_PartitioningProblem.hpp>
+#include <Zoltan2_XpetraCrsGraphAdapter.hpp>
 
 
 namespace FROSch {
@@ -74,11 +78,15 @@ namespace FROSch {
         using XMatrixPtr            = typename SchwarzOperator<SC,LO,GO,NO>::XMatrixPtr;
         using ConstXMatrixPtr       = typename SchwarzOperator<SC,LO,GO,NO>::ConstXMatrixPtr;
 
+        using XCrsGraph             = typename SchwarzOperator<SC,LO,GO,NO>::XCrsGraph;
+        using GraphPtr              = typename SchwarzOperator<SC,LO,GO,NO>::GraphPtr;
+        using ConstXCrsGraphPtr     = typename SchwarzOperator<SC,LO,GO,NO>::ConstXCrsGraphPtr;
+
         using XMultiVector          = typename SchwarzOperator<SC,LO,GO,NO>::XMultiVector;
         using XMultiVectorPtr       = typename SchwarzOperator<SC,LO,GO,NO>::XMultiVectorPtr;
 
         using XImportPtrVecPtr      = typename SchwarzOperator<SC,LO,GO,NO>::XImportPtrVecPtr;
-        
+
         using XExportPtrVecPtr      = typename SchwarzOperator<SC,LO,GO,NO>::XExportPtrVecPtr;
 
         using ParameterListPtr      = typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr;
@@ -92,6 +100,9 @@ namespace FROSch {
         using GOVec                 = typename SchwarzOperator<SC,LO,GO,NO>::GOVec;
         using GOVecPtr              = typename SchwarzOperator<SC,LO,GO,NO>::GOVecPtr;
 
+        using IntVec                = Teuchos::Array<int>;
+        using IntVec2D              = Teuchos::Array<IntVec>;
+
         using LOVec                 = typename SchwarzOperator<SC,LO,GO,NO>::LOVec;
         using LOVecPtr2D            = typename SchwarzOperator<SC,LO,GO,NO>::LOVecPtr2D;
 
@@ -102,6 +113,16 @@ namespace FROSch {
         using ConstGOVecView        = typename SchwarzOperator<SC,LO,GO,NO>::ConstGOVecView;
 
         using ConstSCVecView        = typename SchwarzOperator<SC,LO,GO,NO>::ConstSCVecView;
+
+        using EntitySetPtr            = typename SchwarzOperator<SC,LO,GO,NO>::EntitySetPtr;
+        using EntitySetConstPtr       = const EntitySetPtr;
+        using EntitySetPtrVecPtr      = Teuchos::ArrayRCP<EntitySetPtr>;
+        using EntitySetPtrConstVecPtr =  const EntitySetPtrVecPtr;
+
+
+        using InterfaceEntityPtr        = Teuchos::RCP<InterfaceEntity<SC,LO,GO,NO> >;
+        using InterfaceEntityPtrVec     = Teuchos::Array<InterfaceEntityPtr>;
+        using InterfaceEntityPtrVecPtr  = Teuchos::ArrayRCP<InterfaceEntityPtr>;
 
     public:
 
@@ -137,6 +158,13 @@ namespace FROSch {
 
         virtual CoarseSpacePtr getCoarseSpace() const;
 
+        virtual int BuildRepMapZoltan(GraphPtr Xgraph,
+                                      GraphPtr  B,
+                                      ParameterListPtr parameterList,
+                                      Teuchos::RCP<const Teuchos::Comm<int> > TeuchosComm,
+                                      XMapPtr &RepeatedMap);
+
+
     protected:
 
         virtual int setUpCoarseOperator();
@@ -145,11 +173,17 @@ namespace FROSch {
 
         int buildCoarseSolveMap();
 
+        //Repeated Coarse map
+        virtual int buildElementNodeList();
+        virtual int buildGlobalGraph(Teuchos::RCP<DDInterface<SC,LO,GO,NO> > theDDInterface_);
+        virtual int buildCoarseGraph();
+
+
 
         CommPtr CoarseSolveComm_;
 
         bool OnCoarseSolveComm_;
-        
+
         int NumProcsCoarseSolve_;
 
         CoarseSpacePtr CoarseSpace_;
@@ -168,15 +202,28 @@ namespace FROSch {
         mutable XMultiVectorPtr YCoarseSolveTmp_;
 
         ConstXMapPtrVecPtr GatheringMaps_;
+        XMapPtrVecPtr MLGatheringMaps_;
+
         XMapPtr CoarseMap_;
         XMapPtr CoarseSolveMap_;
         XMapPtr CoarseSolveRepeatedMap_;
+        XMapPtr MLCoarseMap_;
 
         SubdomainSolverPtr CoarseSolver_;
 
         ParameterListPtr DistributionList_;
 
         XExportPtrVecPtr CoarseSolveExporters_;
+        XExportPtrVecPtr MLCoarseSolveExporters_;
+
+        GraphPtr SubdomainConnectGraph_;
+        GraphPtr ElementNodeList_;
+        Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > GraphEntriesList_;
+
+        ConstXMapPtr kRowMap_;
+        LO DofsPerNodeCoarse_;
+        UN dofs;
+        UN maxNumNeigh_;
 #ifdef FROSCH_COARSEOPERATOR_EXPORT_AND_IMPORT
         XImportPtrVecPtr CoarseSolveImporters_;
 #endif

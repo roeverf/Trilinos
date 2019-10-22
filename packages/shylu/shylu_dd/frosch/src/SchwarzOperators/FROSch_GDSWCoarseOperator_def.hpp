@@ -65,6 +65,11 @@ namespace FROSch {
     {
         FROSCH_TIMER_START_LEVELID(initializeTime,"GDSWCoarseOperator::initialize");
         buildCoarseSpace(dimension,repeatedMap);
+        if (this->ParameterList_->get("Use RepMap",false)) {
+            if (this->K_->getMap()->lib() == Xpetra::UseTpetra) {
+                this->buildGlobalGraph(this->DDInterface_);
+            }
+        }
         this->CoarseMap_ = this->assembleCoarseMap();
         this->buildCoarseSolveMap();
         this->IsInitialized_ = true;
@@ -79,6 +84,11 @@ namespace FROSch {
     {
         FROSCH_TIMER_START_LEVELID(initializeTime,"GDSWCoarseOperator::initialize");
         buildCoarseSpace(dimension,repeatedMap,dirichletBoundaryDofs);
+        if (this->ParameterList_->get("Use RepMap",false)) {
+            if (this->K_->getMap()->lib() == Xpetra::UseTpetra) {
+                this->buildGlobalGraph(this->DDInterface_);
+            }
+        }
         this->CoarseMap_ = this->assembleCoarseMap();
         this->buildCoarseSolveMap();
         this->IsInitialized_ = true;
@@ -94,6 +104,11 @@ namespace FROSch {
     {
         FROSCH_TIMER_START_LEVELID(initializeTime,"GDSWCoarseOperator::initialize");
         buildCoarseSpace(dimension,dofsPerNode,repeatedNodesMap,repeatedDofMaps);
+        if (this->ParameterList_->get("Use RepMap",false)) {
+            if (this->K_->getMap()->lib() == Xpetra::UseTpetra) {
+                this->buildGlobalGraph(this->DDInterface_);
+            }
+        }
         this->CoarseMap_ = this->assembleCoarseMap();
         this->buildCoarseSolveMap();
         this->IsInitialized_ = true;
@@ -110,6 +125,11 @@ namespace FROSch {
     {
         FROSCH_TIMER_START_LEVELID(initializeTime,"GDSWCoarseOperator::initialize");
         buildCoarseSpace(dimension,dofsPerNode,repeatedNodesMap,repeatedDofMaps,dirichletBoundaryDofs);
+        if (this->ParameterList_->get("Use RepMap",false)) {
+            if (this->K_->getMap()->lib() == Xpetra::UseTpetra) {
+                this->buildGlobalGraph(this->DDInterface_);
+            }
+        }
         this->CoarseMap_ = this->assembleCoarseMap();
         this->buildCoarseSolveMap();
         this->IsInitialized_ = true;
@@ -126,7 +146,12 @@ namespace FROSch {
     {
         FROSCH_TIMER_START_LEVELID(initializeTime,"GDSWCoarseOperator::initialize");
         buildCoarseSpace(dimension,dofsPerNode,repeatedNodesMap,repeatedDofMaps,nodeList);
-        this->CoarseMap_ = this->assembleCoarseMap();
+
+        if (this->ParameterList_->get("Use RepMap",false)) {
+            if (this->K_->getMap()->lib() == Xpetra::UseTpetra) {
+                this->buildGlobalGraph(this->DDInterface_);
+            }
+        }this->CoarseMap_ = this->assembleCoarseMap();
         this->buildCoarseSolveMap();
         this->IsInitialized_ = true;
         this->IsComputed_ = false;
@@ -143,6 +168,11 @@ namespace FROSch {
     {
         FROSCH_TIMER_START_LEVELID(initializeTime,"GDSWCoarseOperator::initialize");
         buildCoarseSpace(dimension,dofsPerNode,repeatedNodesMap,repeatedDofMaps,dirichletBoundaryDofs,nodeList);
+        if (this->ParameterList_->get("Use RepMap",false)) {
+            if (this->K_->getMap()->lib() == Xpetra::UseTpetra) {
+                this->buildGlobalGraph(this->DDInterface_);
+            }
+        }
         this->CoarseMap_ = this->assembleCoarseMap();
         this->buildCoarseSolveMap();
         this->IsInitialized_ = true;
@@ -160,6 +190,11 @@ namespace FROSch {
     {
         FROSCH_TIMER_START_LEVELID(initializeTime,"GDSWCoarseOperator::initialize");
         buildCoarseSpace(dimension,dofsPerNodeVec,repeatedNodesMapVec,repeatedDofMapsVec,dirichletBoundaryDofsVec,nodeListVec);
+        if (this->ParameterList_->get("Use RepMap",false)) {
+            if (this->K_->getMap()->lib() == Xpetra::UseTpetra) {
+                this->buildGlobalGraph(this->DDInterface_);
+            }
+        }
         this->CoarseMap_ = this->assembleCoarseMap();
         this->buildCoarseSolveMap();
         this->IsInitialized_ = true;
@@ -397,7 +432,7 @@ namespace FROSch {
 
         EntitySetPtr interface = this->DDInterface_->getInterface();
         EntitySetPtr interior = this->DDInterface_->getInterior();
-        
+
         // Check for interface
         if (interface->getEntity(0)->getNumNodes()==0) {
             if (this->Verbose_) std::cout << "FROSch::GDSWCoarseOperator : WARNING: No interface found => Volume functions will be used instead.";
@@ -417,13 +452,13 @@ namespace FROSch {
             this->InterfaceCoarseSpaces_[blockId].reset(new CoarseSpace<SC,LO,GO,NO>());
 
             if (useForCoarseSpace && (useVertexTranslations||useShortEdgeTranslations||useShortEdgeRotations||useStraightEdgeTranslations||useStraightEdgeRotations||useEdgeTranslations||useEdgeRotations||useFaceTranslations||useFaceRotations)) {
-                
+
                 if (this->ParameterList_->get("Test Unconnected Interface",true)) {
                     DDInterface_->divideUnconnectedEntities(this->K_);
                 }
-                
+
                 DDInterface_->sortVerticesEdgesFaces(nodeList);
-                
+
                 EntitySetPtr interface = DDInterface_->getInterface();
                 EntitySetPtr interior = DDInterface_->getInterior();
 
@@ -437,9 +472,13 @@ namespace FROSch {
                                               useFaceTranslations || useFaceRotations,
                                               false);
 
+                UN rot = 0;
+                UN tra = 0;
+
                 // Vertices
                 if (useVertexTranslations) {
                     XMultiVectorPtrVecPtr translations = this->computeTranslations(blockId,DDInterface_->getVertices());
+                    tra += translations.size();
                     for (UN i=0; i<translations.size(); i++) {
                         this->InterfaceCoarseSpaces_[blockId]->addSubspace(DDInterface_->getVertices()->getEntityMap(),translations[i]);
                     }
@@ -447,12 +486,14 @@ namespace FROSch {
                 // ShortEdges
                 if (useShortEdgeTranslations) {
                     XMultiVectorPtrVecPtr translations = this->computeTranslations(blockId,DDInterface_->getShortEdges());
+                    tra += translations.size();
                     for (UN i=0; i<translations.size(); i++) {
                         this->InterfaceCoarseSpaces_[blockId]->addSubspace(DDInterface_->getShortEdges()->getEntityMap(),translations[i]);
                     }
                 }
                 if (useShortEdgeRotations) {
                     XMultiVectorPtrVecPtr rotations = this->computeRotations(blockId,dimension,nodeList,DDInterface_->getShortEdges());
+                    rot += rotations.size();
                     for (UN i=0; i<rotations.size(); i++) {
                         this->InterfaceCoarseSpaces_[blockId]->addSubspace(DDInterface_->getShortEdges()->getEntityMap(),rotations[i]);
                     }
@@ -460,23 +501,27 @@ namespace FROSch {
                 // StraightEdges
                 if (useStraightEdgeTranslations) {
                     XMultiVectorPtrVecPtr translations = this->computeTranslations(blockId,DDInterface_->getStraightEdges());
+                    tra += translations.size();
                     for (UN i=0; i<translations.size(); i++) {                        this->InterfaceCoarseSpaces_[blockId]->addSubspace(DDInterface_->getStraightEdges()->getEntityMap(),translations[i]);
                     }
                 }
                 if (useStraightEdgeRotations) {
                     XMultiVectorPtrVecPtr rotations = this->computeRotations(blockId,dimension,nodeList,DDInterface_->getStraightEdges());
+                    rot += rotations.size();
                     for (UN i=0; i<rotations.size(); i++) {                        this->InterfaceCoarseSpaces_[blockId]->addSubspace(DDInterface_->getStraightEdges()->getEntityMap(),rotations[i]);
                     }
                 }
                 // Edges
                 if (useEdgeTranslations) {
                     XMultiVectorPtrVecPtr translations = this->computeTranslations(blockId,DDInterface_->getEdges());
+                    tra += translations.size();
                     for (UN i=0; i<translations.size(); i++) {
                         this->InterfaceCoarseSpaces_[blockId]->addSubspace(DDInterface_->getEdges()->getEntityMap(),translations[i]);
                     }
                 }
                 if (useEdgeRotations) {
                     XMultiVectorPtrVecPtr rotations = this->computeRotations(blockId,dimension,nodeList,DDInterface_->getEdges());
+                    rot += rotations.size();
                     for (UN i=0; i<rotations.size(); i++) {
                         this->InterfaceCoarseSpaces_[blockId]->addSubspace(DDInterface_->getEdges()->getEntityMap(),rotations[i]);
                     }
@@ -484,19 +529,21 @@ namespace FROSch {
                 // Faces
                 if (useFaceTranslations) {
                     XMultiVectorPtrVecPtr translations = this->computeTranslations(blockId,DDInterface_->getFaces());
+                    tra += translations.size();
                     for (UN i=0; i<translations.size(); i++) {
                         this->InterfaceCoarseSpaces_[blockId]->addSubspace(DDInterface_->getFaces()->getEntityMap(),translations[i]);
                     }
                 }
                 if (useFaceRotations) {
                     XMultiVectorPtrVecPtr rotations = this->computeRotations(blockId,dimension,nodeList,DDInterface_->getFaces());
+                    rot += rotations.size();
                     for (UN i=0; i<rotations.size(); i++) {
                         this->InterfaceCoarseSpaces_[blockId]->addSubspace(DDInterface_->getFaces()->getEntityMap(),rotations[i]);
                     }
                 }
 
                 this->InterfaceCoarseSpaces_[blockId]->assembleCoarseSpace();
-
+                this->dofs = tra + rot;
                 if (this->Verbose_) {
                     std::cout << std::boolalpha << "\n\
     ------------------------------------------------------------------------------\n\
@@ -513,6 +560,7 @@ namespace FROSch {
       Faces: rotations                            --- " << useFaceRotations << "\n\
     ------------------------------------------------------------------------------\n" << std::noboolalpha;
                 }
+
             }
         }
         return 0;

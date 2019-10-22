@@ -79,6 +79,8 @@ namespace FROSch {
 +---------------------+\n";
         }
 
+        UN tra;
+        UN rot;
         // Process the parameter list
         std::stringstream blockIdStringstream;
         blockIdStringstream << blockId+1;
@@ -155,11 +157,11 @@ namespace FROSch {
             this->InterfaceCoarseSpaces_[blockId].reset(new CoarseSpace<SC,LO,GO,NO>());
 
             if (useForCoarseSpace) {
-                
+
                 if (this->ParameterList_->get("Test Unconnected Interface",true)) {
                     this->DDInterface_->divideUnconnectedEntities(this->K_);
                 }
-                
+
                 this->DDInterface_->buildEntityHierarchy();
 
                 this->DDInterface_->computeDistancesToCoarseNodes(dimension,nodeList,distanceFunction);
@@ -167,6 +169,7 @@ namespace FROSch {
                 /////////////////////////////////
                 // Coarse Node Basis Functions //
                 /////////////////////////////////
+                EntitySetPtr coarseNodes = this->DDInterface_->getCoarseNodes();
                 EntitySetPtrVecPtr entitySetVector = this->DDInterface_->getEntitySetVector();
                 this->DDInterface_->buildEntityMaps(false,
                                                     false,
@@ -175,15 +178,26 @@ namespace FROSch {
                                                     false,
                                                     true);
 
+                coarseNodes->buildEntityMap(nodesMap);
+                this->kRowMap_ =coarseNodes->getEntityMap();
+
                 XMultiVectorPtrVecPtr translations = this->computeTranslations(blockId,this->DDInterface_->getCoarseNodes(),entitySetVector,distanceFunction);
+                tra = translations.size();
                 for (UN i=0; i<translations.size(); i++) {
                     this->InterfaceCoarseSpaces_[blockId]->addSubspace(this->DDInterface_->getCoarseNodes()->getEntityMap(),translations[i]);
                 }
 
                 if (useRotations) {
                     XMultiVectorPtrVecPtr rotations = this->computeRotations(blockId,dimension,nodeList,this->DDInterface_->getCoarseNodes(),entitySetVector,distanceFunction);
+                    rot = rotations.size();
                     for (UN i=0; i<rotations.size(); i++) {                        this->InterfaceCoarseSpaces_[blockId]->addSubspace(this->DDInterface_->getCoarseNodes()->getEntityMap(),rotations[i]);
                     }
+                }
+
+                if(useRotations){
+                  this->dofs = tra + rot;
+                }else{
+                  this->dofs = tra;
                 }
 
                 this->InterfaceCoarseSpaces_[blockId]->assembleCoarseSpace();
@@ -197,6 +211,7 @@ namespace FROSch {
       Coarse nodes: rotations                    --- " << useRotations << "\n\
     ------------------------------------------------------------------------------\n" << std::noboolalpha;
                 }
+                
             }
         }
         return 0;

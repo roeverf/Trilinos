@@ -205,7 +205,49 @@ namespace FROSch {
 #else
             ThrowErrorMissingPackage("FROSch::SubdomainSolver", "Belos");
 #endif
-        } else {
+} else if(!ParameterList_->get("SolverType","Amesos").compare("TwoLevelBlockPreconditioner")) {
+             Teuchos::RCP< const Teuchos::Comm< int > > TC = K_->getMap()->getComm();
+             Teuchos::ArrayRCP<Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > > RepeatedMaps(1);
+
+             UNVecPtr dofsPerNodeVector;
+             Teuchos::ArrayRCP<DofOrdering> dofOrderings;
+             Teuchos::ArrayRCP<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > > dofsMapsVec = Teuchos::null;
+             Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > MainCoarseMapVector = Teuchos::null;
+
+
+             //FROSCH_ASSERT(ParameterList_->isParameter("Repeated Map Vector"),"Currently TwoLevelBlockPreconditioner cannot be constructed without Repeated Maps Vector ");
+             FROSCH_ASSERT(ParameterList_->isParameter("DofsPerNode Vector"),"Currently, TwoLevelBlockPreconditioner cannot be constructed without DofsPerNode Vector.");
+             FROSCH_ASSERT(ParameterList_->isParameter("DofOrdering Vector"),"Currently, TwoLevelBlockPreconditioner cannot be constructed without DofOrdering Vector.");
+
+             if(ParameterList_->isParameter("Repeated Map Vector")) {
+                 RepeatedMaps = ExtractVectorFromParameterList<Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > >(*ParameterList_,"Repeated Map Vector");
+             }
+
+
+
+              if(ParameterList_->isParameter("DofsPerNode Vector")) {
+                 dofsPerNodeVector = ExtractVectorFromParameterList<UN>(*ParameterList_,"DofsPerNode Vector");
+              }
+              if(ParameterList_->isParameter("DofOrdering Vector")) {
+                 dofOrderings = ExtractVectorFromParameterList<DofOrdering>(*ParameterList_,"DofOrdering Vector");
+             }
+             if(ParameterList_->isParameter("Main Map Vector")) {
+                 MainCoarseMapVector = ExtractVectorFromParameterList<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > >(*ParameterList_,"Main Map Vector");
+             }
+             if(ParameterList_->isParameter("Dofs Maps Vector")) {
+                 dofsMapsVec = ExtractVectorFromParameterList<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > >>(*ParameterList_,"Dofs Maps Vector");
+             }
+             if(TC->getRank() == 0) std::cout<<"RepMap : "<<RepeatedMaps.size()<<"DofsPerNode : "<<dofsPerNodeVector.size()<<std::endl;
+
+             FROSCH_ASSERT(RepeatedMaps.size()==dofsPerNodeVector.size(),"RepeatedMaps.size()!=dofsPerNodeVector.size()");
+             FROSCH_ASSERT(RepeatedMaps.size()==dofOrderings.size(),"RepeatedMaps.size()!=dofOrderings.size()");
+              Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
+
+             TLBP = Teuchos::rcp(new TwoLevelBlockPreconditioner<SC,LO,GO,NO>(K_,ParameterList_));
+
+             //TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,ParameterList_->get("Overlap",1),RepeatedMaps);
+             TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,ParameterList_->get("Overlap",1),RepeatedMaps);
+    } else {
             FROSCH_ASSERT(false,"SolverType unknown...");
         }
     }
@@ -280,7 +322,10 @@ namespace FROSch {
             IsInitialized_ = true;
             IsComputed_ = false;
 #endif
-        } else {
+} else if (!ParameterList_->get("SolverType","Amesos").compare("TwoLevelBlockPreconditioner")) {
+  IsInitialized_ = true;
+  IsComputed_ = false;
+  } else {
             FROSCH_ASSERT(false,"SolverType unknown...");
         }
         return 0;
@@ -342,7 +387,10 @@ namespace FROSch {
             }
             IsComputed_ = true;
 #endif
-        } else {
+            } else if(!ParameterList_->get("SolverType","Amesos").compare("TwoLevelBlockPreconditioner")){
+                TLBP->compute();
+                IsComputed_ = true;
+            } else {
             FROSCH_ASSERT(false,"SolverType unknown...");
         }
         return 0;
@@ -445,6 +493,10 @@ namespace FROSch {
             BelosSolverManager_->solve();
             y = *YTmp_;
 #endif
+        } else if(!ParameterList_->get("SolverType","Amesos").compare("TwoLevelBlockPreconditioner")){
+            if (YTmp_.is_null()) YTmp_ = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(y.getMap(),x.getNumVectors());
+            TLBP->apply(x,*YTmp_,Teuchos::NO_TRANS);
+            y = *YTmp_;
         } else {
             FROSCH_ASSERT(false,"SolverType unknown...");
         }
@@ -504,7 +556,7 @@ namespace FROSch {
             const EpetraCrsMatrixT<GO,NO>& xEpetraMat = dynamic_cast<const EpetraCrsMatrixT<GO,NO>&>(*crsOp.getCrsMatrix());
             ECrsMatrixPtr epetraMat = xEpetraMat.getEpetra_CrsMatrixNonConst();
             TEUCHOS_TEST_FOR_EXCEPT(epetraMat.is_null());
-            
+
             FROSCH_ASSERT(false,"FROSch::SubdomainSolver : ERROR: resetMatrix() is not implemented for Amesos yet.");
 #endif
 #else
@@ -517,7 +569,7 @@ namespace FROSch {
                 const EpetraCrsMatrixT<GO,NO>& xEpetraMat = dynamic_cast<const EpetraCrsMatrixT<GO,NO>&>(*crsOp.getCrsMatrix());
                 ECrsMatrixPtr epetraMat = xEpetraMat.getEpetra_CrsMatrixNonConst();
                 TEUCHOS_TEST_FOR_EXCEPT(epetraMat.is_null());
-                
+
                 if (reuseInitialize) {
                     Amesos2SolverEpetra_->setA(epetraMat,Amesos2::SYMBFACT);
                 } else {
@@ -532,7 +584,7 @@ namespace FROSch {
                 const TpetraCrsMatrix<SC,LO,GO,NO>& xTpetraMat = dynamic_cast<const TpetraCrsMatrix<SC,LO,GO,NO>&>(*crsOp.getCrsMatrix());
                 ConstTCrsMatrixPtr tpetraMat = xTpetraMat.getTpetra_CrsMatrix();
                 TEUCHOS_TEST_FOR_EXCEPT(tpetraMat.is_null());
-                
+
                 if (reuseInitialize) {
                     Amesos2SolverTpetra_->setA(tpetraMat,Amesos2::SYMBFACT);
                 } else {
@@ -551,13 +603,13 @@ namespace FROSch {
         } else if (!ParameterList_->get("SolverType","Amesos").compare("Ifpack2")) {
 #ifdef HAVE_SHYLU_DDFROSCH_IFPACK2
             FROSCH_ASSERT(K_->getRowMap()->lib()==UseTpetra,"FROSch::SubdomainSolver : ERROR: Ifpack2 is not compatible with Epetra.")
-            
+
             // Convert matrix to Tpetra
             const CrsMatrixWrap<SC,LO,GO,NO>& crsOp = dynamic_cast<const CrsMatrixWrap<SC,LO,GO,NO>&>(*K_);
             const TpetraCrsMatrix<SC,LO,GO,NO>& xTpetraMat = dynamic_cast<const TpetraCrsMatrix<SC,LO,GO,NO>&>(*crsOp.getCrsMatrix());
             ConstTCrsMatrixPtr tpetraMat = xTpetraMat.getTpetra_CrsMatrix();
             TEUCHOS_TEST_FOR_EXCEPT(tpetraMat.is_null());
-            
+
             FROSCH_ASSERT(false,"FROSch::SubdomainSolver : ERROR: resetMatrix() is not implemented for Ifpack2 yet.");
 #else
             ThrowErrorMissingPackage("FROSch::SubdomainSolver", "Ifpack2");
@@ -573,7 +625,7 @@ namespace FROSch {
         }
         return 0;
     }
-    
+
 }
 
 #endif

@@ -213,6 +213,17 @@ namespace FROSch {
     template <class LO,class GO,class NO>
     RCP<const Map<LO,GO,NO> > BuildRepeatedMap(RCP<const CrsGraph<LO,GO,NO> > graph);
 
+    template <class LO,class GO,class NO>
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromNodeMap(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &nodesMap,
+                                                           unsigned dofsPerNode,
+                                                           unsigned dofOrdering);
+
+
+    template <class LO,class GO,class NO>
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromNodeMapRepeated(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &nodesMap,
+                                                                     unsigned dofsPerNode,
+                                                                     unsigned dofOrdering);
+
     template <class SC,class LO,class GO,class NO>
     int ExtendOverlapByOneLayer_Old(RCP<const Matrix<SC,LO,GO,NO> > inputMatrix,
                                     RCP<const Map<LO,GO,NO> > inputMap,
@@ -230,7 +241,7 @@ namespace FROSch {
                                 RCP<const Map<LO,GO,NO> > inputMap,
                                 RCP<const CrsGraph<LO,GO,NO> > &outputGraph,
                                 RCP<const Map<LO,GO,NO> > &outputMap);
-    
+
     /*! \brief Sort the Xpetra::Map by the global IDs \c x
      * \param[in] inputMap Unsorted input map
      */
@@ -240,7 +251,7 @@ namespace FROSch {
     template <class LO,class GO,class NO>
     RCP<Map<LO,GO,NO> > AssembleMaps(ArrayView<RCP<Map<LO,GO,NO> > > mapVector,
                                      ArrayRCP<ArrayRCP<LO> > &partMappings);
-    
+
     template <class LO,class GO,class NO>
     RCP<Map<LO,GO,NO> > AssembleSubdomainMap(unsigned numberOfBlocks,
                                              ArrayRCP<ArrayRCP<RCP<const Map<LO,GO,NO> > > > dofsMaps,
@@ -281,7 +292,7 @@ namespace FROSch {
     template <class LO,class GO,class NO>
     ArrayRCP<RCP<Map<LO,GO,NO> > > BuildSubMaps(RCP<const Map<LO,GO,NO> > &fullMap,
                                                 ArrayRCP<GO> maxSubGIDVec);
-    
+
     template <class SC,class LO,class GO,class NO>
     ArrayRCP<GO> FindOneEntryOnlyRowsGlobal(RCP<const Matrix<SC,LO,GO,NO> > matrix,
                                             RCP<const Map<LO,GO,NO> > repeatedMap);
@@ -289,14 +300,14 @@ namespace FROSch {
     template <class LO,class GO,class NO>
     ArrayRCP<GO> FindOneEntryOnlyRowsGlobal(RCP<const CrsGraph<LO,GO,NO> > graph,
                                             RCP<const Map<LO,GO,NO> > repeatedMap);
-    
+
     template <class SC,class LO>
     bool ismultiple(ArrayView<SC> A,
                     ArrayView<SC> B);
 
     template<class T>
     inline void sort(T &v);
-    
+
     template<class T>
     inline void sortunique(T &v);
 

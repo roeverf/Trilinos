@@ -387,6 +387,63 @@ namespace FROSch {
     }
 
     template <class LO,class GO,class NO>
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromNodeMap(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &nodesMap,
+                                                             unsigned dofsPerNode,
+                                                             unsigned dofOrdering)
+    {
+        FROSCH_ASSERT(dofOrdering==0 || dofOrdering==1,"ERROR: Specify a valid DofOrdering.");
+        FROSCH_ASSERT(!nodesMap.is_null(),"nodesMap.is_null().");
+
+        unsigned numNodes = nodesMap->getNodeNumElements();
+        Teuchos::Array<GO> globalIDs(dofsPerNode*numNodes);
+        if (dofOrdering==0) {
+            for (unsigned i=0; i<dofsPerNode; i++) {
+                for (unsigned j=0; j<numNodes; j++) {
+                    globalIDs[dofsPerNode*j+i] = dofsPerNode*nodesMap->getGlobalElement(j)+i;
+                }
+            }
+        } else if (dofOrdering == 1) {
+            for (unsigned i=0; i<dofsPerNode; i++) {
+                for (unsigned j=0; j<numNodes; j++) {
+                    globalIDs[j+i*numNodes] = nodesMap->getGlobalElement(j)+i*nodesMap->getGlobalNumElements();
+                }
+            }
+        } else {
+            FROSCH_ASSERT(false,"dofOrdering unknown.");
+        }
+        return Xpetra::MapFactory<LO,GO,NO>::Build(nodesMap->lib(),-1,globalIDs(),0,nodesMap->getComm());
+    }
+
+    template <class LO,class GO,class NO>
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromNodeMapRepeated(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &nodesMap,
+                                                             unsigned dofsPerNode,
+                                                             unsigned dofOrdering)
+    {
+        FROSCH_ASSERT(dofOrdering==0 || dofOrdering==1,"ERROR: Specify a valid DofOrdering.");
+        FROSCH_ASSERT(!nodesMap.is_null(),"nodesMap.is_null().");
+
+        unsigned numNodes = nodesMap->getNodeNumElements();
+        Teuchos::Array<GO> globalIDs(dofsPerNode*numNodes);
+        if (dofOrdering==0) {
+            for (unsigned i=0; i<dofsPerNode; i++) {
+                for (unsigned j=0; j<numNodes; j++) {
+                    globalIDs[dofsPerNode*j+i] = dofsPerNode*(nodesMap->getMaxGlobalIndex()+1)+i;
+                }
+            }
+        } else if (dofOrdering == 1) {
+            for (unsigned i=0; i<dofsPerNode; i++) {
+                for (unsigned j=0; j<numNodes; j++) {
+                    globalIDs[j+i*numNodes] = nodesMap->getGlobalElement(j)+i*(nodesMap->getMaxGlobalIndex()+1);
+                }
+            }
+        } else {
+            FROSCH_ASSERT(false,"dofOrdering unknown.");
+        }
+        return Xpetra::MapFactory<LO,GO,NO>::Build(nodesMap->lib(),-1,globalIDs(),0,nodesMap->getComm());
+    }
+
+
+    template <class LO,class GO,class NO>
     RCP<Map<LO,GO,NO> > BuildRepeatedMapNonConst(RCP<const CrsGraph<LO,GO,NO> > graph)
     {
         FROSCH_TIMER_START(buildRepeatedMapNonConstTime,"BuildRepeatedMapNonConst");
@@ -631,7 +688,7 @@ namespace FROSch {
 
         return 0;
     }
-    
+
     template <class LO,class GO,class NO>
     RCP<const Map<LO,GO,NO> > SortMapByGlobalIndex(RCP<const Map<LO,GO,NO> > inputMap)
     {
@@ -684,7 +741,7 @@ namespace FROSch {
         }
         return MapFactory<LO,GO,NO>::Build(mapVector[0]->lib(),-1,assembledMapTmp(),0,mapVector[0]->getComm());
     }
-    
+
     template <class LO,class GO,class NO>
     RCP<Map<LO,GO,NO> > AssembleSubdomainMap(unsigned numberOfBlocks,
                                              ArrayRCP<ArrayRCP<RCP<const Map<LO,GO,NO> > > > dofsMaps,
@@ -694,7 +751,7 @@ namespace FROSch {
         FROSCH_TIMER_START(assembleSubdomainMapTime,"AssembleSubdomainMap");
         FROSCH_ASSERT(dofsMaps.size()==numberOfBlocks,"FROSch : ERROR: dofsMaps.size()!=NumberOfBlocks_");
         FROSCH_ASSERT(dofsPerNode.size()==numberOfBlocks,"FROSch : ERROR: dofsPerNode.size()!=NumberOfBlocks_");
-        
+
         Array<GO> mapVector(0);
         for (unsigned i=0; i<numberOfBlocks; i++) {
             FROSCH_ASSERT(!dofsMaps[i].is_null(),"FROSch : ERROR: dofsMaps[i].is_null()");
@@ -949,7 +1006,7 @@ namespace FROSch {
         RCP<CrsGraph<LO,GO,NO> > repeatedGraph = CrsGraphFactory<LO,GO,NO>::Build(repeatedMap,2*graph->getGlobalMaxNumRowEntries());
         RCP<Import<LO,GO,NO> > scatter = ImportFactory<LO,GO,NO>::Build(graph->getRowMap(),repeatedMap);
         repeatedGraph->doImport(*graph,*scatter,ADD);
-        
+
         ArrayRCP<GO> oneEntryOnlyRows(repeatedGraph->getNodeNumRows());
         LO tmp = 0;
         GO row;
@@ -1001,7 +1058,7 @@ namespace FROSch {
         }
         return true;
     }
-    
+
     template<class T>
     inline void sort(T &v)
     {

@@ -107,6 +107,12 @@ namespace FROSch {
     class NO >
     class OneLevelPreconditioner;
 
+    template<class SC,
+    class LO,
+    class GO,
+    class NO>
+    class TwoLevelBlockPreconditioner;
+
     template <class SC = double,
               class LO = int,
               class GO = DefaultGlobalOrdinal,
@@ -173,7 +179,9 @@ namespace FROSch {
 #endif
 
         using GOVecPtr                    = ArrayRCP<GO>;
-
+        using UN                          = unsigned;
+        using UNVec                       = Teuchos::Array<UN>;
+        using UNVecPtr                    = Teuchos::ArrayRCP<UN>;
     public:
 
         /*!
@@ -261,7 +269,7 @@ namespace FROSch {
 
         //! Get #IsComputed_
         bool isComputed() const;
-        
+
         int resetMatrix(ConstXMatrixPtr k,
                         bool reuseInitialize);
 
@@ -306,6 +314,8 @@ namespace FROSch {
 #ifdef HAVE_SHYLU_DDFROSCH_IFPACK2
         RCP<Ifpack2::Preconditioner<SC,LO,GO,NO> > Ifpack2Preconditioner_;
 #endif
+
+       Teuchos::RCP<TwoLevelBlockPreconditioner<SC,LO,GO,NO> > TLBP;
 
         bool IsInitialized_;
 
