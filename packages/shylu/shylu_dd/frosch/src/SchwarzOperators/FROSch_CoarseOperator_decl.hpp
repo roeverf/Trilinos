@@ -84,9 +84,14 @@ namespace FROSch {
 
         using XMultiVector          = typename SchwarzOperator<SC,LO,GO,NO>::XMultiVector;
         using XMultiVectorPtr       = typename SchwarzOperator<SC,LO,GO,NO>::XMultiVectorPtr;
+        using ConstXMultiVectorPtr  = RCP<const XMultiVector>;
+        using ConstXMultiVectorPtrVecPtr          = typename SchwarzOperator<SC,LO,GO,NO>::ConstXMultiVectorPtrVecPtr;
+
 
         using XImportPtrVecPtr      = typename SchwarzOperator<SC,LO,GO,NO>::XImportPtrVecPtr;
 
+        using XExport               = typename SchwarzOperator<SC,LO,GO,NO>::XExport;
+        using XExportPtr            = typename SchwarzOperator<SC,LO,GO,NO>::XExportPtr;
         using XExportPtrVecPtr      = typename SchwarzOperator<SC,LO,GO,NO>::XExportPtrVecPtr;
 
         using ParameterListPtr      = typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr;
@@ -207,6 +212,7 @@ namespace FROSch {
         XMapPtr CoarseMap_;
         XMapPtr CoarseSolveMap_;
         XMapPtr CoarseSolveRepeatedMap_;
+        XMapPtr RepMapCoarse;
         XMapPtr MLCoarseMap_;
 
         SubdomainSolverPtr CoarseSolver_;
@@ -219,6 +225,8 @@ namespace FROSch {
         GraphPtr SubdomainConnectGraph_;
         GraphPtr ElementNodeList_;
         Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > GraphEntriesList_;
+
+        XMultiVectorPtr CoarseNullSpace_;
 
         ConstXMapPtr kRowMap_;
         LO DofsPerNodeCoarse_;

@@ -144,8 +144,11 @@ namespace FROSch {
         using ConstTRowMatrixPtr          = RCP<const TRowMatrix>;
 
         using XMultiVector                = MultiVector<SC,LO,GO,NO>;
+        using ConstXMultiVector           = const MultiVector<SC,LO,GO,NO>;
         using XMultiVectorPtr             = RCP<XMultiVector>;
         using ConstXMultiVectorPtr        = RCP<const XMultiVector>;
+        using ConstXMultiVectorPtrVecPtr  = ArrayRCP<ConstXMultiVectorPtr>;
+
 
         using TMultiVector                = Tpetra::MultiVector<SC,LO,GO,NO>;
         using TMultiVectorPtr             = RCP<TMultiVector>;

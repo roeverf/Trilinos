@@ -171,6 +171,7 @@ namespace FROSch {
         FROSCH_TIMER_START_LEVELID(resetCoarseSpaceBlockTime,"IPOUHarmonicCoarseOperator::resetCoarseSpaceBlock");
         FROSCH_ASSERT(dofsMaps.size()==dofsPerNode,"dofsMaps.size()!=dofsPerNode");
         FROSCH_ASSERT(blockId<this->NumberOfBlocks_,"Block does not exist yet and can therefore not be reset.");
+        this->dofs = nullSpaceBasis->getNumVectors();
 
         if (this->Verbose_) {
             std::cout << "\n\
@@ -275,21 +276,24 @@ namespace FROSch {
                 }
             }
 
-            //this->kRowMap_ = LocalPartitionOfUnityBasis_->getAssembledPartitionOfUnityMap();
+           PartitionOfUnity_->assembledPartitionOfUnityMaps();
+           this->kRowMap_ = PartitionOfUnity_->getAssembledPartitionOfUnityMap();
 
-            /*if (this->ParameterList_->get("Use RepMap",false)) {
+            if (this->ParameterList_->get("Use RepMap",false)) {
                 if (this->K_->getMap()->lib() == Xpetra::UseTpetra) {
-                    Teuchos::RCP<DDInterface<SC,LO,GO,NO> > theInterface =Teuchos::rcp_const_cast<DDInterface<SC,LO,GO,NO> >(PartitionOfUnity_->getDDInterface());
+                    Teuchos::RCP<DDInterface<SC,LO,GO,NO> > theInterface =Teuchos::rcp_const_cast<DDInterface<SC,LO,GO,NO> >(interfacePartitionOfUnity->getDDInterface());
                     this->buildGlobalGraph(theInterface);
                     }
                 }
-                */
 
             // Build local basis
             LocalPartitionOfUnityBasis_ = LocalPartitionOfUnityBasisPtr(new LocalPartitionOfUnityBasis<SC,LO,GO,NO>(this->MpiComm_,this->SerialComm_,this->DofsPerNode_[blockId],sublist(coarseSpaceList,"LocalPartitionOfUnityBasis"),interfaceNullspaceBasis.getConst(),PartitionOfUnity_->getLocalPartitionOfUnity(),PartitionOfUnity_->getPartitionOfUnityMaps())); // sublist(coarseSpaceList,"LocalPartitionOfUnityBasis") testen
 
             LocalPartitionOfUnityBasis_->buildLocalPartitionOfUnityBasis();
 
+            if(sublist(coarseSpaceList,"LocalPartitionOfUnityBasis")->get("Coarse NullSpace",false)){
+              this->CoarseNullSpace_ = LocalPartitionOfUnityBasis_->getCoarseNullSpace();
+            }
             this->InterfaceCoarseSpaces_[blockId] = LocalPartitionOfUnityBasis_->getLocalPartitionOfUnitySpace();
             if (this->Verbose_) std::cout << "FROSch::IPOUHarmonicCoarseOperator : WARNING: Need to build block coarse sizes for use in MueLu nullspace." << std::endl;
             //if (this->Verbose_) {RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout)); this->MVPhiGamma_[blockId]->describe(*fancy,VERB_EXTREME);}

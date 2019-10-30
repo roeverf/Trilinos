@@ -210,6 +210,7 @@ namespace FROSch {
              Teuchos::ArrayRCP<Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > > RepeatedMaps(1);
 
              UNVecPtr dofsPerNodeVector;
+             ConstXMultiVectorPtrVecPtr nullSpaceBasisVec(1);
              Teuchos::ArrayRCP<DofOrdering> dofOrderings;
              Teuchos::ArrayRCP<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > > dofsMapsVec = Teuchos::null;
              Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > > MainCoarseMapVector = Teuchos::null;
@@ -237,6 +238,9 @@ namespace FROSch {
              if(ParameterList_->isParameter("Dofs Maps Vector")) {
                  dofsMapsVec = ExtractVectorFromParameterList<Teuchos::ArrayRCP<Teuchos::RCP<Xpetra::Map<LO,GO,NO> > >>(*ParameterList_,"Dofs Maps Vector");
              }
+             if(ParameterList_->isParameter("Coarse NullSpace")){
+               nullSpaceBasisVec =  ExtractVectorFromParameterList<ConstXMultiVectorPtr>(*ParameterList_,"Coarse NullSpace");
+             }
              if(TC->getRank() == 0) std::cout<<"RepMap : "<<RepeatedMaps.size()<<"DofsPerNode : "<<dofsPerNodeVector.size()<<std::endl;
 
              FROSCH_ASSERT(RepeatedMaps.size()==dofsPerNodeVector.size(),"RepeatedMaps.size()!=dofsPerNodeVector.size()");
@@ -246,7 +250,7 @@ namespace FROSch {
              TLBP = Teuchos::rcp(new TwoLevelBlockPreconditioner<SC,LO,GO,NO>(K_,ParameterList_));
 
              //TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,ParameterList_->get("Overlap",1),RepeatedMaps);
-             TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,ParameterList_->get("Overlap",1),RepeatedMaps);
+             TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,ParameterList_->get("Overlap",1),RepeatedMaps,nullSpaceBasisVec);
     } else {
             FROSCH_ASSERT(false,"SolverType unknown...");
         }

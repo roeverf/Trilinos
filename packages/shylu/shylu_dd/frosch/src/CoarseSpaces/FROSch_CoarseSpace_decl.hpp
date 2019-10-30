@@ -49,7 +49,7 @@
 
 
 namespace FROSch {
-    
+
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -91,18 +91,24 @@ namespace FROSch {
         int addSubspace(XMapPtr subspaceBasisMap,
                         XMultiVectorPtr subspaceBasis = null);
 
+        int addNullspace(XMapPtr subspaceBasisMap,
+                         XMultiVectorPtr nullSpaceBasis = Teuchos::null);
+
         int assembleCoarseSpace();
+
+        int assembleNullSpace(UN NumRowEntries);
 
         int buildGlobalBasisMatrix(ConstXMapPtr rowMap,
                                    ConstXMapPtr repeatedMap,
                                    SC treshold);
+
 
         int clearCoarseSpace();
 
         int checkForLinearDependencies();
 
         bool hasUnassembledMaps() const;
-        
+
         bool hasBasisMap() const;
 
         XMapPtr getBasisMap() const;
@@ -110,6 +116,7 @@ namespace FROSch {
         bool hasAssembledBasis() const;
 
         XMultiVectorPtr getAssembledBasis() const;
+        XMultiVectorPtr getAssembledNullSpace() const;
 
         bool hasGlobalBasisMatrix() const;
 
@@ -120,12 +127,16 @@ namespace FROSch {
         ConstXMapPtr SerialRowMap_;
 
         XMapPtrVec UnassembledBasesMaps_;
+        XMapPtrVec UnassembledNullSpaceMaps_;
 
         XMultiVectorPtrVec UnassembledSubspaceBases_;
+        XMultiVectorPtrVec UnassembledNullSpaceBases_;
 
         XMapPtr AssembledBasisMap_;
+        XMapPtr AssembledNullSpaceMap_;
 
         XMultiVectorPtr AssembledBasis_;
+        XMultiVectorPtr AssembledNullSpace_;
 
         XMatrixPtr GlobalBasisMatrix_;
 
