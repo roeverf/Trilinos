@@ -241,7 +241,6 @@ namespace FROSch {
              if(ParameterList_->isParameter("Coarse NullSpace")){
                nullSpaceBasisVec =  ExtractVectorFromParameterList<ConstXMultiVectorPtr>(*ParameterList_,"Coarse NullSpace");
              }
-             if(TC->getRank() == 0) std::cout<<"RepMap : "<<RepeatedMaps.size()<<"DofsPerNode : "<<dofsPerNodeVector.size()<<std::endl;
 
              FROSCH_ASSERT(RepeatedMaps.size()==dofsPerNodeVector.size(),"RepeatedMaps.size()!=dofsPerNodeVector.size()");
              FROSCH_ASSERT(RepeatedMaps.size()==dofOrderings.size(),"RepeatedMaps.size()!=dofOrderings.size()");

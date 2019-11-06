@@ -66,6 +66,7 @@ namespace FROSch {
         } else {
             FROSCH_ASSERT(false,"FROSch::AlgebraicOverlappingOperator : ERROR: Specify a valid strategy for adding layers.");
         }
+
     }
 
     template <class SC,class LO,class GO,class NO>
@@ -186,28 +187,28 @@ namespace FROSch {
             std::cout << "\
     ------------------------------------------------------------------------------\n";
         }
-        
+
         // AH 08/28/2019 TODO: It seems that ExtendOverlapByOneLayer_Old is currently the fastest method because the map is sorted. This seems to be better for the direct solver. (At least Klu)
         if (this->ParameterList_->get("Sort Overlapping Map",true)) {
             switch (AddingLayersStrategy_) {
                 case LayersFromGraph:
                     this->OverlappingMap_ = SortMapByGlobalIndex(this->OverlappingMap_);
                     break;
-                    
+
                 case LayersFromMatrix:
                     this->OverlappingMap_ = SortMapByGlobalIndex(this->OverlappingMap_);
                     break;
-                    
+
                 case LayersOld:
                     if (this->Verbose_) std::cout << "FROSch::AlgebraicOverlappingOperator : The overlapping map is already sorted" << std::endl;
                     break;
-                    
+
                 default:
                     FROSCH_ASSERT(false,"FROSch::AlgebraicOverlappingOperator : ERROR: Specify a valid strategy for adding layers.");
                     break;
             }
         }
-        
+
         return 0;
     }
 
