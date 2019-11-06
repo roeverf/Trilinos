@@ -89,8 +89,6 @@ namespace Thyra {
                                                     const ESupportSolveUse supportSolveUse) const
     {
         //PreCheck
-
-        paramList_->print(std::cout);
         TEUCHOS_ASSERT(nonnull(fwdOpSrc));
         //TEUCHOS_ASSERT(this->isCompatible(*fwdOpSrc));
         TEUCHOS_ASSERT(prec);

@@ -290,8 +290,6 @@ namespace FROSch {
         // Communicate nodeList //
         //////////////////////////
         if (!nodeListVec.is_null()) {
-            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-            if(this->MpiComm_->getRank() == 0) std::cout<<"Node List is NOT null\n";
             FROSCH_TIMER_START_LEVELID(communicateNodeListTime,"Communicate Node List");
             for (UN i=0; i<nodeListVec.size(); i++) {
                 if (!nodeListVec[i]->getMap()->isSameAs(*repeatedNodesMapVec[i])) {
@@ -302,8 +300,6 @@ namespace FROSch {
                 }
             }
         } else {
-          this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-          if(this->MpiComm_->getRank() == 0) std::cout<<"Node List is null\n";
             nodeListVec.resize(nmbBlocks);
         }
         /////////////////////////////////////
@@ -353,6 +349,8 @@ namespace FROSch {
         ///////////////////////////////
         // Initialize CoarseOperator //
         ///////////////////////////////
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0)std::cout<<"Build NullSpace...........\n";
         if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("IPOUHarmonicCoarseOperator")) {
             this->ParameterList_->sublist("IPOUHarmonicCoarseOperator").sublist("CoarseSolver").sublist("MueLu").set("Dimension",(int)dimension);
             // Build Null Space
@@ -360,12 +358,12 @@ namespace FROSch {
                 nullSpaceBasisVec.resize(2);
                 nullSpaceBasisVec[0] = BuildNullSpace<SC,LO,GO,NO>(dimension,LaplaceNullSpace,repeatedMapVec[0],dofsPerNodeVec[0],dofsMapsVec[0]);
                 nullSpaceBasisVec[1] = BuildNullSpace<SC,LO,GO,NO>(dimension,LaplaceNullSpace,repeatedMapVec[1],dofsPerNodeVec[1],dofsMapsVec[1]);
-            } if (!this->ParameterList_->get("Null Space Type","Stokes").compare("Linear Elasticity")) {
+            } else if (!this->ParameterList_->get("Null Space Type","Stokes").compare("Linear Elasticity")) {
               nullSpaceBasisVec.resize(repeatedMapVec.size());
               for(int i = 0;i<repeatedMapVec.size();i++){
                 nullSpaceBasisVec[i] = BuildNullSpace(dimension,LinearElasticityNullSpace,repeatedMapVec[i],dofsPerNodeVec[i],dofsMapsVec[i],nodeListVec[i]);
               }
-            }if (!this->ParameterList_->get("Null Space Type","Stokes").compare("Laplace")) {
+            }else if (!this->ParameterList_->get("Null Space Type","Stokes").compare("Laplace")) {
               nullSpaceBasisVec.resize(1);
               nullSpaceBasisVec[0] = BuildNullSpace<SC,LO,GO,NO>(dimension,LaplaceNullSpace,repeatedMapVec[0],dofsPerNodeVec[0],dofsMapsVec[0]);
             }else if (!this->ParameterList_->get("Null Space Type","Stokes").compare("Input")) {

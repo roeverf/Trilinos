@@ -936,13 +936,14 @@ namespace FROSch {
                     dofOrderings[0] = DimensionWise;
                     Teuchos::ArrayRCP<UN> dofsPerNodeVector(1);
                     dofsPerNodeVector[0] = dofs;
+                    std::cout<<dofs<<"\n";
                     //dofsPerNodeVector[0] = 2;
                      // muss noch berechnte werden
                     sublist(this->ParameterList_,"CoarseSolver")->set("DofOrdering Vector",dofOrderings);
                     sublist(this->ParameterList_,"CoarseSolver")->set("DofsPerNode Vector",dofsPerNodeVector);
                     UniqueMap = FROSch::BuildUniqueMap<LO,GO,NO>(CoarseSolveRepeatedMap_);
 
-										UniqueMapAll = FROSch::BuildMapFromNodeMap<LO,GO,NO>(UniqueMap,2,DimensionWise);
+										UniqueMapAll = FROSch::BuildMapFromNodeMap<LO,GO,NO>(UniqueMap,dofs,DimensionWise);
                     //-------------------------------------------------------------
                     uniEle = UniqueMapAll->getNodeElementList();
 
