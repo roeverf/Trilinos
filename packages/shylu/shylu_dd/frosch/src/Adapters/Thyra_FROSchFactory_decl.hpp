@@ -106,15 +106,15 @@ namespace Thyra {
     class FROSchFactory : public Thyra::PreconditionerFactoryBase<SC> {
 
     protected:
-        
+
         using CommPtr                       = RCP<const Comm<int> >;
-        
+
         using LinearOpBasePtr               = RCP<LinearOpBase<SC> >;
         using ConstLinearOpBasePtr          = RCP<const LinearOpBase<SC> >;
         using ConstLinearOpSourceBasePtr    = RCP<const LinearOpSourceBase<SC> >;
-        
+
         using ConstVectorSpaceBasePtr       = RCP<const VectorSpaceBase<SC> >;
-        
+
         using PreconditionerBasePtr         = RCP<PreconditionerBase<SC> >;
 
         using XMap                          = Map<LO,GO,NO>;
@@ -127,19 +127,21 @@ namespace Thyra {
         using XMatrix                       = Matrix<SC,LO,GO,NO>;
         using XMatrixPtr                    = RCP<XMatrix>;
         using ConstXMatrixPtr               = RCP<const XMatrix>;
-        
+
         using XCrsMatrix                    = CrsMatrix<SC,LO,GO,NO>;
         using XCrsMatrixPtr                 = RCP<XCrsMatrix>;
         using ConstXCrsMatrixPtr            = RCP<const XCrsMatrix>;
-        
+
         using XMultiVector                  = MultiVector<SC,LO,GO,NO>;
         using ConstXMultiVector             = const XMultiVector;
         using XMultiVectorPtr               = RCP<XMultiVector>;
         using ConstXMultiVectorPtr          = RCP<ConstXMultiVector>;
-        
+        using XMultiVectorPtrVecPtr         = ArrayRCP<XMultiVectorPtr>;
+        using ConstXMultiVectorPtrVecPtr    = ArrayRCP<ConstXMultiVectorPtr>;
+
         using ParameterListPtr              = RCP<ParameterList>;
         using ConstParameterListPtr         = RCP<const ParameterList>;
-        
+
         using DofOrderingVecPtr             = ArrayRCP<DofOrdering>;
 
         using UN                            = unsigned;
@@ -183,16 +185,16 @@ namespace Thyra {
         std::string description() const;
 
     private:
-        
+
         ConstXMapPtr extractRepeatedMap(CommPtr comm,
                                         UnderlyingLib lib) const;
-        
+
         ConstXMultiVectorPtr extractCoordinatesList(CommPtr comm,
                                                     UnderlyingLib lib) const;
-        
+
         ConstXMultiVectorPtr extractNullSpace(CommPtr comm,
                                               UnderlyingLib lib) const;
-        
+
 
         ParameterListPtr paramList_;
 
@@ -202,5 +204,3 @@ namespace Thyra {
 
 
 #endif
-
-

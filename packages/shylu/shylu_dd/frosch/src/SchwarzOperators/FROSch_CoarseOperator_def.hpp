@@ -309,9 +309,6 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int CoarseOperator<SC,LO,GO,NO>::compute()
     {
-
-      this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-      if(this->Verbose_)std::cout<<"Compute 1\n";
         FROSCH_TIMER_START_LEVELID(computeTime,"CoarseOperator::compute");
         FROSCH_ASSERT(this->IsInitialized_,"FROSch::CoarseOperator : ERROR: CoarseOperator has to be initialized before calling compute()");
         // This is not optimal yet... Some work could be moved to Initialize
@@ -323,8 +320,6 @@ namespace FROSch {
             reuseCoarseBasis = false;
             reuseCoarseMatrix = false;
         }
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->Verbose_)std::cout<<"Compute 2\n";
         if (!reuseCoarseBasis) {
             if (this->IsComputed_ && this->Verbose_) std::cout << "FROSch::CoarseOperator : Recomputing the Coarse Basis" << std::endl;
             clearCoarseSpace(); // AH 12/11/2018: If we do not clear the coarse space, we will always append just append the coarse space
@@ -338,12 +333,9 @@ namespace FROSch {
             }
         }
         if (!reuseCoarseMatrix) {
-          this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-          if(this->Verbose_)std::cout<<"Compute 3\n";
+
             if (this->IsComputed_ && this->Verbose_) std::cout << "FROSch::CoarseOperator : Recomputing the Coarse Matrix" << std::endl;
             this->setUpCoarseOperator();
-            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-            if(this->Verbose_)std::cout<<"-----------------Set Up Coarse Done----------------------\n";
         }
         this->IsComputed_ = true;
         return 0;
@@ -487,18 +479,15 @@ namespace FROSch {
     int CoarseOperator<SC,LO,GO,NO>::setUpCoarseOperator()
     {
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->Verbose_)std::cout<<"Setup 1\n";
         FROSCH_TIMER_START_LEVELID(setUpCoarseOperatorTime,"CoarseOperator::setUpCoarseOperator");
         if (!Phi_.is_null()) {
             // Build CoarseMatrix_
             XMatrixPtr k0 = buildCoarseMatrix();
-            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-            if(this->Verbose_)std::cout<<"Setup 2\n";
+
             //------------------------------------------------------------------------------------------------------------------------
             // Communicate coarse matrix
             if (!DistributionList_->get("Type","linear").compare("linear")) {
-                k0->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
+              //  k0->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
                 XMatrixPtr tmpCoarseMatrix = MatrixFactory<SC,LO,GO,NO>::Build(GatheringMaps_[0],k0->getGlobalMaxNumRowEntries());
                 {
 #ifdef FROSCH_COARSEOPERATOR_DETAIL_TIMERS
@@ -522,72 +511,56 @@ namespace FROSch {
 
             } else if (!DistributionList_->get("Type","linear").compare("ZoltanDual")) {
               XMultiVectorPtr tmpNullSpace;
-              this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-              if(this->Verbose_)std::cout<<"Setup 3\n";
-              if(!CoarseNullSpace_.is_null()){
 
-                XExportPtr NullSpaceExport = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseNullSpace_->getMap(),GatheringMaps_[0]);
-                tmpNullSpace = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(GatheringMaps_[0],CoarseNullSpace_->getNumVectors());
-                tmpNullSpace->doExport(*CoarseNullSpace_,*NullSpaceExport,Xpetra::INSERT);
-              }
+              XExportPtr NullSpaceExport = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseNullSpace_[0]->getMap(),GatheringMaps_[0]);
+              tmpNullSpace = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(GatheringMaps_[0],CoarseNullSpace_[0]->getNumVectors());
+              tmpNullSpace->doExport(*CoarseNullSpace_[0],*NullSpaceExport,Xpetra::INSERT);
+
               CoarseSolveExporters_[0] = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseSpace_->getBasisMap(),GatheringMaps_[0]);
               XMatrixPtr tmpCoarseMatrix = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(GatheringMaps_[0],k0->getGlobalMaxNumRowEntries());
-              this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-              if(this->Verbose_)std::cout<<"Setup 3\n";
               tmpCoarseMatrix->doExport(*k0,*CoarseSolveExporters_[0],Xpetra::INSERT);
-              CoarseNullSpace_ = tmpNullSpace;
               for (UN j=1; j<GatheringMaps_.size(); j++) {
                 tmpCoarseMatrix->fillComplete();
                 k0 = tmpCoarseMatrix;
                 CoarseSolveExporters_[j] = Xpetra::ExportFactory<LO,GO,NO>::Build(GatheringMaps_[j-1],GatheringMaps_[j]);
                 tmpCoarseMatrix = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(GatheringMaps_[j],k0->getGlobalMaxNumRowEntries());
                 tmpCoarseMatrix->doExport(*k0,*CoarseSolveExporters_[j],Xpetra::INSERT);
-                if(!CoarseNullSpace_.is_null()){
-                  CoarseNullSpace_ = tmpNullSpace;
-                  tmpNullSpace = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(GatheringMaps_[j],CoarseNullSpace_->getNumVectors());
-                  tmpNullSpace->doExport(*CoarseNullSpace_,*CoarseSolveExporters_[j],Xpetra::INSERT);
-                }
               }
-              this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-              if(this->Verbose_)std::cout<<"Setup 4\n";
-              if(!CoarseNullSpace_.is_null()){
-              XMultiVectorPtr tmpnullSpaceCoarse;
-              tmpnullSpaceCoarse= Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(CoarseSolveMap_,CoarseNullSpace_->getNumVectors());
-              XMultiVectorPtr NullSpaceCoarse_;
+
+              CoarseNullSpace_[0] = tmpNullSpace;
+              for (UN j=1; j<GatheringMaps_.size(); j++) {
+                tmpNullSpace = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(GatheringMaps_[j],CoarseNullSpace_[0]->getNumVectors());
+                tmpNullSpace->doExport(*CoarseNullSpace_[0],*CoarseSolveExporters_[j],Xpetra::INSERT);
+                }
+
               size_t numBasisFunc;
-              numBasisFunc = CoarseNullSpace_->getNumVectors();
-              this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-              this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-              if(this->Verbose_)std::cout<<"Setup 5\n";
+              ConstXMultiVectorPtrVecPtr CNullSpaces_(CoarseNullSpace_.size());
+              XMultiVectorPtr tmpnullSpaceCoarse;
+
               if(OnCoarseSolveComm_){
-                //-----OnCoarseSolveComm_-------
-                for(UN i = 0;i<numBasisFunc;i++){
-                  Teuchos::ArrayRCP<SC> data = CoarseNullSpace_->getDataNonConst(i);
-                  for(UN j = 0;j<data.size();j++){
-                    tmpnullSpaceCoarse->replaceLocalValue(j,i,data[j]);
+                if(!CoarseNullSpace_[0].is_null()){
+                  tmpnullSpaceCoarse= Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(CoarseSolveMap_,CoarseNullSpace_[0]->getNumVectors());
+                  numBasisFunc = CoarseNullSpace_[0]->getNumVectors();
+                  XMultiVectorPtr NullSpaceCoarse_;
+                    //-----OnCoarseSolveComm_-------
+                  for(UN i = 0;i<numBasisFunc;i++){
+                      Teuchos::ArrayRCP<SC> data = CoarseNullSpace_[0]->getDataNonConst(i);
+                      for(UN j = 0;j<data.size();j++){
+                          tmpnullSpaceCoarse->replaceLocalValue(j,i,data[j]);
+                        }
                   }
-                }
-                NullSpaceCoarse_ = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(RepMapCoarse,numBasisFunc);
-                XExportPtr repExport = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseSolveMap_,RepMapCoarse);
-
-                NullSpaceCoarse_->doExport(*tmpnullSpaceCoarse,*repExport,Xpetra::INSERT);
-                CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-                if(CoarseSolveComm_->getRank() == 0)std::cout<<"Here2\n";
-
-                CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-                if(CoarseSolveComm_->getRank() == 0)std::cout<<"Here3\n";
-                ConstXMultiVectorPtrVecPtr CNullSpaces_(1);
-                CNullSpaces_[0] = NullSpaceCoarse_;
+                  NullSpaceCoarse_ = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(RepMapCoarse,numBasisFunc);
+                  XExportPtr repExport = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseSolveMap_,RepMapCoarse);
+                  NullSpaceCoarse_->doExport(*tmpnullSpaceCoarse,*repExport,Xpetra::INSERT);
+                  //NullSpaceCoarse_->describe(*fancy,Teuchos::VERB_EXTREME);
+                  CNullSpaces_[0] = NullSpaceCoarse_;
+                 //--------------------------------
+                   }
                 sublist(this->ParameterList_,"CoarseSolver")->set("Coarse NullSpace",CNullSpaces_);
-                CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-                if(CoarseSolveComm_->getRank() == 0)std::cout<<"Here4\n";
-                //--------------------------------
-              }
-            }
 
-              k0 = tmpCoarseMatrix;
-
-            } else if (!DistributionList_->get("Type","linear").compare("Zoltan2")) {
+                }
+                k0 = tmpCoarseMatrix;
+          }else if (!DistributionList_->get("Type","linear").compare("Zoltan2")) {
 #ifdef HAVE_SHYLU_DDFROSCH_ZOLTAN2
                 GatheringMaps_[0] = rcp_const_cast<XMap> (BuildUniqueMap(k0->getRowMap()));
                 CoarseSolveExporters_[0] = ExportFactory<LO,GO,NO>::Build(CoarseSpace_->getBasisMap(),GatheringMaps_[0]);
@@ -623,8 +596,7 @@ namespace FROSch {
 
             //------------------------------------------------------------------------------------------------------------------------
             // Matrix to the new communicator
-            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-            if(this->Verbose_)std::cout<<"Setup 5\n";
+
             if (OnCoarseSolveComm_) {
                 LO numRows = k0->getNodeNumRows();
                 ArrayRCP<size_t> elemsPerRow(numRows);
@@ -658,8 +630,6 @@ namespace FROSch {
                     }
                     CoarseMatrix_->fillComplete(CoarseSolveMap_,CoarseSolveMap_); //RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout)); CoarseMatrix_->describe(*fancy,VERB_EXTREME);
                 } else {
-                  CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-                  if(CoarseSolveComm_->getRank() == 0)std::cout<<"Here4\n";
                     ConstGOVecView indices;
                     ConstSCVecView values;
                     for (LO i = 0; i < numRows; i++) {
@@ -673,8 +643,7 @@ namespace FROSch {
                         elemsPerRow[i] = numEntries;
                     }
                     CoarseMatrix_ = MatrixFactory<SC,LO,GO,NO>::Build(CoarseSolveMap_,elemsPerRow,StaticProfile);
-                    CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-                    if(CoarseSolveComm_->getRank() == 0)std::cout<<"Here5\n";
+
                     for (LO i = 0; i < numRows; i++) {
                         GO globalRow = CoarseSolveMap_->getGlobalElement(i);
                         k0->getGlobalRowView(globalRow,indices,values);
@@ -687,8 +656,7 @@ namespace FROSch {
                         }
                     }
                     CoarseMatrix_->fillComplete(CoarseSolveMap_,CoarseSolveMap_); //RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout)); CoarseMatrix_->describe(*fancy,VERB_EXTREME);
-                    CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-                    if(CoarseSolveComm_->getRank() == 0)std::cout<<"Here6\n";
+
                 }
 
                 bool reuseCoarseMatrixSymbolicFactorization = this->ParameterList_->get("Reuse: Coarse Matrix Symbolic Factorization",true);
@@ -703,11 +671,9 @@ namespace FROSch {
                     FROSCH_ASSERT(!CoarseSolver_.is_null(),"FROSch::CoarseOperator : ERROR: CoarseSolver_.is_null()");
                     CoarseSolver_->resetMatrix(CoarseMatrix_.getConst(),true);
                 }
-                CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-                if(CoarseSolveComm_->getRank() == 0)std::cout<<"Here7\n";
+
                 CoarseSolver_->compute();
-                CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-                if(CoarseSolveComm_->getRank() == 0)std::cout<<"Here8\n";
+
             }
         } else {
             if (this->Verbose_) std::cout << "FROSch::CoarseOperator : WARNING: No coarse basis has been set up. Neglecting CoarseOperator." << std::endl;

@@ -46,7 +46,7 @@
 
 
 namespace FROSch {
-    
+
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -81,12 +81,12 @@ namespace FROSch {
         using IPOUHarmonicCoarseOperatorPtr       = typename SchwarzPreconditioner<SC,LO,GO,NO>::IPOUHarmonicCoarseOperatorPtr;
 
         using DofOrderingVecPtr                   = typename SchwarzPreconditioner<SC,LO,GO,NO>::DofOrderingVecPtr;
-        
+
         using UN                                  = typename SchwarzPreconditioner<SC,LO,GO,NO>::UN;
         using UNVecPtr                            = typename SchwarzPreconditioner<SC,LO,GO,NO>::UNVecPtr;
-        
+
         using LOVecPtr                            = typename SchwarzPreconditioner<SC,LO,GO,NO>::LOVecPtr;
-        
+
         using GOVec                               = typename SchwarzPreconditioner<SC,LO,GO,NO>::GOVec;
         using GOVec2D                             = typename SchwarzPreconditioner<SC,LO,GO,NO>::GOVec2D;
         using GOVecPtr                            = typename SchwarzPreconditioner<SC,LO,GO,NO>::GOVecPtr;
@@ -104,6 +104,15 @@ namespace FROSch {
                        ConstXMapPtrVecPtr repeatedMapVec = null,
                        ConstXMultiVectorPtrVecPtr nullSpaceBasisVec = null,
                        ConstXMultiVectorPtrVecPtr nodeListVec = null,
+                       ConstXMapPtrVecPtr2D dofsMapsVec = null,
+                       GOVecPtr2D dirichletBoundaryDofsVec = null);
+        int initialize(UN dimension,
+                       UNVecPtr dofsPerNodeVec,
+                       DofOrderingVecPtr dofOrderingVec,
+                       int overlap = -1,
+                       ConstXMultiVectorPtrVecPtr nodeListVec = null,
+                       ConstXMapPtrVecPtr repeatedMapVec = null,
+                       ConstXMultiVectorPtrVecPtr nullSpaceBasisVec = null,
                        ConstXMapPtrVecPtr2D dofsMapsVec = null,
                        GOVecPtr2D dirichletBoundaryDofsVec = null);
 

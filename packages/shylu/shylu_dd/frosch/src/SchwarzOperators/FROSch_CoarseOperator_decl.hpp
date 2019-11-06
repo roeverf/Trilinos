@@ -82,10 +82,11 @@ namespace FROSch {
         using GraphPtr              = typename SchwarzOperator<SC,LO,GO,NO>::GraphPtr;
         using ConstXCrsGraphPtr     = typename SchwarzOperator<SC,LO,GO,NO>::ConstXCrsGraphPtr;
 
-        using XMultiVector          = typename SchwarzOperator<SC,LO,GO,NO>::XMultiVector;
-        using XMultiVectorPtr       = typename SchwarzOperator<SC,LO,GO,NO>::XMultiVectorPtr;
-        using ConstXMultiVectorPtr  = RCP<const XMultiVector>;
-        using ConstXMultiVectorPtrVecPtr          = typename SchwarzOperator<SC,LO,GO,NO>::ConstXMultiVectorPtrVecPtr;
+        using XMultiVector               = typename SchwarzOperator<SC,LO,GO,NO>::XMultiVector;
+        using XMultiVectorPtr            = typename SchwarzOperator<SC,LO,GO,NO>::XMultiVectorPtr;
+        using XMultiVectorPtrVecPtr      = typename SchwarzOperator<SC,LO,GO,NO>::XMultiVectorPtrVecPtr;
+        using ConstXMultiVectorPtr       = RCP<const XMultiVector>;
+        using ConstXMultiVectorPtrVecPtr = typename SchwarzOperator<SC,LO,GO,NO>::ConstXMultiVectorPtrVecPtr;
 
 
         using XImportPtrVecPtr      = typename SchwarzOperator<SC,LO,GO,NO>::XImportPtrVecPtr;
@@ -226,7 +227,7 @@ namespace FROSch {
         GraphPtr ElementNodeList_;
         Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > GraphEntriesList_;
 
-        XMultiVectorPtr CoarseNullSpace_;
+        XMultiVectorPtrVecPtr CoarseNullSpace_;
 
         ConstXMapPtr kRowMap_;
         LO DofsPerNodeCoarse_;
