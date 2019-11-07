@@ -51,6 +51,9 @@ namespace FROSch {
     using namespace Xpetra;
 
     template <class SC,class LO,class GO,class NO>
+    Teuchos::RCP<Teuchos::StackedTimer> AlgebraicOverlappingOperator<SC,LO,GO,NO>::timer = Teuchos::rcp(new Teuchos::StackedTimer("FROSch AlgebraicOverlappingOperator : "));
+
+    template <class SC,class LO,class GO,class NO>
     AlgebraicOverlappingOperator<SC,LO,GO,NO>::AlgebraicOverlappingOperator(ConstXMatrixPtr k,
                                                                             ParameterListPtr parameterList) :
     OverlappingOperator<SC,LO,GO,NO> (k,parameterList),
@@ -74,6 +77,7 @@ namespace FROSch {
                                                               ConstXMapPtr repeatedMap)
     {
         FROSCH_TIMER_START_LEVELID(initializeTime,"AlgebraicOverlappingOperator::initialize");
+        timer->start(std::string("initialize ")+ " Level " + std::to_string(this->LevelID_));
         if (this->Verbose_) {
             std::cout << "\n\
 +------------------------------+\n\
@@ -88,6 +92,8 @@ namespace FROSch {
         this->IsInitialized_ = true;
         this->IsComputed_ = false;
         return 0; // RETURN VALUE!!!
+        timer->stop(std::string("initialize ")+ " (Level " + std::to_string(this->LevelID_));
+        if(this->Verbose_)timer->report(std::cout);
     }
 
     template <class SC,class LO,class GO,class NO>

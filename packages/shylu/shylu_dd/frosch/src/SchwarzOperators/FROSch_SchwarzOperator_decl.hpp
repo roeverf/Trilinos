@@ -59,6 +59,8 @@
 
 #include <FROSch_SubdomainSolver_def.hpp>
 
+#include "Teuchos_StackedTimer.hpp"
+
 // TODO: Auf const überprüfen
 // TODO: #ifndef überprüfen ??????
 

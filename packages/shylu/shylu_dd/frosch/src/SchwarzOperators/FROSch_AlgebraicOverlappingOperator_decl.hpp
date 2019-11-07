@@ -46,7 +46,7 @@
 
 
 namespace FROSch {
-    
+
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -92,12 +92,13 @@ namespace FROSch {
                       const EVerbosityLevel verbLevel=Describable::verbLevel_default) const;
 
         std::string description() const;
+        static Teuchos::RCP<Teuchos::StackedTimer> timer;
 
     protected:
 
         int buildOverlappingMatrices(int overlap,
                                      ConstXMapPtr repeatedMap);
-        
+
         virtual int updateLocalOverlappingMatrices();
 
         AddingLayersStrategy AddingLayersStrategy_;
