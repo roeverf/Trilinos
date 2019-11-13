@@ -92,7 +92,7 @@ namespace FROSch {
                       const EVerbosityLevel verbLevel=Describable::verbLevel_default) const;
 
         std::string description() const;
-        static Teuchos::RCP<Teuchos::StackedTimer> timer;
+        static Teuchos::Array<Teuchos::RCP<Teuchos::TimeMonitor> > timer_;
 
     protected:
 

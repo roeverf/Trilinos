@@ -222,6 +222,7 @@ namespace FROSch {
         bool IsComputed_;
 
         ConstUN LevelID_;
+        ConstUN numLevel;
     };
 
 }

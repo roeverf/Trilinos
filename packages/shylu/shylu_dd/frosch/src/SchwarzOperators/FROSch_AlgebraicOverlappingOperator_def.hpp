@@ -51,7 +51,7 @@ namespace FROSch {
     using namespace Xpetra;
 
     template <class SC,class LO,class GO,class NO>
-    Teuchos::RCP<Teuchos::StackedTimer> AlgebraicOverlappingOperator<SC,LO,GO,NO>::timer = Teuchos::rcp(new Teuchos::StackedTimer("FROSch AlgebraicOverlappingOperator : "));
+    Teuchos::Array<Teuchos::RCP<Teuchos::TimeMonitor> > AlgebraicOverlappingOperator<SC,LO,GO,NO>::timer_ = Teuchos::Array<Teuchos::RCP<Teuchos::TimeMonitor> > (1);
 
     template <class SC,class LO,class GO,class NO>
     AlgebraicOverlappingOperator<SC,LO,GO,NO>::AlgebraicOverlappingOperator(ConstXMatrixPtr k,
@@ -76,8 +76,10 @@ namespace FROSch {
     int AlgebraicOverlappingOperator<SC,LO,GO,NO>::initialize(int overlap,
                                                               ConstXMapPtr repeatedMap)
     {
-        FROSCH_TIMER_START_LEVELID(initializeTime,"AlgebraicOverlappingOperator::initialize");
-        timer->start(std::string("initialize ")+ " Level " + std::to_string(this->LevelID_));
+        FROSCH_TIMER_START_LEVELID(initializeTime,"AlgebaicOverlappingOperator::initialize");
+        //FROSCH_TIMER_START_LEVELID_VEC(timer_,"AlgebaicOverlappingOperator::initialize");
+        //timer_.push_back(rcp(new TimeMonitor(*TimeMonitor::getNewTimer(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(this->LevelID_) + std::string(")")))));
+        if(this->Verbose_)std::cout<<"Alg Op Level ID =  "<<this->LevelID_<<std::endl;
         if (this->Verbose_) {
             std::cout << "\n\
 +------------------------------+\n\
@@ -92,8 +94,6 @@ namespace FROSch {
         this->IsInitialized_ = true;
         this->IsComputed_ = false;
         return 0; // RETURN VALUE!!!
-        timer->stop(std::string("initialize ")+ " (Level " + std::to_string(this->LevelID_));
-        if(this->Verbose_)timer->report(std::cout);
     }
 
     template <class SC,class LO,class GO,class NO>

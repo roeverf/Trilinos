@@ -51,6 +51,9 @@ namespace FROSch {
     using namespace Xpetra;
 
     template <class SC,class LO,class GO,class NO>
+    std::vector<Teuchos::RCP<Teuchos::Time> > AlgebraicOverlappingPreconditioner<SC,LO,GO,NO>::timer_ = std::vector<Teuchos::RCP<Teuchos::Time> >(1);
+
+    template <class SC,class LO,class GO,class NO>
     AlgebraicOverlappingPreconditioner<SC,LO,GO,NO>::AlgebraicOverlappingPreconditioner(ConstXMatrixPtr k,
                                                                                         ParameterListPtr parameterList) :
     SchwarzPreconditioner<SC,LO,GO,NO> (parameterList,k->getRangeMap()->getComm()),

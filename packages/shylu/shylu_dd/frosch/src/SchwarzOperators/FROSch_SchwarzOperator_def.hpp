@@ -59,7 +59,8 @@ namespace FROSch {
     Verbose_ (comm->getRank()==0),
     IsInitialized_ (false),
     IsComputed_ (false),
-    LevelID_ (1)
+    LevelID_ (1),
+    numLevel(1)
     {
         SerialComm_ = createSerialComm<int>();
     }
@@ -74,7 +75,8 @@ namespace FROSch {
     Verbose_ (MpiComm_->getRank()==0),
     IsInitialized_ (false),
     IsComputed_ (false),
-    LevelID_ (ParameterList_->get("Level ID",UN(1)))
+    LevelID_ (ParameterList_->get("Level ID",UN(1))),
+    numLevel(ParameterList_->get("numLevel",UN(2)))
     {
         FROSCH_ASSERT(getDomainMap()->isSameAs(*getRangeMap()),"SchwarzOperator assumes DomainMap==RangeMap");
         SerialComm_ = createSerialComm<int>();

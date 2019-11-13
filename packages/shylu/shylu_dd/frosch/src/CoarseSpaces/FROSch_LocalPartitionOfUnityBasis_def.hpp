@@ -117,7 +117,10 @@ namespace FROSch {
                           tmpCBasisJ(k,h) = data[k];
                         }
                       }
-
+                       /*if(MpiComm_->getRank() == 0){
+                          std::cout<<"---Nullspace--  "<<i<<" "<<j<<" -------\n";
+                          tmpCBasisJ.print(std::cout);
+                        }*/
                   Teuchos::SerialQRDenseSolver<LO,SC> qrSolver;
                   qrSolver.setMatrix(Teuchos::rcp(&tmpCBasisJ, false));
 
@@ -127,9 +130,21 @@ namespace FROSch {
                         qrSolver.formR();
                         tmpCBasis[i][j]  = qrSolver.getQ();
                         tmpCBasisR[i][j] = qrSolver.getR();
+                        /*if(MpiComm_->getRank() == 0){
+
+                          std::cout<<"-----Q "<<i<<" "<<j<<" -------\n";
+                          tmpCBasis[i][j]->print(std::cout);
+                          std::cout<<"-----QR"<<i<<" "<<j<<" -------\n";
+                          tmpCBasisR[i][j]->print(std::cout);
+                          Teuchos::RCP<Teuchos::SerialDenseMatrix<LO,SC> >  K  = (Teuchos::rcp( new Teuchos::SerialDenseMatrix<LO,SC>(tmpCBasis[i][j]->numRows(),tmpCBasis[i][j]->numCols())));
+                          K->multiply(Teuchos::NO_TRANS,Teuchos::NO_TRANS,1.0,*tmpCBasis[i][j],*tmpCBasisR[i][j],0.0);
+                          std::cout<<"-----K"<<i<<" "<<j<<" -------\n";
+                          K->print(std::cout);
+                        }*/
                     } else {
                         tmpCBasis[i][j] = Teuchos::rcpFromRef(tmpCBasisJ);
                     }
+
                 }
             } else {
                 FROSCH_ASSERT(PartitionOfUnityMaps_[i]->getNodeNumElements()==0,"PartitionOfUnityMaps_[i]->getNodeNumElements()!=0");

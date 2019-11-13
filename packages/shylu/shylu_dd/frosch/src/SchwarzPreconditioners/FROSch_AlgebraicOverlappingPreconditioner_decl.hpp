@@ -46,7 +46,7 @@
 
 
 namespace FROSch {
-    
+
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -99,6 +99,7 @@ namespace FROSch {
         virtual std::string description() const;
 
         virtual int resetMatrix(ConstXMatrixPtr &k);
+        static std::vector<Teuchos::RCP<Teuchos::Time> > timer_;
 
     protected:
 
