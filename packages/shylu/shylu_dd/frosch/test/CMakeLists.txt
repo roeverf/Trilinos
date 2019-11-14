@@ -3,6 +3,7 @@ ADD_SUBDIRECTORIES(
     InterfacePartitionOfUnity
     InterfaceSets
     LocalPartitionOfUnityBasis
+    Timer
 )
 
 IF(ShyLU_DDFROSch_ENABLE_Belos AND KOKKOS_ENABLE_SERIAL AND ShyLU_DDFROSch_ENABLE_Stratimikos AND ShyLU_DDFROSch_ENABLE_Thyra)

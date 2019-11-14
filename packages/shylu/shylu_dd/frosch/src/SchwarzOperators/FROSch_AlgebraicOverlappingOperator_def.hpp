@@ -50,15 +50,29 @@ namespace FROSch {
     using namespace Teuchos;
     using namespace Xpetra;
 
+    //template <class SC,class LO,class GO,class NO>
+    //Teuchos::Array<Teuchos::Array<Teuchos::RCP<Teuchos::Time> > > AlgebraicOverlappingOperator<SC,LO,GO,NO>::timer_ = Teuchos::Array<Teuchos::Array<Teuchos::RCP<Teuchos::Time> > > (1);
+
+
     template <class SC,class LO,class GO,class NO>
-    Teuchos::Array<Teuchos::RCP<Teuchos::TimeMonitor> > AlgebraicOverlappingOperator<SC,LO,GO,NO>::timer_ = Teuchos::Array<Teuchos::RCP<Teuchos::TimeMonitor> > (1);
+    int AlgebraicOverlappingOperator<SC,LO,GO,NO>::current_level= 0;
+
+    template <class SC,class LO,class GO,class NO>
+    int AlgebraicOverlappingOperator<SC,LO,GO,NO>::timer_count= 0;
 
     template <class SC,class LO,class GO,class NO>
     AlgebraicOverlappingOperator<SC,LO,GO,NO>::AlgebraicOverlappingOperator(ConstXMatrixPtr k,
                                                                             ParameterListPtr parameterList) :
     OverlappingOperator<SC,LO,GO,NO> (k,parameterList),
-    AddingLayersStrategy_ ()
+    AddingLayersStrategy_ (),
+    timer_(this->numLevel)
     {
+        for(UN i = 0;i<timer_.size();i++){
+          timer_[i].resize(this->numLevel);
+        }
+        AFROSCH_TIMER_LEVELID(timer_[0][current_level],"AlgebaicOverlappingOperator::initialize");
+        current_level = current_level+1;
+        if(this->Verbose_)std::cout<<"Level "<<current_level<<std::endl;
         FROSCH_TIMER_START_LEVELID(algebraicOverlappingOperatorTime,"AlgebraicOverlappingOperator::AlgebraicOverlappingOperator");
         if (!this->ParameterList_->get("Adding Layers Strategy","CrsGraph").compare("CrsGraph")) {
             AddingLayersStrategy_ = LayersFromGraph;
@@ -69,16 +83,15 @@ namespace FROSch {
         } else {
             FROSCH_ASSERT(false,"FROSch::AlgebraicOverlappingOperator : ERROR: Specify a valid strategy for adding layers.");
         }
-
     }
 
     template <class SC,class LO,class GO,class NO>
     int AlgebraicOverlappingOperator<SC,LO,GO,NO>::initialize(int overlap,
                                                               ConstXMapPtr repeatedMap)
     {
-        FROSCH_TIMER_START_LEVELID(initializeTime,"AlgebaicOverlappingOperator::initialize");
-        //FROSCH_TIMER_START_LEVELID_VEC(timer_,"AlgebaicOverlappingOperator::initialize");
-        //timer_.push_back(rcp(new TimeMonitor(*TimeMonitor::getNewTimer(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(this->LevelID_) + std::string(")")))));
+         Teuchos::TimeMonitor initTime(*timer_[0][current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(initializeTime,"AlgebaicOverlappingOperator::initialize");
+
         if(this->Verbose_)std::cout<<"Alg Op Level ID =  "<<this->LevelID_<<std::endl;
         if (this->Verbose_) {
             std::cout << "\n\

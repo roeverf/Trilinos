@@ -54,6 +54,11 @@
 #define FROSCH_TIMER_START_LEVELID(A,S) RCP<TimeMonitor> A = rcp(new TimeMonitor(*TimeMonitor::getNewTimer(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(this->LevelID_) + std::string(")"))));
 #endif
 
+
+#ifndef FROSCH_TIMER_START_LEVELID_N
+#define FROSCH_TIMER_START_LEVELID_N(A,S,N) RCP<TimeMonitor> A = rcp(new TimeMonitor(*TimeMonitor::getNewTimer(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(N) + std::string(")"))));
+#endif
+
 #ifndef FROSCH_TIMER_STOP
 #define FROSCH_TIMER_STOP(A) A.reset();
 #endif

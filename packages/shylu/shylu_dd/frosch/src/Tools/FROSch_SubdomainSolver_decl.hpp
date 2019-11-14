@@ -54,6 +54,7 @@
 #define FROSCH_TIMER_START_LEVELID(A,S) RCP<TimeMonitor> A = rcp(new TimeMonitor(*TimeMonitor::getNewTimer(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(this->LevelID_) + std::string(")"))));
 #endif
 
+
 #ifndef FROSCH_TIMER_START_LEVELID_VEC
 #define FROSCH_TIMER_START_LEVELID_VEC(A,S) A.push_back(rcp(new TimeMonitor(*TimeMonitor::getNewTimer(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(this->LevelID_) + std::string(")")))));
 #endif
@@ -279,6 +280,13 @@ namespace FROSch {
 
         int resetMatrix(ConstXMatrixPtr k,
                         bool reuseInitialize);
+
+        /*!
+        \brief Computes a residual using the operator
+        */
+        virtual void residual(const XMultiVector & X,
+                              const XMultiVector & B,
+                              XMultiVector& R) const;
 
         //!@}
 

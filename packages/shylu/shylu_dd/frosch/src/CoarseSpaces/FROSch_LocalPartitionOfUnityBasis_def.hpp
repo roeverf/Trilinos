@@ -117,10 +117,12 @@ namespace FROSch {
                           tmpCBasisJ(k,h) = data[k];
                         }
                       }
-                       /*if(MpiComm_->getRank() == 0){
+                      /*
+                      if(MpiComm_->getRank() == 0){
                           std::cout<<"---Nullspace--  "<<i<<" "<<j<<" -------\n";
                           tmpCBasisJ.print(std::cout);
-                        }*/
+                      }
+                      */
                   Teuchos::SerialQRDenseSolver<LO,SC> qrSolver;
                   qrSolver.setMatrix(Teuchos::rcp(&tmpCBasisJ, false));
 
@@ -130,7 +132,7 @@ namespace FROSch {
                         qrSolver.formR();
                         tmpCBasis[i][j]  = qrSolver.getQ();
                         tmpCBasisR[i][j] = qrSolver.getR();
-                        /*if(MpiComm_->getRank() == 0){
+                      /*  if(MpiComm_->getRank() == 0){
 
                           std::cout<<"-----Q "<<i<<" "<<j<<" -------\n";
                           tmpCBasis[i][j]->print(std::cout);
