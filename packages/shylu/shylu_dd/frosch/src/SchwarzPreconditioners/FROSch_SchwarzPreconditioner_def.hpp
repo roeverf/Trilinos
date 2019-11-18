@@ -59,7 +59,8 @@ namespace FROSch {
     IsInitialized_ (false),
     IsComputed_ (false),
     Verbose_ (comm->getRank()==0),
-    LevelID_ (ParameterList_->get("Level ID",UN(1)))
+    LevelID_ (ParameterList_->get("Level ID",UN(1))),
+    numLevel(ParameterList_->get("numLevel",UN(2)))
     {
 
     }
@@ -85,7 +86,7 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     void SchwarzPreconditioner<SC,LO,GO,NO>::residual(const XMultiVector & X,
                                                       const XMultiVector & B,
-                                                      XMultiVector& R) const 
+                                                      XMultiVector& R) const
     {
         SC one = Teuchos::ScalarTraits<SC>::one(), negone = -one;
         apply(X,R);

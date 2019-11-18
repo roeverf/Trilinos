@@ -51,6 +51,10 @@ namespace FROSch {
     using namespace Xpetra;
 
     template <class SC,class LO,class GO,class NO>
+    int OneLevelPreconditioner<SC,LO,GO,NO>::current_level = 0;
+
+
+    template <class SC,class LO,class GO,class NO>
     OneLevelPreconditioner<SC,LO,GO,NO>::OneLevelPreconditioner(ConstXMatrixPtr k,
                                                                 ParameterListPtr parameterList) :
     SchwarzPreconditioner<SC,LO,GO,NO> (parameterList,k->getRangeMap()->getComm()),
@@ -58,9 +62,17 @@ namespace FROSch {
     SumOperator_ (new SumOperator<SC,LO,GO,NO>(k->getRangeMap()->getComm())),
     MultiplicativeOperator_ (new MultiplicativeOperator<SC,LO,GO,NO>(k,parameterList)),
     OverlappingOperator_ (),
-    UseMultiplicative_(false)
+    UseMultiplicative_(false),
+    ConstTimer(this->numLevel),
+    ApplyTimer(this->numLevel)
     {
-        FROSCH_TIMER_START_LEVELID(oneLevelPreconditionerTime,"OneLevelPreconditioner::OneLevelPreconditioner");
+        current_level = current_level+1;
+        for(UN i = 0;i<this->numLevel;i++){
+          ConstTimer[i] = ATimer("OneLevelPreconditioner::OneLevelPreconditioner",i);
+          ApplyTimer[i] = ATimer("OneLevelPreconditioner::apply",i);
+        }
+        Teuchos::TimeMonitor ConstTM(*ConstTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(oneLevelPreconditionerTime,"OneLevelPreconditioner::OneLevelPreconditioner");
         if (!this->ParameterList_->get("OverlappingOperator Type","AlgebraicOverlappingOperator").compare("AlgebraicOverlappingOperator")) {
             // Set the LevelID in the sublist
             parameterList->sublist("AlgebraicOverlappingOperator").set("Level ID",this->LevelID_);
@@ -133,7 +145,8 @@ namespace FROSch {
                                                     SC alpha,
                                                     SC beta) const
     {
-        FROSCH_TIMER_START_LEVELID(applyTime,"OneLevelPreconditioner::apply");
+         Teuchos::TimeMonitor ApplyTM(*ApplyTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(applyTime,"OneLevelPreconditioner::apply");
         if (UseMultiplicative_) {
             return MultiplicativeOperator_->apply(x,y,true,mode,alpha,beta);
         }

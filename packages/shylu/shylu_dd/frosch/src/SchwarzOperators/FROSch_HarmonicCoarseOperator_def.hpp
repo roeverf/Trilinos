@@ -51,6 +51,9 @@ namespace FROSch {
     using namespace Xpetra;
 
     template <class SC,class LO,class GO,class NO>
+    int HarmonicCoarseOperator<SC,LO,GO,NO>::current_level= 0;
+
+    template <class SC,class LO,class GO,class NO>
     HarmonicCoarseOperator<SC,LO,GO,NO>::HarmonicCoarseOperator(ConstXMatrixPtr k,
                                                                 ParameterListPtr parameterList) :
     CoarseOperator<SC,LO,GO,NO> (k,parameterList),
@@ -61,15 +64,25 @@ namespace FROSch {
     GammaDofs_ (0),
     IDofs_ (0),
     DofsMaps_ (0),
-    NumberOfBlocks_ (0)
+    NumberOfBlocks_ (0),
+    AssemCSpaceTimer(this->numLevel),
+    CompCSpaceTimer(this->numLevel),
+    CompExtTimer(this->numLevel)
     {
+        for(UN i = 0;i<this->numLevel;i++){
+          AssemCSpaceTimer[i] = ATimer("HarmonicCoarseOperator::assembleCoarseMap",i);
+          CompCSpaceTimer[i]  = ATimer("HarmonicCoarseOperator::computeCoarseSpace",i);
+          CompExtTimer[i] = ATimer("HarmonicCoarseOperator::computeExtensions",i);
+        }
+        current_level = current_level + 1;
         FROSCH_TIMER_START_LEVELID(harmonicCoarseOperatorTime,"HarmonicCoarseOperator::HarmonicCoarseOperator");
     }
 
     template <class SC,class LO,class GO,class NO>
     typename HarmonicCoarseOperator<SC,LO,GO,NO>::XMapPtr HarmonicCoarseOperator<SC,LO,GO,NO>::computeCoarseSpace(CoarseSpacePtr coarseSpace)
     {
-        FROSCH_TIMER_START_LEVELID(computeCoarseSpaceTime,"HarmonicCoarseOperator::computeCoarseSpace");
+        Teuchos::TimeMonitor CompCSpaceTM(*CompCSpaceTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(computeCoarseSpaceTime,"HarmonicCoarseOperator::computeCoarseSpace");
         XMapPtr repeatedMap = AssembleSubdomainMap(NumberOfBlocks_,DofsMaps_,DofsPerNode_);
 
         // Build local saddle point problem
@@ -101,7 +114,7 @@ namespace FROSch {
         XMultiVectorPtr localCoarseSpaceBasis;
         if (this->CoarseMap_->getNodeNumElements()) {
             localCoarseSpaceBasis = computeExtensions(repeatedMatrix->getRowMap(),this->CoarseMap_,indicesGammaDofsAll(),indicesIDofsAll(),kII,kIGamma);
-            
+
             coarseSpace->addSubspace(this->CoarseMap_,localCoarseSpaceBasis);
         } else {
             if (this->Verbose_) std::cout << "FROSch::HarmonicCoarseOperator : WARNING: The Coarse Space is empty. No extensions are computed" << std::endl;
@@ -113,7 +126,8 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     typename HarmonicCoarseOperator<SC,LO,GO,NO>::XMapPtr HarmonicCoarseOperator<SC,LO,GO,NO>::assembleCoarseMap()
     {
-        FROSCH_TIMER_START_LEVELID(assembleCoarseMapTime,"HarmonicCoarseOperator::assembleCoarseMap");
+        Teuchos::TimeMonitor AssemCSpaceTM(*AssemCSpaceTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(assembleCoarseMapTime,"HarmonicCoarseOperator::assembleCoarseMap");
         GOVec mapVector(0);
         GO tmp = 0;
         for (UN i=0; i<NumberOfBlocks_; i++) {
@@ -326,18 +340,18 @@ namespace FROSch {
             // Compute values for the first node to check if rotation is constant
             x = nodeList->getData(0)[entitySet->getEntity(i)->getLocalNodeID(0)];
             y = nodeList->getData(1)[entitySet->getEntity(i)->getLocalNodeID(0)];
-            
+
             rx0[0] = y;
             ry0[0] = -x;
             if (dimension == 3) {
                 z = nodeList->getData(2)[entitySet->getEntity(i)->getLocalNodeID(0)];
-                
+
                 rz0[0] = 0;
-                
+
                 rx0[1] = -z;
                 ry0[1] = 0;
                 rz0[1] = x;
-                
+
                 rx0[2] = 0;
                 ry0[2] = z;
                 rz0[2] = -y;
@@ -349,21 +363,21 @@ namespace FROSch {
                 ////////////////
                 // Rotation 1 //
                 ////////////////
-                rx = y; 
+                rx = y;
                 ry = -x;
                 rotations[0]->replaceLocalValue(entitySet->getEntity(i)->getGammaDofID(j,0),i,rx);
                 rotations[0]->replaceLocalValue(entitySet->getEntity(i)->getGammaDofID(j,1),i,ry);
-                
+
                 // Compute difference (Euclidean norm of error to constant function)
                 errx[0] += (rx0[0]-rx)*(rx0[0]-rx);
                 erry[0] += (ry0[0]-ry)*(ry0[0]-ry);
-                
+
                 if (dimension == 3) {
                     z = nodeList->getData(2)[entitySet->getEntity(i)->getLocalNodeID(j)];
-                    
+
                     rz = 0;
                     rotations[0]->replaceLocalValue(entitySet->getEntity(i)->getGammaDofID(j,2),i,rz);
-                    
+
                     // Compute difference (Euclidean norm of error to constant function)
                     errz[0] += (rz0[0]-rz)*(rz0[0]-rz);
 
@@ -376,7 +390,7 @@ namespace FROSch {
                     rotations[1]->replaceLocalValue(entitySet->getEntity(i)->getGammaDofID(j,0),i,rx);
                     rotations[1]->replaceLocalValue(entitySet->getEntity(i)->getGammaDofID(j,1),i,ry);
                     rotations[1]->replaceLocalValue(entitySet->getEntity(i)->getGammaDofID(j,2),i,rz);
-                    
+
                     // Compute difference (Euclidean norm of error to constant function)
                     errx[1] += (rx0[1]-rx)*(rx0[1]-rx);
                     erry[1] += (ry0[1]-ry)*(ry0[1]-ry);
@@ -391,14 +405,14 @@ namespace FROSch {
                     rotations[2]->replaceLocalValue(entitySet->getEntity(i)->getGammaDofID(j,0),i,rx);
                     rotations[2]->replaceLocalValue(entitySet->getEntity(i)->getGammaDofID(j,1),i,ry);
                     rotations[2]->replaceLocalValue(entitySet->getEntity(i)->getGammaDofID(j,2),i,rz);
-                    
+
                     // Compute difference (Euclidean norm of error to constant function)
                     errx[2] += (rx0[2]-rx)*(rx0[2]-rx);
                     erry[2] += (ry0[2]-ry)*(ry0[2]-ry);
                     errz[2] += (rz0[2]-rz)*(rz0[2]-rz);
                 }
             }
-            
+
             // If error to constant function is almost zero => scale rotation with zero
             SC err;
             UN numZeroRotations = 0;
@@ -453,7 +467,9 @@ namespace FROSch {
                                                                                                                          XMatrixPtr kII,
                                                                                                                          XMatrixPtr kIGamma)
     {
-        FROSCH_TIMER_START_LEVELID(computeExtensionsTime,"HarmonicCoarseOperator::computeExtensions");
+
+       Teuchos::TimeMonitor CompExtTM(*CompExtTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(computeExtensionsTime,"HarmonicCoarseOperator::computeExtensions");
         //this->Phi_ = MatrixFactory<SC,LO,GO,NO>::Build(this->K_->getRangeMap(),coarseMap,coarseMap->getNodeNumElements()); // Nonzeroes abhängig von dim/dofs!!!
         XMultiVectorPtr mVPhi = MultiVectorFactory<SC,LO,GO,NO>::Build(localMap,coarseMap->getNodeNumElements());
         XMultiVectorPtr mVtmp = MultiVectorFactory<SC,LO,GO,NO>::Build(kII->getRowMap(),coarseMap->getNodeNumElements());

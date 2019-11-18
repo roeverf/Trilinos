@@ -49,6 +49,8 @@ namespace FROSch {
 
     using namespace Teuchos;
     using namespace Xpetra;
+    template<class SC,class LO,class GO,class NO>
+    int CoarseOperator<SC,LO,GO,NO>::current_level = 0;
 
     template<class SC,class LO,class GO,class NO>
     CoarseOperator<SC,LO,GO,NO>::CoarseOperator(ConstXMatrixPtr k,
@@ -84,8 +86,22 @@ namespace FROSch {
 #ifdef FROSCH_COARSEOPERATOR_EXPORT_AND_IMPORT
     , CoarseSolveImporters_ (0)
 #endif
+    ,ConstTimer(this->numLevel),
+    BuildCMatTimer(this->numLevel),
+    BuildCMapTimer(this->numLevel),
+    CompTimer(this->numLevel),
+    SetUpTimer(this->numLevel)
     {
-        FROSCH_TIMER_START_LEVELID(coarseOperatorTime,"CoarseOperator::CoarseOperator");
+        current_level = current_level+1;
+        for(UN i = 0;i<this->numLevel;i++){
+          ConstTimer[i] = ATimer("CoarseOperator::CoarseOperator",i);
+          BuildCMatTimer[i] = ATimer("CoarseOperator::buildCoarseMatrix",i);
+          BuildCMapTimer[i] = ATimer("CoarseOperator::buildCoarseSolveMap",i);
+          CompTimer[i] = ATimer("CoarseOperator::compute",i);
+          SetUpTimer[i] = ATimer("CoarseOperator::setUpCoarseOperator",i);
+        }
+        Teuchos::TimeMonitor ConstTM(*ConstTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(coarseOperatorTime,"CoarseOperator::CoarseOperator");
     }
 
     template<class SC,class LO,class GO,class NO>
@@ -309,7 +325,8 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int CoarseOperator<SC,LO,GO,NO>::compute()
     {
-        FROSCH_TIMER_START_LEVELID(computeTime,"CoarseOperator::compute");
+        Teuchos::TimeMonitor CompTM(*CompTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(computeTime,"CoarseOperator::compute");
         FROSCH_ASSERT(this->IsInitialized_,"FROSch::CoarseOperator : ERROR: CoarseOperator has to be initialized before calling compute()");
         // This is not optimal yet... Some work could be moved to Initialize
         //if (this->Verbose_) std::cout << "FROSch::CoarseOperator : WARNING: Some of the operations could probably be moved from initialize() to Compute().\n";
@@ -479,7 +496,8 @@ namespace FROSch {
     int CoarseOperator<SC,LO,GO,NO>::setUpCoarseOperator()
     {
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
-        FROSCH_TIMER_START_LEVELID(setUpCoarseOperatorTime,"CoarseOperator::setUpCoarseOperator");
+        Teuchos::TimeMonitor SetUpTM(*SetUpTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(setUpCoarseOperatorTime,"CoarseOperator::setUpCoarseOperator");
         if (!Phi_.is_null()) {
             // Build CoarseMatrix_
             XMatrixPtr k0 = buildCoarseMatrix();
@@ -684,7 +702,8 @@ namespace FROSch {
     template<class SC,class LO,class GO,class NO>
     typename CoarseOperator<SC,LO,GO,NO>::XMatrixPtr CoarseOperator<SC,LO,GO,NO>::buildCoarseMatrix()
     {
-        FROSCH_TIMER_START_LEVELID(buildCoarseMatrixTime,"CoarseOperator::buildCoarseMatrix");
+        Teuchos::TimeMonitor BuildCMatTM(*BuildCMapTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(buildCoarseMatrixTime,"CoarseOperator::buildCoarseMatrix");
         XMatrixPtr k0 = MatrixFactory<SC,LO,GO,NO>::Build(CoarseSpace_->getBasisMap(),CoarseSpace_->getBasisMap()->getNodeNumElements());
 
         if (this->ParameterList_->get("Use Triple MatrixMultiply",false)) {
@@ -700,7 +719,8 @@ namespace FROSch {
     template<class SC,class LO,class GO,class NO>
     int CoarseOperator<SC,LO,GO,NO>::buildCoarseSolveMap()
     {
-        FROSCH_TIMER_START_LEVELID(buildCoarseSolveMapTime,"CoarseOperator::buildCoarseSolveMap");
+        Teuchos::TimeMonitor BuildCMapTM(*BuildCMapTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(buildCoarseSolveMapTime,"CoarseOperator::buildCoarseSolveMap");
         NumProcsCoarseSolve_ = DistributionList_->get("NumProcs",1);
         double factor = DistributionList_->get("Factor",0.0);
 

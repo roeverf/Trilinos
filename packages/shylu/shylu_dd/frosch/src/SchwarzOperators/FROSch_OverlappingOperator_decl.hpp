@@ -80,6 +80,7 @@ namespace FROSch {
         using ConstSCVecPtr         = typename SchwarzOperator<SC,LO,GO,NO>::ConstSCVecPtr;
 
         using UN                    = typename SchwarzOperator<SC,LO,GO,NO>::UN;
+        using TimePtr               = typename SchwarzOperator<SC,LO,GO,NO>::TimePtr;
 
     public:
 
@@ -99,6 +100,14 @@ namespace FROSch {
                            SC alpha=ScalarTraits<SC>::one(),
                            SC beta=ScalarTraits<SC>::zero()) const;
 
+        static int current_level;
+
+        Teuchos::Array<TimePtr> ConstTimer;
+        Teuchos::Array<TimePtr> ApplyTimer;
+        Teuchos::Array<TimePtr> InitTimer;
+        Teuchos::Array<TimePtr> CompTimer;
+
+
     protected:
 
         enum CombinationType {Averaging,Full,Restricted};
@@ -108,7 +117,7 @@ namespace FROSch {
         virtual int computeOverlappingOperator();
 
         virtual int updateLocalOverlappingMatrices() = 0;
-        
+
         ConstXMatrixPtr OverlappingMatrix_;
 
         ConstXMapPtr OverlappingMap_;

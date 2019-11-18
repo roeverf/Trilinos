@@ -65,12 +65,17 @@ namespace FROSch {
                                                                             ParameterListPtr parameterList) :
     OverlappingOperator<SC,LO,GO,NO> (k,parameterList),
     AddingLayersStrategy_ (),
-    timer_(this->numLevel)
+    InitTimer(this->numLevel),
+    ComTimer(this->numLevel),
+    BuildOMatTimer(this->numLevel)
     {
-        for(UN i = 0;i<timer_.size();i++){
-          timer_[i].resize(this->numLevel);
+        for(UN i = 0;i<this->numLevel;i++){
+          //InitTimer[i] = Teuchos::TimeMonitor::getNewCounter(std::string("FROSch: ") + std::string("AlgebaicOverlappingOperator::initialize") + " (Level " + std::to_string(i) + std::string(")"));
+          InitTimer[i] = ATimer("AlgebaicOverlappingOperator::initialize",i);
+          ComTimer[i] = ATimer("AlgebaicOverlappingOperator::compute",i);
+          BuildOMatTimer[i] = ATimer("AlgebaicOverlappingOperator::buildOverlappingMatrices",i);
         }
-        AFROSCH_TIMER_LEVELID(timer_[0][current_level],"AlgebaicOverlappingOperator::initialize");
+        //AFROSCH_TIMER_LEVELID(timer_[0][current_level],"AlgebaicOverlappingOperator::initialize");
         current_level = current_level+1;
         if(this->Verbose_)std::cout<<"Level "<<current_level<<std::endl;
         FROSCH_TIMER_START_LEVELID(algebraicOverlappingOperatorTime,"AlgebraicOverlappingOperator::AlgebraicOverlappingOperator");
@@ -89,7 +94,7 @@ namespace FROSch {
     int AlgebraicOverlappingOperator<SC,LO,GO,NO>::initialize(int overlap,
                                                               ConstXMapPtr repeatedMap)
     {
-         Teuchos::TimeMonitor initTime(*timer_[0][current_level-1]);
+         Teuchos::TimeMonitor initTimeM(*InitTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(initializeTime,"AlgebaicOverlappingOperator::initialize");
 
         if(this->Verbose_)std::cout<<"Alg Op Level ID =  "<<this->LevelID_<<std::endl;
@@ -112,7 +117,8 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int AlgebraicOverlappingOperator<SC,LO,GO,NO>::compute()
     {
-        FROSCH_TIMER_START_LEVELID(computeTime,"AlgebraicOverlappingOperator::compute");
+        Teuchos::TimeMonitor ComTimerM(*ComTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(computeTime,"AlgebraicOverlappingOperator::compute");
         FROSCH_ASSERT(this->IsInitialized_,"ERROR: AlgebraicOverlappingOperator has to be initialized before calling compute()");
         this->computeOverlappingOperator();
         return 0; // RETURN VALUE!!!
@@ -135,7 +141,8 @@ namespace FROSch {
     int AlgebraicOverlappingOperator<SC,LO,GO,NO>::buildOverlappingMatrices(int overlap,
                                                                             ConstXMapPtr repeatedMap)
     {
-        FROSCH_TIMER_START_LEVELID(buildOverlappingMatricesTime,"AlgebraicOverlappingOperator::buildOverlappingMatrices");
+        //FROSCH_TIMER_START_LEVELID(buildOverlappingMatricesTime,"AlgebraicOverlappingOperator::buildOverlappingMatrices");
+        Teuchos::TimeMonitor BuildOMatTimerM(*BuildOMatTimer[current_level-1]);
         // ====================================================================================
         // AH 08/09/2019: This is just temporary. Implement this properly in all the classes
         Verbosity verbosity = All;

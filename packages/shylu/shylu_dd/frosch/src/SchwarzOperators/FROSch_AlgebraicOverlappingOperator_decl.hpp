@@ -48,7 +48,7 @@
 #define AFROSCH_TIMER_LEVELID(A,S)  A = Teuchos::TimeMonitor::getNewTimer(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(this->LevelID_) + std::string(")"));
 #define FROSCH_TIMER_S(A,B) Teuchos::TimeMonitor A(*B);
 #define FROSCH_TIMER_VEC(A,N,L,S)Teuchos::Array<Teuchos::RCP<Teuchos::TimeMonitor> > A(N); A[L] = rcp(new TimeMonitor(*TimeMonitor::getNewTimer(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(L) + std::string(")"))));
-
+#define ATimer(S,L) Teuchos::TimeMonitor::getNewCounter(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(L) + std::string(")"));
 namespace FROSch {
 
     using namespace Teuchos;
@@ -77,6 +77,8 @@ namespace FROSch {
 
         using ParameterListPtr      = typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr;
 
+        using TimePtr               = typename SchwarzOperator<SC,LO,GO,NO>::TimePtr;
+
     public:
 
         AlgebraicOverlappingOperator(ConstXMatrixPtr k,
@@ -97,7 +99,10 @@ namespace FROSch {
                       const EVerbosityLevel verbLevel=Describable::verbLevel_default) const;
 
         std::string description() const;
-        Teuchos::Array<Teuchos::Array<Teuchos::RCP<Teuchos::Time> > > timer_;
+        //Teuchos::Array<Teuchos::Array<Teuchos::RCP<Teuchos::Time> > > timer_;
+        Teuchos::Array<TimePtr> InitTimer;
+        Teuchos::Array<TimePtr> ComTimer;
+        Teuchos::Array<TimePtr> BuildOMatTimer;
         static int current_level;
         static int timer_count;
 

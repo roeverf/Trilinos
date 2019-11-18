@@ -52,12 +52,26 @@ namespace FROSch {
     using namespace Xpetra;
 
     template <class SC,class LO,class GO,class NO>
+    int TwoLevelBlockPreconditioner<SC,LO,GO,NO>::current_level = 0;
+
+    template <class SC,class LO,class GO,class NO>
     TwoLevelBlockPreconditioner<SC,LO,GO,NO>::TwoLevelBlockPreconditioner(ConstXMatrixPtr k,
                                                                           ParameterListPtr parameterList) :
     OneLevelPreconditioner<SC,LO,GO,NO> (k,parameterList),
-    CoarseOperator_ ()
+    CoarseOperator_ (),
+    ConstTimer(this->numLevel),
+    CompTimer(this->numLevel),
+    IniTimer(this->numLevel)
     {
-        FROSCH_TIMER_START_LEVELID(twoLevelBlockPreconditionerTime,"TwoLevelBlockPreconditioner::TwoLevelBlockPreconditioner");
+
+        current_level = current_level+1;
+        for(UN i = 0;i<this->numLevel;i++){
+          ConstTimer[i] = ATimer("TwoLevelBlockPreconditioner::TwoLevelBlockPreconditioner",i);
+          CompTimer[i] = ATimer("TwoLevelBlockPreconditioner::compute",i);
+          IniTimer[i] = ATimer("TwoLevelBlockPreconditioner::initialize",i);
+        }
+        Teuchos::TimeMonitor ConstTM(*ConstTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(twoLevelBlockPreconditionerTime,"TwoLevelBlockPreconditioner::TwoLevelBlockPreconditioner");
         if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("IPOUHarmonicCoarseOperator")) {
             // Set the LevelID in the sublist
             parameterList->sublist("IPOUHarmonicCoarseOperator").set("Level ID",this->LevelID_);
@@ -98,7 +112,8 @@ namespace FROSch {
                                                              GOVecPtr2D dirichletBoundaryDofsVec)
     {
         RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout));
-        FROSCH_TIMER_START_LEVELID(initializeTime,"TwoLevelBlockPreconditioner::initialize");
+        Teuchos::TimeMonitor IniTM(*IniTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(initializeTime,"TwoLevelBlockPreconditioner::initialize");
         ////////////
         // Checks //
         ////////////
@@ -251,7 +266,8 @@ namespace FROSch {
                                                              GOVecPtr2D dirichletBoundaryDofsVec)
     {
         RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout));
-        FROSCH_TIMER_START_LEVELID(initializeTime,"TwoLevelBlockPreconditioner::initialize");
+        Teuchos::TimeMonitor IniTM(*IniTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(initializeTime,"TwoLevelBlockPreconditioner::initialize");
         ////////////
         // Checks //
         ////////////
@@ -394,7 +410,8 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int TwoLevelBlockPreconditioner<SC,LO,GO,NO>::compute()
     {
-        FROSCH_TIMER_START_LEVELID(computeTime,"TwoLevelBlockPreconditioner::compute");
+        Teuchos::TimeMonitor CompTM(*CompTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(computeTime,"TwoLevelBlockPreconditioner::compute");
         int ret = 0;
         if (0>this->OverlappingOperator_->compute()) ret -= 1;
         if (0>CoarseOperator_->compute()) ret -= 10;

@@ -165,6 +165,9 @@ namespace FROSch {
         using BoolVec                           = Array<bool>;
         using BoolVecPtr                        = ArrayRCP<bool>;
 
+        using TimePtr                           = RCP<Teuchos::Time>;
+
+
     public:
 
         SchwarzOperator(CommPtr comm);
@@ -207,7 +210,7 @@ namespace FROSch {
 
         int resetMatrix(ConstXMatrixPtr &k);
 
-      
+
         virtual void residual(const XMultiVector & X,
                               const XMultiVector & B,
                               XMultiVector& R) const;

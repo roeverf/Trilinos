@@ -43,6 +43,7 @@
 #define _FROSCH_HARMONICCOARSEOPERATOR_DECL_HPP
 
 #include <FROSch_CoarseOperator_def.hpp>
+#define ATimer(S,L) Teuchos::TimeMonitor::getNewCounter(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(L) + std::string(")"));
 
 
 namespace FROSch {
@@ -94,6 +95,8 @@ namespace FROSch {
         using GOVec2D                 = typename SchwarzOperator<SC,LO,GO,NO>::GOVec2D;
         using SCVec                   = typename SchwarzOperator<SC,LO,GO,NO>::SCVec;
 
+        using TimePtr                 = typename SchwarzOperator<SC,LO,GO,NO>::TimePtr;
+
     public:
 
         HarmonicCoarseOperator(ConstXMatrixPtr k,
@@ -103,10 +106,16 @@ namespace FROSch {
 
         XMapPtr computeCoarseSpace(CoarseSpacePtr coarseSpace);
 
+        static int current_level;
+
+        Teuchos::Array<TimePtr> AssemCSpaceTimer;
+        Teuchos::Array<TimePtr> CompCSpaceTimer;
+        Teuchos::Array<TimePtr> CompExtTimer;
+
     protected:
 
         int intializeCoarseMap();
-        
+
         XMapPtr assembleCoarseMap();
 
         int addZeroCoarseSpaceBlock(ConstXMapPtr dofsMap);
@@ -147,6 +156,7 @@ namespace FROSch {
         ConstXMapPtrVecPtr2D DofsMaps_; // notwendig??
 
         UN NumberOfBlocks_;
+
     };
 
 }

@@ -51,6 +51,9 @@ namespace FROSch {
     using namespace Xpetra;
 
     template <class SC,class LO,class GO,class NO>
+    int OverlappingOperator<SC,LO,GO,NO>::current_level = 0;
+
+    template <class SC,class LO,class GO,class NO>
     OverlappingOperator<SC,LO,GO,NO>::OverlappingOperator(ConstXMatrixPtr k,
                                                           ParameterListPtr parameterList) :
     SchwarzOperator<SC,LO,GO,NO> (k,parameterList),
@@ -63,9 +66,22 @@ namespace FROSch {
     Scatter_(),
     SubdomainSolver_ (),
     Multiplicity_(),
-    Combine_()
+    Combine_(),
+    ConstTimer(this->numLevel),
+    ApplyTimer(this->numLevel),
+    InitTimer(this->numLevel),
+    CompTimer(this->numLevel)
     {
-        FROSCH_TIMER_START_LEVELID(overlappingOperatorTime,"OverlappingOperator::OverlappingOperator");
+        current_level = current_level+1;
+        for(UN i = 0;i<this->numLevel;i++){
+          ConstTimer[i] = ATimer("OverlappingOperator::OverlappingOperator",i);
+          ApplyTimer[i] = ATimer("OverlappingOperator::apply",i);
+          InitTimer[i] = ATimer("OverlappingOperator::initializeOverlappingOperator",i);
+          CompTimer[i] = ATimer("OverlappingOperator::computeOverlappingOperator",i);
+        }
+
+        Teuchos::TimeMonitor ConstTM(*ConstTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(overlappingOperatorTime,"OverlappingOperator::OverlappingOperator");
         if (!this->ParameterList_->get("Combine Values in Overlap","Restricted").compare("Averaging")) {
             Combine_ = Averaging;
         } else if (!this->ParameterList_->get("Combine Values in Overlap","Restricted").compare("Full")) {
@@ -90,7 +106,8 @@ namespace FROSch {
                                                  SC alpha,
                                                  SC beta) const
     {
-        FROSCH_TIMER_START_LEVELID(applyTime,"OverlappingOperator::apply");
+        Teuchos::TimeMonitor ApplyTM(*ApplyTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(applyTime,"OverlappingOperator::apply");
         FROSCH_ASSERT(this->IsComputed_,"FROSch::OverlappingOperator : ERROR: OverlappingOperator has to be computed before calling apply()");
         if (XTmp_.is_null()) XTmp_ = MultiVectorFactory<SC,LO,GO,NO>::Build(x.getMap(),x.getNumVectors());
         *XTmp_ = x;
@@ -165,7 +182,8 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int OverlappingOperator<SC,LO,GO,NO>::initializeOverlappingOperator()
     {
-        FROSCH_TIMER_START_LEVELID(initializeOverlappingOperatorTime,"OverlappingOperator::initializeOverlappingOperator");
+        Teuchos::TimeMonitor InitTM(*InitTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(initializeOverlappingOperatorTime,"OverlappingOperator::initializeOverlappingOperator");
         Scatter_ = ImportFactory<LO,GO,NO>::Build(this->getDomainMap(),OverlappingMap_);
         if (Combine_ == Averaging) {
             Multiplicity_ = MultiVectorFactory<SC,LO,GO,NO>::Build(this->getRangeMap(),1);
@@ -182,8 +200,9 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int OverlappingOperator<SC,LO,GO,NO>::computeOverlappingOperator()
     {
-        FROSCH_TIMER_START_LEVELID(computeOverlappingOperatorTime,"OverlappingOperator::computeOverlappingOperator");
-        
+        Teuchos::TimeMonitor CompTM(*CompTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(computeOverlappingOperatorTime,"OverlappingOperator::computeOverlappingOperator");
+
         updateLocalOverlappingMatrices();
 
         bool reuseSymbolicFactorization = this->ParameterList_->get("Reuse: Symbolic Factorization",true);

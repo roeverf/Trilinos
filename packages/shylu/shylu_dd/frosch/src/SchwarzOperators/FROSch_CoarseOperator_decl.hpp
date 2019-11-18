@@ -46,6 +46,7 @@
 
 // #define FROSCH_COARSEOPERATOR_DETAIL_TIMERS
 // #define FROSCH_COARSEOPERATOR_EXPORT_AND_IMPORT
+#define ATimer(S,L) Teuchos::TimeMonitor::getNewCounter(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(L) + std::string(")"));
 
 // TODO: Member sortieren!?
 #include <Zoltan2_MatrixAdapter.hpp>
@@ -130,6 +131,8 @@ namespace FROSch {
         using InterfaceEntityPtrVec     = Teuchos::Array<InterfaceEntityPtr>;
         using InterfaceEntityPtrVecPtr  = Teuchos::ArrayRCP<InterfaceEntityPtr>;
 
+        using TimePtr                   = typename SchwarzOperator<SC,LO,GO,NO>::TimePtr;
+
     public:
 
         CoarseOperator(ConstXMatrixPtr k,
@@ -169,6 +172,13 @@ namespace FROSch {
                                       ParameterListPtr parameterList,
                                       Teuchos::RCP<const Teuchos::Comm<int> > TeuchosComm,
                                       XMapPtr &RepeatedMap);
+
+        static int current_level;
+        Teuchos::Array<TimePtr> ConstTimer;
+        Teuchos::Array<TimePtr> BuildCMatTimer;
+        Teuchos::Array<TimePtr> BuildCMapTimer;
+        Teuchos::Array<TimePtr> CompTimer;
+        Teuchos::Array<TimePtr> SetUpTimer;
 
 
     protected:

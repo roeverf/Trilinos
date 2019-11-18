@@ -53,6 +53,7 @@
 #include <FROSch_InterfaceEntity_decl.hpp>
 
 #include <FROSch_ExtractSubmatrices_def.hpp>
+#define ATimer(S,L) Teuchos::TimeMonitor::getNewCounter(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(L) + std::string(")"));
 
 
 namespace FROSch {
@@ -126,6 +127,8 @@ namespace FROSch {
         using SCVec                     = Array<SC>;
         using SCVecPtr                  = ArrayRCP<SC>;
 
+        using TimePtr                   = RCP<Teuchos::Time>;
+
     public:
 
         DDInterface(UN dimension,
@@ -195,7 +198,7 @@ namespace FROSch {
         EntitySetConstPtr & getInterior() const;
 
         EntitySetConstPtr & getRoots() const;
-        
+
         EntitySetConstPtr & getLeafs() const;
 
         EntitySetPtrConstVecPtr & getEntitySetVector() const;
@@ -205,6 +208,19 @@ namespace FROSch {
         EntitySetConstPtr & getConnectivityEntities() const;
 
         ConstXMapPtr getNodesMap() const;
+
+        Teuchos::Array<TimePtr> DDIntTimer;
+        Teuchos::Array<TimePtr> DDEMapsTimer;
+        Teuchos::Array<TimePtr> DDcomComTimer;
+        Teuchos::Array<TimePtr> DDDivTimer;
+        Teuchos::Array<TimePtr> DDFlagETimer;
+        Teuchos::Array<TimePtr> DDIdentConETimer;
+        Teuchos::Array<TimePtr> DDIdentLocComTimer;
+        Teuchos::Array<TimePtr> DDRemEmpTimer;
+        Teuchos::Array<TimePtr> DDResetGlobDofsTimer;
+        Teuchos::Array<TimePtr> DDSortTimer;
+
+        static int current_level;
 
 
     protected:
@@ -243,6 +259,7 @@ namespace FROSch {
         Verbosity Verbosity_;
 
         ConstUN LevelID_;
+        ConstUN numLevel_;
     };
 
 }

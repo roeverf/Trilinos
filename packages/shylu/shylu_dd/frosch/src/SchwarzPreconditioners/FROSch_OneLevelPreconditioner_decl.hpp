@@ -43,13 +43,14 @@
 #define _FROSCH_ONELEVELPRECONDITIONER__DECL_HPP
 
 #include <FROSch_SchwarzPreconditioner_def.hpp>
+#define ATimer(S,L) Teuchos::TimeMonitor::getNewCounter(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(L) + std::string(")"));
 
 
 namespace FROSch {
 
     using namespace Teuchos;
     using namespace Xpetra;
-    
+
     template <class SC = double,
               class LO = int,
               class GO = DefaultGlobalOrdinal,
@@ -73,6 +74,8 @@ namespace FROSch {
         using OverlappingOperatorPtr            = typename SchwarzPreconditioner<SC,LO,GO,NO>::OverlappingOperatorPtr;
         using AlgebraicOverlappingOperatorPtr   = typename SchwarzPreconditioner<SC,LO,GO,NO>::AlgebraicOverlappingOperatorPtr;
 
+        using TimePtr                           = typename SchwarzPreconditioner<SC,LO,GO,NO>::TimePtr;
+        using UN                                = unsigned;
     public:
 
         OneLevelPreconditioner(ConstXMatrixPtr k,
@@ -104,6 +107,10 @@ namespace FROSch {
         virtual std::string description() const;
 
         virtual int resetMatrix(ConstXMatrixPtr &k);
+        static int current_level;
+
+        Teuchos::Array<TimePtr> ConstTimer;
+        Teuchos::Array<TimePtr> ApplyTimer;
 
     protected:
 

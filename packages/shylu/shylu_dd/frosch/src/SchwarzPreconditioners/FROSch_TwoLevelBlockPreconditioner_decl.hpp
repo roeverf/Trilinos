@@ -44,6 +44,7 @@
 
 #include <FROSch_OneLevelPreconditioner_def.hpp>
 
+#define ATimer(S,L) Teuchos::TimeMonitor::getNewCounter(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(L) + std::string(")"));
 
 namespace FROSch {
 
@@ -92,6 +93,12 @@ namespace FROSch {
         using GOVecPtr                            = typename SchwarzPreconditioner<SC,LO,GO,NO>::GOVecPtr;
         using GOVecPtr2D                          = typename SchwarzPreconditioner<SC,LO,GO,NO>::GOVecPtr2D;
 
+        using TimePtr                           = typename SchwarzPreconditioner<SC,LO,GO,NO>::TimePtr;
+
+        static int current_level;
+        Teuchos::Array<TimePtr> ConstTimer;
+        Teuchos::Array<TimePtr> CompTimer;
+        Teuchos::Array<TimePtr> IniTimer;
     public:
 
         TwoLevelBlockPreconditioner(ConstXMatrixPtr k,

@@ -112,6 +112,9 @@ namespace FROSch {
 
         using SCVecPtr                            = ArrayRCP<SC>;
 
+        using TimePtr                           = RCP<Teuchos::Time>;
+
+
     public:
 
         SchwarzPreconditioner(ParameterListPtr parameterList,
@@ -146,6 +149,8 @@ namespace FROSch {
         virtual void residual(const XMultiVector & X,
                               const XMultiVector & B,
                               XMultiVector& R) const;
+
+        
     protected:
 
         CommPtr MpiComm_;
@@ -158,6 +163,8 @@ namespace FROSch {
         bool Verbose_;
 
         ConstUN LevelID_;
+        ConstUN numLevel;
+
     };
 
 }
