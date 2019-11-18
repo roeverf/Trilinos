@@ -51,6 +51,9 @@ namespace FROSch {
     using namespace Xpetra;
 
     template <class SC,class LO,class GO,class NO>
+    int GDSWInterfacePartitionOfUnity<SC,LO,GO,NO>::current_level = 0;
+
+    template <class SC,class LO,class GO,class NO>
     GDSWInterfacePartitionOfUnity<SC,LO,GO,NO>::GDSWInterfacePartitionOfUnity(CommPtr mpiComm,
                                                                               CommPtr serialComm,
                                                                               UN dimension,
@@ -59,8 +62,9 @@ namespace FROSch {
                                                                               ConstXMapPtrVecPtr dofsMaps,
                                                                               ParameterListPtr parameterList,
                                                                               Verbosity verbosity,
-                                                                              UN levelID) :
-    InterfacePartitionOfUnity<SC,LO,GO,NO> (mpiComm,serialComm,dimension,dofsPerNode,nodesMap,dofsMaps,parameterList,verbosity,levelID),
+                                                                              UN levelID,
+                                                                              UN NumLevel) :
+    InterfacePartitionOfUnity<SC,LO,GO,NO> (mpiComm,serialComm,dimension,dofsPerNode,nodesMap,dofsMaps,parameterList,verbosity,levelID,NumLevel),
     UseVertices_ (false),
     UseShortEdges_ (false),
     UseStraightEdges_ (false),
@@ -70,9 +74,21 @@ namespace FROSch {
     ShortEdges_ (),
     StraightEdges_ (),
     Edges_ (),
-    Faces_ ()
+    Faces_ (),
+    ConstTimer(this->numLevel_),
+    CompPartTimer(this->numLevel_),
+    RemDirchTimer(this->numLevel_),
+    SortIntTimer(this->numLevel_)
     {
-        FROSCH_TIMER_START_LEVELID(gDSWInterfacePartitionOfUnityTime,"GDSWInterfacePartitionOfUnity::GDSWInterfacePartitionOfUnity");
+      current_level = current_level + 1;
+      for(UN i = 0;i<this->numLevel_;i++){
+        ConstTimer[i] = ATimer("GDSWInterfacePartitionOfUnity::GDSWInterfacePartitionOfUnity",i);
+        CompPartTimer[i] = ATimer("GDSWInterfacePartitionOfUnity::computePartitionOfUnity",i);
+        RemDirchTimer[i] = ATimer("GDSWInterfacePartitionOfUnity::removeDirichletNodes",i);
+        SortIntTimer[i] = ATimer("GDSWInterfacePartitionOfUnity::sortInterface",i);
+      }
+        Teuchos::TimeMonitor ConstTM(*ConstTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(gDSWInterfacePartitionOfUnityTime,"GDSWInterfacePartitionOfUnity::GDSWInterfacePartitionOfUnity");
         if (!this->ParameterList_->get("Type","Full").compare("Full")) {
             UseVertices_ = true;
             UseShortEdges_ = true;
@@ -140,7 +156,9 @@ namespace FROSch {
     int GDSWInterfacePartitionOfUnity<SC,LO,GO,NO>::removeDirichletNodes(GOVecView dirichletBoundaryDofs,
                                                                          ConstXMultiVectorPtr nodeList)
     {
-        FROSCH_TIMER_START_LEVELID(removeDirichletNodesTime,"GDSWInterfacePartitionOfUnity::removeDirichletNodes");
+
+        Teuchos::TimeMonitor RemDirchTM(*RemDirchTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(removeDirichletNodesTime,"GDSWInterfacePartitionOfUnity::removeDirichletNodes");
         if (!dirichletBoundaryDofs.is_null()) {
             GOVec tmpDirichletBoundaryDofs(dirichletBoundaryDofs());
             sortunique(tmpDirichletBoundaryDofs);
@@ -154,7 +172,9 @@ namespace FROSch {
     int GDSWInterfacePartitionOfUnity<SC,LO,GO,NO>::sortInterface(ConstXMatrixPtr matrix,
                                                                   ConstXMultiVectorPtr nodeList)
     {
-        FROSCH_TIMER_START_LEVELID(sortInterfaceTime,"GDSWInterfacePartitionOfUnity::sortInterface");
+
+        Teuchos::TimeMonitor SortIntTM(*SortIntTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(sortInterfaceTime,"GDSWInterfacePartitionOfUnity::sortInterface");
         if (this->ParameterList_->get("Test Unconnected Interface",true)) {
             if (matrix.is_null()) {
                 if (this->Verbose_) std::cout << "FROSch::GDSWInterfacePartitionOfUnity : WARNING: divideUnconnectedEntities() cannot be performed without the matrix." << std::endl;
@@ -168,7 +188,9 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int GDSWInterfacePartitionOfUnity<SC,LO,GO,NO>::computePartitionOfUnity(ConstXMultiVectorPtr nodeList)
     {
-        FROSCH_TIMER_START_LEVELID(computePartitionOfUnityTime,"GDSWInterfacePartitionOfUnity::computePartitionOfUnity");
+
+        Teuchos::TimeMonitor CompPartTM(*CompPartTimer[current_level-1]);
+        //FROSCH_TIMER_START_LEVELID(computePartitionOfUnityTime,"GDSWInterfacePartitionOfUnity::computePartitionOfUnity");
         // Interface
         UN dofsPerNode = this->DDInterface_->getInterface()->getEntity(0)->getDofsPerNode();
         UN numInterfaceDofs = dofsPerNode*this->DDInterface_->getInterface()->getEntity(0)->getNumNodes();

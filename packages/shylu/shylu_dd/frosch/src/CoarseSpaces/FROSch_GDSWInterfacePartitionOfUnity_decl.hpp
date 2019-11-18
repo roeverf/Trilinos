@@ -86,6 +86,7 @@ namespace FROSch {
 
         using GOVec                         = typename PartitionOfUnity<SC,LO,GO,NO>::GOVec;
         using GOVecView                     = typename PartitionOfUnity<SC,LO,GO,NO>::GOVecView;
+        using TimePtr                       = Teuchos::RCP<Teuchos::Time>;
 
     public:
 
@@ -97,10 +98,11 @@ namespace FROSch {
                                       ConstXMapPtrVecPtr dofsMaps,
                                       ParameterListPtr parameterList,
                                       Verbosity verbosity = All,
-                                      UN levelID = 1);
+                                      UN levelID = 1,
+                                      UN NumLevel = 2);
 
         virtual ~GDSWInterfacePartitionOfUnity();
-        
+
         virtual int removeDirichletNodes(GOVecView dirichletBoundaryDofs,
                                          ConstXMultiVectorPtr nodeList = null);
 
@@ -108,6 +110,12 @@ namespace FROSch {
                                   ConstXMultiVectorPtr nodeList = null);
 
         virtual int computePartitionOfUnity(ConstXMultiVectorPtr nodeList = null);
+
+        static int current_level;
+        Teuchos::Array<TimePtr> ConstTimer;
+        Teuchos::Array<TimePtr> CompPartTimer;
+        Teuchos::Array<TimePtr> RemDirchTimer;
+        Teuchos::Array<TimePtr> SortIntTimer;
 
     protected:
 

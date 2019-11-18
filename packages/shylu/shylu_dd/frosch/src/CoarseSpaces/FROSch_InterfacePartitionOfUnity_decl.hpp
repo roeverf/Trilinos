@@ -43,6 +43,7 @@
 #define _FROSCH_INTERFACEPARTITIONOFUNITY_DECL_HPP
 
 #include <FROSch_PartitionOfUnity_def.hpp>
+#define ATimer(S,L) Teuchos::TimeMonitor::getNewCounter(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(L) + std::string(")"));
 
 
 namespace FROSch {
@@ -94,6 +95,7 @@ namespace FROSch {
 
         using SCVecPtr                      = typename PartitionOfUnity<SC,LO,GO,NO>::SCVecPtr;
 
+        using TimePtr                       = Teuchos::RCP<Teuchos::Time>;
     public:
 
         InterfacePartitionOfUnity(CommPtr mpiComm,
@@ -104,17 +106,18 @@ namespace FROSch {
                                   ConstXMapPtrVecPtr dofsMaps,
                                   ParameterListPtr parameterList,
                                   Verbosity verbosity = All,
-                                  UN levelID = 1);
+                                  UN levelID = 1,
+                                  UN NumLevel = 2);
 
-        virtual ~InterfacePartitionOfUnity();        
+        virtual ~InterfacePartitionOfUnity();
 
         virtual int sortInterface(ConstXMatrixPtr matrix = null,
                                   ConstXMultiVectorPtr nodeList = null) = 0;
 
         ConstDDInterfacePtr getDDInterface() const;
-        
+
         DDInterfacePtr getDDInterfaceNonConst() const;
-        
+
         virtual int computePartitionOfUnity(ConstXMultiVectorPtr nodeList = null) = 0;
 
     protected:

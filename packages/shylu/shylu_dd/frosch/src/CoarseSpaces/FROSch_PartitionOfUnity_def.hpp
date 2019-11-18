@@ -58,7 +58,8 @@ namespace FROSch {
                                                     ConstXMapPtrVecPtr dofsMaps,
                                                     ParameterListPtr parameterList,
                                                     Verbosity verbosity,
-                                                    UN levelID) :
+                                                    UN levelID,
+                                                    UN NumLevel) :
     MpiComm_ (mpiComm),
     SerialComm_ (serialComm),
     ParameterList_ (parameterList),
@@ -67,9 +68,10 @@ namespace FROSch {
     AssmbledPartitionOfUnityMap_ (),
     Verbose_ (MpiComm_->getRank() == 0),
     Verbosity_ (verbosity),
-    LevelID_ (levelID)
+    LevelID_ (levelID),
+    numLevel_(NumLevel)
     {
-        
+
     }
 
     template <class SC,class LO,class GO,class NO>

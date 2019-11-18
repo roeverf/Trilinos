@@ -113,6 +113,9 @@ namespace FROSch {
     template<class SC,class LO, class GO, class NO>
     int CoarseOperator<SC,LO,GO,NO>::buildGlobalGraph(Teuchos::RCP<DDInterface<SC,LO,GO,NO> > theDDInterface_){
 
+
+     FROSCH_TIMER_START_LEVELID(buildGlobalGraphTime,"CoarseOperator::buildGlobalGraph");
+
      Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
      std::map<GO,int> rep;
      Teuchos::Array<GO> entries;
@@ -157,6 +160,9 @@ namespace FROSch {
   template <class SC,class LO, class GO,class NO>
   int CoarseOperator<SC,LO,GO,NO>::buildCoarseGraph(){
 
+
+     FROSCH_TIMER_START_LEVELID(buildCoarseGraphTime,"CoarseOperator::buildCoarseGraph");
+
      Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
 
 		 int nSubs = this->MpiComm_->getSize();
@@ -194,6 +200,8 @@ namespace FROSch {
 
     template <class SC,class LO,class GO, class NO>
   int CoarseOperator<SC,LO,GO,NO>::buildElementNodeList(){
+
+  FROSCH_TIMER_START_LEVELID(buildElementNodeListTime,"CoarseOperator::buildElementNodeList");
 
   Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
 
@@ -268,6 +276,8 @@ namespace FROSch {
                                 Teuchos::RCP<const Teuchos::Comm<int> > TeuchosComm,
                                 XMapPtr &RepeatedMap)
      {
+
+       FROSCH_TIMER_START_LEVELID(BuildRepMapZoltanTime,"CoarseOperator::BuildRepMapZoltan");
 
         int MyPID=TeuchosComm->getRank();
          Teuchos::RCP<Teuchos::FancyOStream> fancy = fancyOStream(Teuchos::rcpFromRef(std::cout));

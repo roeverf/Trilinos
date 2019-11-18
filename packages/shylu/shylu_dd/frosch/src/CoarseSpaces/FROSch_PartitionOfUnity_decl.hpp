@@ -88,11 +88,11 @@ namespace FROSch {
 
         using UN                            = unsigned;
         using ConstUN                       = const UN;
-        
+
         using LOVec                         = Array<LO>;
         using LOVecPtr                      = ArrayRCP<LO>;
         using LOVecPtr2D                    = ArrayRCP<LOVecPtr>;
-        
+
         using GOVec                         = Array<GO>;
         using GOVecView                     = ArrayView<GO>;
 
@@ -108,7 +108,8 @@ namespace FROSch {
                          ConstXMapPtrVecPtr dofsMaps,
                          ParameterListPtr parameterList,
                          Verbosity verbosity = All,
-                         UN levelID = 1);
+                         UN levelID = 1,
+                         UN NumLevel = 2);
 
         virtual ~PartitionOfUnity();
 
@@ -118,11 +119,11 @@ namespace FROSch {
         virtual int computePartitionOfUnity(ConstXMultiVectorPtr nodeList = null) = 0;
 
         int assembledPartitionOfUnityMaps();
-        
+
         XMultiVectorPtrVecPtr getLocalPartitionOfUnity() const;
 
         XMapPtrVecPtr getPartitionOfUnityMaps() const;
-        
+
         XMapPtr getAssembledPartitionOfUnityMap() const;
 
     protected:
@@ -135,14 +136,15 @@ namespace FROSch {
         XMultiVectorPtrVecPtr LocalPartitionOfUnity_;
 
         XMapPtrVecPtr PartitionOfUnityMaps_;
-        
+
         XMapPtr AssmbledPartitionOfUnityMap_;
 
         bool Verbose_;
-        
+
         Verbosity Verbosity_;
 
         const UN LevelID_;
+        const UN numLevel_;
     };
 
 }

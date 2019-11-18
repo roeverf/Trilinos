@@ -59,6 +59,7 @@ namespace FROSch {
                                           ConstXMapPtr localToGlobalMap,
                                           Verbosity verbosity,
                                           UN levelID,
+                                          UN NumLevel,
                                           CommunicationStrategy commStrategy) :
     MpiComm_ (localToGlobalMap->getComm()),
     Dimension_ (dimension),
@@ -80,17 +81,17 @@ namespace FROSch {
     Verbose_ (MpiComm_->getRank()==0),
     Verbosity_ (verbosity),
     LevelID_ (levelID),
-    numLevel_(3),//needs to be updated to variable
-    DDIntTimer(3),
-    DDEMapsTimer(3),
-    DDcomComTimer(3),
-    DDDivTimer(3),
-    DDFlagETimer(3),
-    DDIdentConETimer(3),
-    DDIdentLocComTimer(3),
-    DDRemEmpTimer(3),
-    DDResetGlobDofsTimer(3),
-    DDSortTimer(3)
+    numLevel_(NumLevel),//needs to be updated to variable
+    DDIntTimer(NumLevel),
+    DDEMapsTimer(NumLevel),
+    DDcomComTimer(NumLevel),
+    DDDivTimer(NumLevel),
+    DDFlagETimer(NumLevel),
+    DDIdentConETimer(NumLevel),
+    DDIdentLocComTimer(NumLevel),
+    DDRemEmpTimer(NumLevel),
+    DDResetGlobDofsTimer(NumLevel),
+    DDSortTimer(NumLevel)
     {
         current_level = current_level+1;
         for(UN i = 0;i<numLevel_;i++){

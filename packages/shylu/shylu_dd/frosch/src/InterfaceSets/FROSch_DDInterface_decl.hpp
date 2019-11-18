@@ -136,6 +136,7 @@ namespace FROSch {
                     ConstXMapPtr localToGlobalMap,
                     Verbosity verbosity = All,
                     UN levelID = 1,
+                    UN NumLevel = 2,
                     CommunicationStrategy commStrategy = CommCrsGraph);
 
         ~DDInterface();
