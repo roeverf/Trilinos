@@ -132,17 +132,17 @@ namespace FROSch {
                         qrSolver.formR();
                         tmpCBasis[i][j]  = qrSolver.getQ();
                         tmpCBasisR[i][j] = qrSolver.getR();
-                      /*  if(MpiComm_->getRank() == 0){
+                        if(MpiComm_->getRank() == 0){
 
                           std::cout<<"-----Q "<<i<<" "<<j<<" -------\n";
                           tmpCBasis[i][j]->print(std::cout);
                           std::cout<<"-----QR"<<i<<" "<<j<<" -------\n";
                           tmpCBasisR[i][j]->print(std::cout);
-                          Teuchos::RCP<Teuchos::SerialDenseMatrix<LO,SC> >  K  = (Teuchos::rcp( new Teuchos::SerialDenseMatrix<LO,SC>(tmpCBasis[i][j]->numRows(),tmpCBasis[i][j]->numCols())));
-                          K->multiply(Teuchos::NO_TRANS,Teuchos::NO_TRANS,1.0,*tmpCBasis[i][j],*tmpCBasisR[i][j],0.0);
-                          std::cout<<"-----K"<<i<<" "<<j<<" -------\n";
-                          K->print(std::cout);
-                        }*/
+                          //Teuchos::RCP<Teuchos::SerialDenseMatrix<LO,SC> >  K  = (Teuchos::rcp( new Teuchos::SerialDenseMatrix<LO,SC>(tmpCBasis[i][j]->numRows(),tmpCBasis[i][j]->numCols())));
+                          //K->multiply(Teuchos::NO_TRANS,Teuchos::NO_TRANS,1.0,*tmpCBasis[i][j],*tmpCBasisR[i][j],0.0);
+                          //std::cout<<"-----K"<<i<<" "<<j<<" -------\n";
+                          //K->print(std::cout);
+                        }
                     } else {
                         tmpCBasis[i][j] = Teuchos::rcpFromRef(tmpCBasisJ);
                     }
@@ -197,7 +197,7 @@ namespace FROSch {
                             entityBasis->getDataNonConst(k).deepCopy(constDataC);
                         }
                       }
-                        LocalPartitionOfUnitySpace_->addSubspace(PartitionOfUnityMaps_[i],entityBasis);
+                      LocalPartitionOfUnitySpace_->addSubspace(PartitionOfUnityMaps_[i],entityBasis);
                     }
                 if (ParameterList_->get("Coarse NullSpace",false)) {
                 NullSpaceMapVec_[i] = Xpetra::MapFactory<LO,GO,NO>::Build(NullspaceBasis_->getMap()->lib(),maxNV[i],0,SerialComm_);
@@ -215,6 +215,10 @@ namespace FROSch {
                       }
                     }
                   }
+                /*if(MpiComm_->getRank() == 0) {
+                  std::cout<<i<<" Col "<<j<<" \n";
+                CoarseNullSpace->describe(*fancy,Teuchos::VERB_EXTREME);
+              }*/
                   LocalPartitionOfUnitySpace_->addNullspace(PartitionOfUnityMaps_[i],CoarseNullSpace);
                 }
               }
@@ -231,7 +235,14 @@ namespace FROSch {
          LocalPartitionOfUnitySpace_->assembleNullSpace(maxNumBasis);
          CoarseNullSpace_ = LocalPartitionOfUnitySpace_->getAssembledNullSpace();
        }
-
+       XMultiVectorPtr Q_glob = LocalPartitionOfUnitySpace_->getAssembledNullSpace();
+       /*Q_glob->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
+       Q_glob->describe(*fancy,Teuchos::VERB_EXTREME);
+       if(MpiComm_->getRank() == 0) std::cout<<"-------------------------------\n";
+       CoarseNullSpace_->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
+       CoarseNullSpace_->describe(*fancy,Teuchos::VERB_EXTREME);
+       XMultiVectorPtr res = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(Q_glob->getMap(),CoarseNullSpace_->getNumVectors());
+       //res->multiply(Teuchos::NO_TRANS,Teuchos::TRANS,1.0,*Q_glob,*CoarseNullSpace_,1.0);*/
         return 0;
     }
 

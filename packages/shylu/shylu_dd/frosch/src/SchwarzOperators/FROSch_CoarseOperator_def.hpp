@@ -310,6 +310,7 @@ namespace FROSch {
 
            BB->doImport(*B,*scatter,Xpetra::INSERT);
          }
+         //BB->getRowMap()->describe(*fancy,Teuchos::VERB_EXTREME);
          // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          Teuchos::Array<GO> repeatedMapEntries(0);
          for (size_t i = 0; i<ReGraph->getRowMap()->getNodeNumElements(); i++) {

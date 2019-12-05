@@ -161,6 +161,7 @@ namespace FROSch {
               }
             }
           }
+          AssembledNullSpace_->describe(*fancy,Teuchos::VERB_EXTREME);
       return 0;
 
 
