@@ -100,49 +100,53 @@ namespace FROSch {
         Teuchos::Array<Teuchos::Array<Teuchos::RCP<Teuchos::SerialDenseMatrix<LO,SC> > > > tmpCBasisR(PartitionOfUnity_.size());
 
         Teuchos::Array<XMapPtr> NullSpaceMapVec_(PartitionOfUnity_.size());
-
+        Teuchos::Array<UN>  NumCols(PartitionOfUnity_.size());
 
         for (UN i=0; i<PartitionOfUnity_.size(); i++) {
             if (!PartitionOfUnity_[i].is_null()) {
                 FROSCH_ASSERT(PartitionOfUnityMaps_[i]->getNodeNumElements()>0,"PartitionOfUnityMaps_[i]->getNodeNumElements()==0");
                 tmpCBasis[i] = Teuchos::Array<Teuchos::RCP<Teuchos::SerialDenseMatrix<LO,SC> > > (PartitionOfUnity_[i]->getNumVectors());
                 tmpCBasisR[i] = Teuchos::Array<Teuchos::RCP<Teuchos::SerialDenseMatrix<LO,SC> > > (PartitionOfUnity_[i]->getNumVectors());
+
                 for (UN j=0; j<PartitionOfUnity_[i]->getNumVectors(); j++) {
                     XMultiVectorPtr tmpBasisJ = MultiVectorFactory<SC,LO,GO,NO>::Build(NullspaceBasis_->getMap(),NullspaceBasis_->getNumVectors());
                     Teuchos::SerialDenseMatrix<LO,SC> tmpCBasisJ(NullspaceBasis_->getMap()->getNodeNumElements(),NullspaceBasis_->getNumVectors());
                     tmpBasisJ->elementWiseMultiply(Teuchos::ScalarTraits<SC>::one(),*PartitionOfUnity_[i]->getVector(j),*NullspaceBasis_,Teuchos::ScalarTraits<SC>::one());
+                    //if(MpiComm_->getRank() == 0){std::cout<<"---Nullspace##  "<<i<<" "<<j<<" -------\n"; tmpBasisJ->describe(*fancy,Teuchos::VERB_EXTREME);}
                     for(UN h = 0;h<NullspaceBasis_->getNumVectors();h++){
                         Teuchos::ArrayRCP<SC> data = tmpBasisJ->getDataNonConst(h);
                         for(UN k = 0;k<NullspaceBasis_->getMap()->getNodeNumElements();k++){
                           tmpCBasisJ(k,h) = data[k];
                         }
                       }
-                      /*
-                      if(MpiComm_->getRank() == 0){
+
+                    /*  if(MpiComm_->getRank() == 0 && i == 0 && j == 0){
                           std::cout<<"---Nullspace--  "<<i<<" "<<j<<" -------\n";
                           tmpCBasisJ.print(std::cout);
-                      }
-                      */
+                      }*/
+
                   Teuchos::SerialQRDenseSolver<LO,SC> qrSolver;
                   qrSolver.setMatrix(Teuchos::rcp(&tmpCBasisJ, false));
-
-                    if (ParameterList_->get("Orthogonalize",true)) {
+                  if (ParameterList_->get("Orthogonalize",true)) {
                         qrSolver.factor();
                         qrSolver.formQ();
                         qrSolver.formR();
                         tmpCBasis[i][j]  = qrSolver.getQ();
                         tmpCBasisR[i][j] = qrSolver.getR();
-                        if(MpiComm_->getRank() == 0){
-
+                      /*  if(MpiComm_->getRank() == 0 &&i == 0 && j == 0){
                           std::cout<<"-----Q "<<i<<" "<<j<<" -------\n";
-                          tmpCBasis[i][j]->print(std::cout);
-                          std::cout<<"-----QR"<<i<<" "<<j<<" -------\n";
+                          qrSolver.getQ()->print(std::cout);
+
+                          std::cout<<"------R"<<i<<" "<<j<<" -------\n";
+
                           tmpCBasisR[i][j]->print(std::cout);
+                          }
+
                           //Teuchos::RCP<Teuchos::SerialDenseMatrix<LO,SC> >  K  = (Teuchos::rcp( new Teuchos::SerialDenseMatrix<LO,SC>(tmpCBasis[i][j]->numRows(),tmpCBasis[i][j]->numCols())));
                           //K->multiply(Teuchos::NO_TRANS,Teuchos::NO_TRANS,1.0,*tmpCBasis[i][j],*tmpCBasisR[i][j],0.0);
                           //std::cout<<"-----K"<<i<<" "<<j<<" -------\n";
-                          //K->print(std::cout);
-                        }
+                          //K->print(std::cout);*/
+                        NumCols[i] = tmpCBasis[i][j]->numCols();
                     } else {
                         tmpCBasis[i][j] = Teuchos::rcpFromRef(tmpCBasisJ);
                     }
@@ -152,7 +156,6 @@ namespace FROSch {
                 FROSCH_ASSERT(PartitionOfUnityMaps_[i]->getNodeNumElements()==0,"PartitionOfUnityMaps_[i]->getNodeNumElements()!=0");
             }
         }
-
         // Determine Number of Basisfunctions per Entity
         UNVecPtr maxNV(PartitionOfUnity_.size());
         for (UN i=0; i<PartitionOfUnity_.size(); i++) {
@@ -181,6 +184,7 @@ namespace FROSch {
 
         for (UN i=0; i<PartitionOfUnity_.size(); i++) {
             if (!PartitionOfUnityMaps_[i].is_null()) {
+              //PartitionOfUnityMaps_[i]->describe(*fancy,Teuchos::VERB_EXTREME);
                 if (!PartitionOfUnity_[i].is_null()) {
                     for (UN j=0; j<maxNV[i]; j++) {
                         //XMultiVectorPtrVecPtr tmpBasis2(PartitionOfUnity_[i]->getNumVectors());
@@ -198,15 +202,18 @@ namespace FROSch {
                         }
                       }
                       LocalPartitionOfUnitySpace_->addSubspace(PartitionOfUnityMaps_[i],entityBasis);
+                      //if(MpiComm_->getRank() == 0)entityBasis->describe(*fancy,Teuchos::VERB_EXTREME);
                     }
+
                 if (ParameterList_->get("Coarse NullSpace",false)) {
-                NullSpaceMapVec_[i] = Xpetra::MapFactory<LO,GO,NO>::Build(NullspaceBasis_->getMap()->lib(),maxNV[i],0,SerialComm_);
                 for(UN j=0; j<maxNV[i]; j++) {
                   //MultiVectorPtrVecPtr tmpBasis2(PartitionOfUnity_[i]->getNumVectors());
-                  XMultiVectorPtr CoarseNullSpace = Xpetra::MultiVectorFactory<SC,LO,GO,NO >::Build(NullSpaceMapVec_[i],PartitionOfUnity_[i]->getNumVectors());
-                  CoarseNullSpace->scale(Teuchos::ScalarTraits<SC>::zero());
+                  XMultiVectorPtr CoarseNullSpace;
                   for (UN k=0; k<PartitionOfUnity_[i]->getNumVectors(); k++) {
                     if(j<tmpCBasisR[i][k]->numCols()) {
+                      NullSpaceMapVec_[i] = Xpetra::MapFactory<LO,GO,NO>::Build(NullspaceBasis_->getMap()->lib(),tmpCBasisR[i][k]->numCols(),0,SerialComm_);
+                      CoarseNullSpace = Xpetra::MultiVectorFactory<SC,LO,GO,NO >::Build(NullSpaceMapVec_[i],PartitionOfUnity_[i]->getNumVectors());
+                      CoarseNullSpace->scale(Teuchos::ScalarTraits<SC>::zero());
                       Teuchos::SerialDenseVector<LO,SC> columnR = Teuchos::getCol<LO,SC>(Teuchos::Copy,*tmpCBasisR[i][k],j);
                       Teuchos::ArrayRCP<SC> dataCR (NullSpaceMapVec_[i]->getNodeNumElements());
                       for(UN z = 0; z<columnR.length();z++){
@@ -215,10 +222,10 @@ namespace FROSch {
                       }
                     }
                   }
-                /*if(MpiComm_->getRank() == 0) {
-                  std::cout<<i<<" Col "<<j<<" \n";
-                CoarseNullSpace->describe(*fancy,Teuchos::VERB_EXTREME);
-              }*/
+                  if(MpiComm_->getRank() == 0){
+                    std::cout<<"i "<<i<<"j "<<j<<std::endl;
+                    CoarseNullSpace->describe(*fancy,Teuchos::VERB_EXTREME);
+                  }
                   LocalPartitionOfUnitySpace_->addNullspace(PartitionOfUnityMaps_[i],CoarseNullSpace);
                 }
               }
@@ -233,15 +240,19 @@ namespace FROSch {
         LocalPartitionOfUnitySpace_->assembleCoarseSpace();
         if (ParameterList_->get("Coarse NullSpace",false)) {
          LocalPartitionOfUnitySpace_->assembleNullSpace(maxNumBasis);
-         CoarseNullSpace_ = LocalPartitionOfUnitySpace_->getAssembledNullSpace();
+         //CoarseNullSpace_ = LocalPartitionOfUnitySpace_->getAssembledNullSpace();
        }
-       XMultiVectorPtr Q_glob = LocalPartitionOfUnitySpace_->getAssembledNullSpace();
-       /*Q_glob->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
+       /*MpiComm_->barrier();MpiComm_->barrier();MpiComm_->barrier();
+       XMultiVectorPtr Q_glob = LocalPartitionOfUnitySpace_->getAssembledBasis();
+       Q_glob->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
+       MpiComm_->barrier();MpiComm_->barrier();MpiComm_->barrier();
        Q_glob->describe(*fancy,Teuchos::VERB_EXTREME);
+       MpiComm_->barrier();MpiComm_->barrier();MpiComm_->barrier();
        if(MpiComm_->getRank() == 0) std::cout<<"-------------------------------\n";
        CoarseNullSpace_->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
+       MpiComm_->barrier();MpiComm_->barrier();MpiComm_->barrier();
        CoarseNullSpace_->describe(*fancy,Teuchos::VERB_EXTREME);
-       XMultiVectorPtr res = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(Q_glob->getMap(),CoarseNullSpace_->getNumVectors());
+       //XMultiVectorPtr res = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(Q_glob->getMap(),CoarseNullSpace_->getNumVectors());
        //res->multiply(Teuchos::NO_TRANS,Teuchos::TRANS,1.0,*Q_glob,*CoarseNullSpace_,1.0);*/
         return 0;
     }

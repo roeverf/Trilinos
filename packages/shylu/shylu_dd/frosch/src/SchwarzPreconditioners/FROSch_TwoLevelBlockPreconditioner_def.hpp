@@ -226,7 +226,6 @@ namespace FROSch {
               nullSpaceBasisVec.resize(repeatedMapVec.size());
               for(int i = 0;i<repeatedMapVec.size();i++){
                 nullSpaceBasisVec[i] = BuildNullSpace(dimension,LinearElasticityNullSpace,repeatedMapVec[i],dofsPerNodeVec[i],dofsMapsVec[i],nodeListVec[i]);
-                nullSpaceBasisVec[i]->describe(*fancy,Teuchos::VERB_EXTREME);
               }
             }if (!this->ParameterList_->get("Null Space Type","Stokes").compare("Laplace")) {
               nullSpaceBasisVec.resize(1);

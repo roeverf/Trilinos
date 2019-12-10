@@ -102,6 +102,8 @@ namespace FROSch {
                                    ConstXMapPtr repeatedMap,
                                    SC treshold);
 
+        int buildGlobalNullSpace(SC treshold);
+
 
         int clearCoarseSpace();
 
@@ -121,6 +123,7 @@ namespace FROSch {
         bool hasGlobalBasisMatrix() const;
 
         XMatrixPtr getGlobalBasisMatrix() const;
+        XMultiVectorPtr getGlobalCoarseNullSpace() const;
 
     protected:
 
@@ -139,6 +142,8 @@ namespace FROSch {
         XMultiVectorPtr AssembledNullSpace_;
 
         XMatrixPtr GlobalBasisMatrix_;
+        XMultiVectorPtr GlobalNullSpace_;
+
 
     };
 

@@ -174,6 +174,7 @@ namespace FROSch {
         FROSCH_ASSERT(dofsMaps.size()==dofsPerNode,"dofsMaps.size()!=dofsPerNode");
         FROSCH_ASSERT(blockId<this->NumberOfBlocks_,"Block does not exist yet and can therefore not be reset.");
         this->dofs = nullSpaceBasis->getNumVectors();
+        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::VerboseObjectBase::getDefaultOStream();
 
         if (this->Verbose_) {
             std::cout << "\n\
@@ -297,7 +298,7 @@ namespace FROSch {
             LocalPartitionOfUnityBasis_->buildLocalPartitionOfUnityBasis();
 
             if(sublist(coarseSpaceList,"LocalPartitionOfUnityBasis")->get("Coarse NullSpace",false)){
-              this->CoarseNullSpace_[blockId] = LocalPartitionOfUnityBasis_->getCoarseNullSpace();
+            //  this->CoarseNullSpace_[blockId] = LocalPartitionOfUnityBasis_->getCoarseNullSpace();
             }
 
             this->InterfaceCoarseSpaces_[blockId] = LocalPartitionOfUnityBasis_->getLocalPartitionOfUnitySpace();
