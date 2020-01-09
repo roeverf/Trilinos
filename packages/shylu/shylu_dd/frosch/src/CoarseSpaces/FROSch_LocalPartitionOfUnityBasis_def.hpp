@@ -101,6 +101,8 @@ namespace FROSch {
 
         Teuchos::Array<XMapPtr> NullSpaceMapVec_(PartitionOfUnity_.size());
         Teuchos::Array<UN>  NumCols(PartitionOfUnity_.size());
+        UN nullRow = 1;
+        UN nullRowb = 1;
 
         for (UN i=0; i<PartitionOfUnity_.size(); i++) {
             if (!PartitionOfUnity_[i].is_null()) {
@@ -120,10 +122,12 @@ namespace FROSch {
                         }
                       }
 
-                    /*  if(MpiComm_->getRank() == 0 && i == 0 && j == 0){
+                  /*   if(MpiComm_->getRank() == 0 && i == 0 && j == 0){
                           std::cout<<"---Nullspace--  "<<i<<" "<<j<<" -------\n";
                           tmpCBasisJ.print(std::cout);
                       }*/
+
+                  //Q Vector auf Null setzen der linear abhängig ist.....
 
                   Teuchos::SerialQRDenseSolver<LO,SC> qrSolver;
                   qrSolver.setMatrix(Teuchos::rcp(&tmpCBasisJ, false));
@@ -133,14 +137,16 @@ namespace FROSch {
                         qrSolver.formR();
                         tmpCBasis[i][j]  = qrSolver.getQ();
                         tmpCBasisR[i][j] = qrSolver.getR();
-                      /*  if(MpiComm_->getRank() == 0 &&i == 0 && j == 0){
-                          std::cout<<"-----Q "<<i<<" "<<j<<" -------\n";
-                          qrSolver.getQ()->print(std::cout);
 
-                          std::cout<<"------R"<<i<<" "<<j<<" -------\n";
+
+                    if(MpiComm_->getRank() == 0){
+                         std::cout<<"-----Q "<<i<<" "<<j<<" -----"<<PartitionOfUnity_[i]->getNumVectors()<<"--\n";
+                         qrSolver.getQ()->print(std::cout);
+
+                          std::cout<<"MPI RANK  "<<MpiComm_->getRank()<<"------R"<<i<<" "<<j<<" -------\n";
 
                           tmpCBasisR[i][j]->print(std::cout);
-                          }
+                        }
 
                           //Teuchos::RCP<Teuchos::SerialDenseMatrix<LO,SC> >  K  = (Teuchos::rcp( new Teuchos::SerialDenseMatrix<LO,SC>(tmpCBasis[i][j]->numRows(),tmpCBasis[i][j]->numCols())));
                           //K->multiply(Teuchos::NO_TRANS,Teuchos::NO_TRANS,1.0,*tmpCBasis[i][j],*tmpCBasisR[i][j],0.0);
@@ -162,6 +168,7 @@ namespace FROSch {
             UN maxNVLocal = 0;
             if (!PartitionOfUnityMaps_[i].is_null()) {
                 if (!PartitionOfUnity_[i].is_null()) {
+
                     for (UN j=0; j<tmpCBasis[i].size(); j++) {
                       maxNVLocal = std::max(maxNVLocal,(UN) tmpCBasis[i][j]->numCols());                    }
                 }
@@ -187,48 +194,51 @@ namespace FROSch {
               //PartitionOfUnityMaps_[i]->describe(*fancy,Teuchos::VERB_EXTREME);
                 if (!PartitionOfUnity_[i].is_null()) {
                     for (UN j=0; j<maxNV[i]; j++) {
+                      NullSpaceMapVec_[i] = Xpetra::MapFactory<LO,GO,NO>::Build(NullspaceBasis_->getMap()->lib(),maxNV[i],0,SerialComm_);
+                      XMultiVectorPtr CoarseNullSpace = Xpetra::MultiVectorFactory<SC,LO,GO,NO >::Build(NullSpaceMapVec_[i],PartitionOfUnity_[i]->getNumVectors());;
+                      CoarseNullSpace->scale(Teuchos::ScalarTraits<SC>::zero());
                         //XMultiVectorPtrVecPtr tmpBasis2(PartitionOfUnity_[i]->getNumVectors());
                         XMultiVectorPtr entityBasis = MultiVectorFactory<SC,LO,GO,NO >::Build(PartitionOfUnity_[i]->getMap(),PartitionOfUnity_[i]->getNumVectors());
                         entityBasis->scale(ScalarTraits<SC>::zero());
                         for (UN k=0; k<PartitionOfUnity_[i]->getNumVectors(); k++) {
+
                           if (j<tmpCBasis[i][k]->numCols()) {
                             Teuchos::SerialDenseVector<LO,SC> column = Teuchos::getCol<LO,SC>(Teuchos::Copy,*tmpCBasis[i][k],j);
                             Teuchos::ArrayRCP<SC> dataC (NullspaceBasis_->getMap()->getNodeNumElements());
-                            for(UN z = 0 ; z<column.length();z++){
-                              dataC[z] = column(z);
-                            }
-                            Teuchos::ArrayView<const SC> constDataC = dataC.getConst()();
-                            entityBasis->getDataNonConst(k).deepCopy(constDataC);
+
+                            Teuchos::SerialDenseMatrix<LO,SC> transMat (*tmpCBasisR[i][k],Teuchos::TRANS);
+                            Teuchos::SerialDenseVector<LO,SC> columnR = Teuchos::getCol<LO,SC>(Teuchos::Copy,transMat,j);
+                            Teuchos::ArrayRCP<SC> dataCR (NullSpaceMapVec_[i]->getNodeNumElements());
+
+                            nullRow = 1;
+                            for(UN z = 0;z<NullSpaceMapVec_[i]->getNodeNumElements();z++){
+                                    dataCR[z] = columnR[z];
+                                    nullRowb = nullRow;
+                                    if(std::abs(dataCR[z]) < 1e-10 && nullRowb == 1 ) nullRow =1;
+                                    else nullRow = 0;
+                                    CoarseNullSpace->replaceLocalValue(z,k,dataCR[z]);
+                             }
+                             if(MpiComm_->getRank() == 0)std::cout<<"NullRow "<<nullRow<<std::endl;
+                             for(UN z = 0 ; z<column.length();z++){
+                               if(nullRow == 0)dataC[z] = column(z);
+                               else dataC[z] = 0;
+                             }
+                             Teuchos::ArrayView<const SC> constDataC = dataC.getConst()();
+                             entityBasis->getDataNonConst(k).deepCopy(constDataC);
                         }
+
                       }
-                      LocalPartitionOfUnitySpace_->addSubspace(PartitionOfUnityMaps_[i],entityBasis);
-                      //if(MpiComm_->getRank() == 0)entityBasis->describe(*fancy,Teuchos::VERB_EXTREME);
+
+                      if (ParameterList_->get("Coarse NullSpace",false)) {
+                        LocalPartitionOfUnitySpace_->addNullspace(PartitionOfUnityMaps_[i],CoarseNullSpace);
+                      }
+                    if(MpiComm_->getRank() == 0){
+                      entityBasis->describe(*fancy,Teuchos::VERB_EXTREME);
                     }
 
-                if (ParameterList_->get("Coarse NullSpace",false)) {
-                for(UN j=0; j<maxNV[i]; j++) {
-                  //MultiVectorPtrVecPtr tmpBasis2(PartitionOfUnity_[i]->getNumVectors());
-                  XMultiVectorPtr CoarseNullSpace;
-                  for (UN k=0; k<PartitionOfUnity_[i]->getNumVectors(); k++) {
-                    if(j<tmpCBasisR[i][k]->numCols()) {
-                      NullSpaceMapVec_[i] = Xpetra::MapFactory<LO,GO,NO>::Build(NullspaceBasis_->getMap()->lib(),tmpCBasisR[i][k]->numCols(),0,SerialComm_);
-                      CoarseNullSpace = Xpetra::MultiVectorFactory<SC,LO,GO,NO >::Build(NullSpaceMapVec_[i],PartitionOfUnity_[i]->getNumVectors());
-                      CoarseNullSpace->scale(Teuchos::ScalarTraits<SC>::zero());
-                      Teuchos::SerialDenseVector<LO,SC> columnR = Teuchos::getCol<LO,SC>(Teuchos::Copy,*tmpCBasisR[i][k],j);
-                      Teuchos::ArrayRCP<SC> dataCR (NullSpaceMapVec_[i]->getNodeNumElements());
-                      for(UN z = 0; z<columnR.length();z++){
-                        dataCR[z] = columnR(z);
-                        CoarseNullSpace->replaceLocalValue(z,k,dataCR[z]);
-                      }
+                      LocalPartitionOfUnitySpace_->addSubspace(PartitionOfUnityMaps_[i],entityBasis);
+
                     }
-                  }
-                  if(MpiComm_->getRank() == 0){
-                    std::cout<<"i "<<i<<"j "<<j<<std::endl;
-                    CoarseNullSpace->describe(*fancy,Teuchos::VERB_EXTREME);
-                  }
-                  LocalPartitionOfUnitySpace_->addNullspace(PartitionOfUnityMaps_[i],CoarseNullSpace);
-                }
-              }
             } else {
                     LocalPartitionOfUnitySpace_->addSubspace(PartitionOfUnityMaps_[i]);
                 }
@@ -240,7 +250,7 @@ namespace FROSch {
         LocalPartitionOfUnitySpace_->assembleCoarseSpace();
         if (ParameterList_->get("Coarse NullSpace",false)) {
          LocalPartitionOfUnitySpace_->assembleNullSpace(maxNumBasis);
-         //CoarseNullSpace_ = LocalPartitionOfUnitySpace_->getAssembledNullSpace();
+         CoarseNullSpace_ = LocalPartitionOfUnitySpace_->getAssembledNullSpace();
        }
        /*MpiComm_->barrier();MpiComm_->barrier();MpiComm_->barrier();
        XMultiVectorPtr Q_glob = LocalPartitionOfUnitySpace_->getAssembledBasis();

@@ -200,26 +200,42 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int OverlappingOperator<SC,LO,GO,NO>::computeOverlappingOperator()
     {
+        RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout));
         Teuchos::TimeMonitor CompTM(*CompTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(computeOverlappingOperatorTime,"OverlappingOperator::computeOverlappingOperator");
-
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0) std::cout<<"AC1   ..\n";
         updateLocalOverlappingMatrices();
-
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0) std::cout<<"AC2   ..\n";
         bool reuseSymbolicFactorization = this->ParameterList_->get("Reuse: Symbolic Factorization",true);
         if (!this->IsComputed_) {
             reuseSymbolicFactorization = false;
         }
-
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0) std::cout<<"AC3   ..\n";
         if (!reuseSymbolicFactorization) {
             if (this->IsComputed_ && this->Verbose_) std::cout << "FROSch::OverlappingOperator : Recomputing the Symbolic Factorization" << std::endl;
             SubdomainSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(OverlappingMatrix_,sublist(this->ParameterList_,"Solver")));
+            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+            if(this->MpiComm_->getRank() == 0) std::cout<<"AC4   ..\n";
             SubdomainSolver_->initialize();
+            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+            if(this->MpiComm_->getRank() == 0) std::cout<<"AC5   ..\n";
         } else {
             FROSCH_ASSERT(!SubdomainSolver_.is_null(),"FROSch::OverlappingOperator : ERROR: SubdomainSolver_.is_null()");
             SubdomainSolver_->resetMatrix(OverlappingMatrix_,true);
         }
+        /*this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0)OverlappingMatrix_->describe(*fancy,Teuchos::VERB_EXTREME);
+        */this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        std::cout<<this->MpiComm_->getRank()<<" p   ..\n";
         this->IsComputed_ = true;
-        return SubdomainSolver_->compute();
+        std::cout<<this->MpiComm_->getRank()<<"  Algebraic Comp   ..\n";
+        SubdomainSolver_->compute();
+
+        std::cout<<this->MpiComm_->getRank()<<" ..Done   ..\n";
+        return 0;
     }
 }
 

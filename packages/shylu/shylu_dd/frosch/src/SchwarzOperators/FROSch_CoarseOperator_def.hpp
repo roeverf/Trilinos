@@ -43,7 +43,7 @@
 #define _FROSCH_COARSEOPERATOR_DEF_HPP
 
 #include <FROSch_CoarseOperator_decl.hpp>
-
+#include <MueLu_Utilities_def.hpp>
 
 namespace FROSch {
 
@@ -341,8 +341,8 @@ namespace FROSch {
         FROSCH_ASSERT(this->IsInitialized_,"FROSch::CoarseOperator : ERROR: CoarseOperator has to be initialized before calling compute()");
         // This is not optimal yet... Some work could be moved to Initialize
         //if (this->Verbose_) std::cout << "FROSch::CoarseOperator : WARNING: Some of the operations could probably be moved from initialize() to Compute().\n";
-
         bool reuseCoarseBasis = this->ParameterList_->get("Reuse: Coarse Basis",true);
+
         bool reuseCoarseMatrix = this->ParameterList_->get("Reuse: Coarse Matrix",false);
         if (!this->IsComputed_) {
             reuseCoarseBasis = false;
@@ -350,6 +350,7 @@ namespace FROSch {
         }
         if (!reuseCoarseBasis) {
             if (this->IsComputed_ && this->Verbose_) std::cout << "FROSch::CoarseOperator : Recomputing the Coarse Basis" << std::endl;
+            if(this->Verbose_)std::cout<<"Phi "<<this->LevelID_<<std::endl;
             clearCoarseSpace(); // AH 12/11/2018: If we do not clear the coarse space, we will always append just append the coarse space
             XMapPtr subdomainMap = this->computeCoarseSpace(CoarseSpace_); // AH 12/11/2018: This map could be overlapping, repeated, or unique. This depends on the specific coarse operator
             if (CoarseSpace_->hasUnassembledMaps()) { // If there is no unassembled basis, the current Phi_ should already be correct
@@ -508,15 +509,17 @@ namespace FROSch {
     {
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
         Teuchos::TimeMonitor SetUpTM(*SetUpTimer[current_level-1]);
+
         //FROSCH_TIMER_START_LEVELID(setUpCoarseOperatorTime,"CoarseOperator::setUpCoarseOperator");
         if (!Phi_.is_null()) {
+            //std::cout<<"Hallo  "<<this->LevelID_<<std::endl;
             // Build CoarseMatrix_
             XMatrixPtr k0 = buildCoarseMatrix();
 
             //------------------------------------------------------------------------------------------------------------------------
             // Communicate coarse matrix
             if (!DistributionList_->get("Type","linear").compare("linear")) {
-              //  k0->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
+                //k0->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
                 XMatrixPtr tmpCoarseMatrix = MatrixFactory<SC,LO,GO,NO>::Build(GatheringMaps_[0],k0->getGlobalMaxNumRowEntries());
                 {
 #ifdef FROSCH_COARSEOPERATOR_DETAIL_TIMERS
@@ -589,7 +592,7 @@ namespace FROSch {
 
                 }
                 k0 = tmpCoarseMatrix;
-          }else if (!DistributionList_->get("Type","linear").compare("Zoltan2")) {
+            }else if (!DistributionList_->get("Type","linear").compare("Zoltan2")) {
 #ifdef HAVE_SHYLU_DDFROSCH_ZOLTAN2
                 GatheringMaps_[0] = rcp_const_cast<XMap> (BuildUniqueMap(k0->getRowMap()));
                 CoarseSolveExporters_[0] = ExportFactory<LO,GO,NO>::Build(CoarseSpace_->getBasisMap(),GatheringMaps_[0]);
@@ -658,6 +661,7 @@ namespace FROSch {
                         }
                     }
                     CoarseMatrix_->fillComplete(CoarseSolveMap_,CoarseSolveMap_); //RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout)); CoarseMatrix_->describe(*fancy,VERB_EXTREME);
+
                 } else {
                     ConstGOVecView indices;
                     ConstSCVecView values;
@@ -685,23 +689,33 @@ namespace FROSch {
                         }
                     }
                     CoarseMatrix_->fillComplete(CoarseSolveMap_,CoarseSolveMap_); //RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout)); CoarseMatrix_->describe(*fancy,VERB_EXTREME);
-
                 }
-
                 bool reuseCoarseMatrixSymbolicFactorization = this->ParameterList_->get("Reuse: Coarse Matrix Symbolic Factorization",true);
                 if (!this->IsComputed_) {
+                    //if(this->Verbose_)std::cout<<"is computed\n";
                     reuseCoarseMatrixSymbolicFactorization = false;
                 }
                 if (!reuseCoarseMatrixSymbolicFactorization) {
                     if (this->IsComputed_ && this->Verbose_) std::cout << "FROSch::CoarseOperator : Recomputing the Symbolic Factorization of the coarse matrix" << std::endl;
+                   //CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
+                   //if(CoarseSolveComm_->getRank() == 0)std::cout << "CoarseSolver" << '\n';
                     CoarseSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(CoarseMatrix_,sublist(this->ParameterList_,"CoarseSolver")));
+                    //CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
+                    //if(CoarseSolveComm_->getRank() == 0)std::cout << "Reset Done" << '\n';
                     CoarseSolver_->initialize();
-                } else {
+                    //CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
+                    //if(CoarseSolveComm_->getRank() == 0)std::cout << "Init Done" << '\n';
+
+               } else {
                     FROSCH_ASSERT(!CoarseSolver_.is_null(),"FROSch::CoarseOperator : ERROR: CoarseSolver_.is_null()");
                     CoarseSolver_->resetMatrix(CoarseMatrix_.getConst(),true);
                 }
-
+                //CoarseMatrix_->describe(*fancy,Teuchos::VERB_EXTREME);
+                //CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
+                //if(CoarseSolveComm_->getRank() == 0)std::cout << "Compute ...." << '\n';
                 CoarseSolver_->compute();
+                //CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
+                //if(CoarseSolveComm_->getRank() == 0)std::cout << "CoarseSolver Compute Done" << '\n';
 
             }
         } else {

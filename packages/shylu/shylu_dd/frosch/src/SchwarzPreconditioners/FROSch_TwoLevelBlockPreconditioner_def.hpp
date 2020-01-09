@@ -415,8 +415,14 @@ namespace FROSch {
         Teuchos::TimeMonitor CompTM(*CompTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(computeTime,"TwoLevelBlockPreconditioner::compute");
         int ret = 0;
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0)std::cout<<"TLBP  Comp alg...\n";
         if (0>this->OverlappingOperator_->compute()) ret -= 1;
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0)std::cout<<"...done \n TLBP  Comp coarse...\n";
         if (0>CoarseOperator_->compute()) ret -= 10;
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0)std::cout<<"...done \n ";
         return ret;
     }
 

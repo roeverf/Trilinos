@@ -46,6 +46,10 @@
 #include <Xpetra_MapFactory_fwd.hpp>
 
 #include <FROSch_Tools_def.hpp>
+#include <Teuchos_SerialDenseMatrix.hpp>
+#include <Teuchos_SerialQRDenseSolver.hpp>
+#include <Teuchos_SerialDenseVector.hpp>
+#include <Teuchos_SerialDenseHelpers.hpp>
 
 
 namespace FROSch {
@@ -92,7 +96,7 @@ namespace FROSch {
                         XMultiVectorPtr subspaceBasis = null);
 
         int addNullspace(XMapPtr subspaceBasisMap,
-                         XMultiVectorPtr nullSpaceBasis = Teuchos::null);
+                        XMultiVectorPtr nullSpaceBasis = Teuchos::null);
 
         int assembleCoarseSpace();
 

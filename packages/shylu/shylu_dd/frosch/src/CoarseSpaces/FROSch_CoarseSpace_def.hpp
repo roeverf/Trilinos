@@ -67,6 +67,7 @@ namespace FROSch {
     int CoarseSpace<SC,LO,GO,NO>::addSubspace(XMapPtr subspaceBasisMap,
                                               XMultiVectorPtr localSubspaceBasis)
     {
+        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::VerboseObjectBase::getDefaultOStream();
         FROSCH_ASSERT(!subspaceBasisMap.is_null(),"subspaceBasisMap.is_null()");
         if (!localSubspaceBasis.is_null()) {
             FROSCH_ASSERT(localSubspaceBasis->getNumVectors()==subspaceBasisMap->getNodeNumElements(),"localSubspaceBasis->getNumVectors()!=subspaceBasisMap->getNodeNumElements()");
@@ -78,13 +79,16 @@ namespace FROSch {
         } else {
             FROSCH_ASSERT(subspaceBasisMap->getNodeNumElements()==0,"subspaceBasisMap->getNodeNumElements()!=0");
         }
+        if(!localSubspaceBasis.is_null()){
+          localSubspaceBasis->describe(*fancy,Teuchos::VERB_EXTREME);
+        }
         UnassembledBasesMaps_.push_back(subspaceBasisMap);
         UnassembledSubspaceBases_.push_back(localSubspaceBasis);
         return 0;
     }
 
     template <class SC,class LO,class GO,class NO>
-    int CoarseSpace<SC,LO,GO,NO>::addNullspace(XMapPtr subspaceBasisMap, XMultiVectorPtr nullSpaceBasis)
+    int CoarseSpace<SC,LO,GO,NO>::addNullspace(XMapPtr subspaceBasisMap,XMultiVectorPtr nullSpaceBasis)
     {
         UnassembledNullSpaceMaps_.push_back(subspaceBasisMap);
         UnassembledNullSpaceBases_.push_back(nullSpaceBasis);
@@ -129,6 +133,7 @@ namespace FROSch {
 
        UN itmp = 0;
        XMapPtr AssembledNullSpaceMap_ = AssembledBasisMap_;
+
        //AssembledBasisMap_->describe(*fancy,Teuchos::VERB_EXTREME);
        XMultiVectorPtr CoarseNullSpace_ = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(AssembledNullSpaceMap_,NumRowEntries);
        if (!AssembledNullSpaceMap_.is_null()) {
@@ -136,11 +141,16 @@ namespace FROSch {
             for(UN i = 0; i<UnassembledNullSpaceBases_.size();i++){
               //UnassembledNullSpaceBases_[i]->describe(*fancy,Teuchos::VERB_EXTREME);
               for(UN j = 0;j<UnassembledNullSpaceBases_[i]->getNumVectors();j++){
-                Teuchos::ArrayRCP<SC> vals = UnassembledNullSpaceBases_[i]->getDataNonConst(j);
-                for(UN k = 0;k<vals.size();k++){
-                  CoarseNullSpace_->replaceGlobalValue(itmp,j,vals[k]);
-                  itmp++;
+                for(UN k = 0;k<UnassembledNullSpaceBases_[i]->getMap()->getNodeNumElements();k++){
+                  CoarseNullSpace_->replaceLocalValue(itmp,k,UnassembledNullSpaceBases_[i]->getDataNonConst(j)[k]);
                 }
+                itmp++;
+
+              //  Teuchos::ArrayRCP<SC> vals = UnassembledNullSpaceBases_[i]->getDataNonConst(j);
+                /*for(UN k = 0;k<vals.size();k++){
+                  //CoarseNullSpace_->replaceGlobalValue(itmp,j,vals[k]);
+                  itmp++;
+                }*/
               }
             }
           }
@@ -161,10 +171,11 @@ namespace FROSch {
    */
       //CoarseNullSpace_->describe(*fancy,Teuchos::VERB_EXTREME);
       UnassembledNullSpaceMaps_.resize(0);
-      UnassembledNullSpaceBases_.resize(0);
+      AssembledNullSpace_ = CoarseNullSpace_;
+      //UnassembledNullSpaceBases_.resize(0);
 
       UnassembledNullSpaceMaps_.push_back(AssembledNullSpaceMap_);
-      UnassembledNullSpaceBases_.push_back(AssembledNullSpace_);
+      //nassembledNullSpaceBases_.push_back(AssembledNullSpace_);
       return 0;
 
 
@@ -204,6 +215,7 @@ namespace FROSch {
             }
         }
         GlobalBasisMatrix_->fillComplete(AssembledBasisMap_,rowMap);
+        //GlobalBasisMatrix_->describe(*fancy,Teuchos::VERB_EXTREME);
         return 0;
     }
 

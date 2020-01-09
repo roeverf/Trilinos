@@ -298,7 +298,7 @@ namespace FROSch {
             LocalPartitionOfUnityBasis_->buildLocalPartitionOfUnityBasis();
 
             if(sublist(coarseSpaceList,"LocalPartitionOfUnityBasis")->get("Coarse NullSpace",false)){
-            //  this->CoarseNullSpace_[blockId] = LocalPartitionOfUnityBasis_->getCoarseNullSpace();
+              this->CoarseNullSpace_[blockId] = LocalPartitionOfUnityBasis_->getCoarseNullSpace();
             }
 
             this->InterfaceCoarseSpaces_[blockId] = LocalPartitionOfUnityBasis_->getLocalPartitionOfUnitySpace();
