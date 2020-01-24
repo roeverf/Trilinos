@@ -228,7 +228,7 @@ namespace FROSch {
         }
         /*this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
         if(this->MpiComm_->getRank() == 0)OverlappingMatrix_->describe(*fancy,Teuchos::VERB_EXTREME);
-        */this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();*/
         std::cout<<this->MpiComm_->getRank()<<" p   ..\n";
         this->IsComputed_ = true;
         std::cout<<this->MpiComm_->getRank()<<"  Algebraic Comp   ..\n";

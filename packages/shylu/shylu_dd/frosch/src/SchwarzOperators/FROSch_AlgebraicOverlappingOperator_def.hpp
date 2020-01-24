@@ -143,6 +143,9 @@ namespace FROSch {
     {
         //FROSCH_TIMER_START_LEVELID(buildOverlappingMatricesTime,"AlgebraicOverlappingOperator::buildOverlappingMatrices");
         Teuchos::TimeMonitor BuildOMatTimerM(*BuildOMatTimer[current_level-1]);
+        RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout));
+
+
         // ====================================================================================
         // AH 08/09/2019: This is just temporary. Implement this properly in all the classes
         Verbosity verbosity = All;
@@ -182,6 +185,7 @@ namespace FROSch {
             switch (AddingLayersStrategy_) {
                 case LayersFromGraph:
                     ExtendOverlapByOneLayer(overlappingGraph,this->OverlappingMap_,overlappingGraph,this->OverlappingMap_);
+                    //this->OverlappingMap_->describe(*fancy,Teuchos::VERB_EXTREME);
                     break;
 
                 case LayersFromMatrix:

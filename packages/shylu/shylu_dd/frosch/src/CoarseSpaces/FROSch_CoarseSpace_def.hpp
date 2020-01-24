@@ -67,8 +67,11 @@ namespace FROSch {
     int CoarseSpace<SC,LO,GO,NO>::addSubspace(XMapPtr subspaceBasisMap,
                                               XMultiVectorPtr localSubspaceBasis)
     {
+
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::VerboseObjectBase::getDefaultOStream();
         FROSCH_ASSERT(!subspaceBasisMap.is_null(),"subspaceBasisMap.is_null()");
+
+
         if (!localSubspaceBasis.is_null()) {
             FROSCH_ASSERT(localSubspaceBasis->getNumVectors()==subspaceBasisMap->getNodeNumElements(),"localSubspaceBasis->getNumVectors()!=subspaceBasisMap->getNodeNumElements()");
             if (!SerialRowMap_.is_null()) {
@@ -80,7 +83,7 @@ namespace FROSch {
             FROSCH_ASSERT(subspaceBasisMap->getNodeNumElements()==0,"subspaceBasisMap->getNodeNumElements()!=0");
         }
         if(!localSubspaceBasis.is_null()){
-          localSubspaceBasis->describe(*fancy,Teuchos::VERB_EXTREME);
+          //localSubspaceBasis->describe(*fancy,Teuchos::VERB_EXTREME);
         }
         UnassembledBasesMaps_.push_back(subspaceBasisMap);
         UnassembledSubspaceBases_.push_back(localSubspaceBasis);
@@ -102,8 +105,8 @@ namespace FROSch {
         FROSCH_ASSERT(UnassembledSubspaceBases_.size()>0,"UnassembledSubspaceBases_.size()==0");
         UN itmp = 0;
         LOVecPtr2D partMappings;
-
         AssembledBasisMap_ = AssembleMaps(UnassembledBasesMaps_(),partMappings);
+        Teuchos::RCP<const Teuchos::Comm<int> > TheComm = AssembledBasisMap_->getComm();
         if (!AssembledBasisMap_.is_null()&&!SerialRowMap_.is_null()) {
             if (AssembledBasisMap_->getGlobalNumElements()>0) { // AH 02/12/2019: Is this the right condition? Seems to work for now...
                 AssembledBasis_ = MultiVectorFactory<SC,LO,GO,NO >::Build(SerialRowMap_,AssembledBasisMap_->getNodeNumElements());
@@ -115,12 +118,18 @@ namespace FROSch {
                 }
             }
         }
-
+        TheComm->barrier();TheComm->barrier();TheComm->barrier();
+        if(TheComm->getRank() == 0) std::cout<<"Here Tada\n";
         UnassembledBasesMaps_.resize(0);
         UnassembledSubspaceBases_.resize(0);
-
+        TheComm->barrier();TheComm->barrier();TheComm->barrier();
+        if(TheComm->getRank() == 0) std::cout<<"Mama\n";
         UnassembledBasesMaps_.push_back(AssembledBasisMap_);
+        TheComm->barrier();TheComm->barrier();TheComm->barrier();
+        if(TheComm->getRank() == 0) std::cout<<"Mama2\n";
         UnassembledSubspaceBases_.push_back(AssembledBasis_);
+        TheComm->barrier();TheComm->barrier();TheComm->barrier();
+        if(TheComm->getRank() == 0) std::cout<<"Mama3\n";
 
         return 0;
     }
