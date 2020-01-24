@@ -97,7 +97,6 @@ namespace FROSch {
          Teuchos::TimeMonitor initTimeM(*InitTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(initializeTime,"AlgebaicOverlappingOperator::initialize");
 
-        if(this->Verbose_)std::cout<<"Alg Op Level ID =  "<<this->LevelID_<<std::endl;
         if (this->Verbose_) {
             std::cout << "\n\
 +------------------------------+\n\
