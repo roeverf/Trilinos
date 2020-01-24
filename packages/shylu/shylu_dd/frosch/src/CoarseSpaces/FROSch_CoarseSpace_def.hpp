@@ -118,18 +118,14 @@ namespace FROSch {
                 }
             }
         }
-        TheComm->barrier();TheComm->barrier();TheComm->barrier();
-        if(TheComm->getRank() == 0) std::cout<<"Here Tada\n";
+
         UnassembledBasesMaps_.resize(0);
         UnassembledSubspaceBases_.resize(0);
-        TheComm->barrier();TheComm->barrier();TheComm->barrier();
-        if(TheComm->getRank() == 0) std::cout<<"Mama\n";
+
         UnassembledBasesMaps_.push_back(AssembledBasisMap_);
-        TheComm->barrier();TheComm->barrier();TheComm->barrier();
-        if(TheComm->getRank() == 0) std::cout<<"Mama2\n";
+
         UnassembledSubspaceBases_.push_back(AssembledBasis_);
-        TheComm->barrier();TheComm->barrier();TheComm->barrier();
-        if(TheComm->getRank() == 0) std::cout<<"Mama3\n";
+        
 
         return 0;
     }

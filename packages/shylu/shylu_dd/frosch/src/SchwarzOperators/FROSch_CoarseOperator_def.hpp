@@ -254,7 +254,6 @@ namespace FROSch {
           Teuchos::ArrayView<const GO> va;
           for (UN i = 0; i < numMyElementS; i++) {
               GO kg = MLGatheringMaps_[MLGatheringMaps_.size()-1]->getGlobalElement(i);
-              if(CoarseSolveComm_->getRank()==1) std::cout << "i " << i << " von " << numMyElementS << ": kg " << kg << std::endl;
               ElemSGraph->getGlobalRowView(kg,va);
               Teuchos::Array<GO> vva(va);
               ElementNodeList_->insertGlobalIndices(kg,vva());//mal va nehmen
@@ -561,7 +560,6 @@ namespace FROSch {
               size_t numBasisFunc;
               ConstXMultiVectorPtrVecPtr CNullSpaces_(CoarseNullSpace_.size());
               XMultiVectorPtr tmpnullSpaceCoarse;
-              if(this->MpiComm_->getRank() == 0) std::cout<<"size "<<tmpCoarseMatrix->getGlobalNumRows()<<std::endl;
               if(OnCoarseSolveComm_){
                 if(!CoarseNullSpace_[0].is_null()){
                   tmpnullSpaceCoarse= Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(CoarseSolveMap_,CoarseNullSpace_[0]->getNumVectors());

@@ -152,7 +152,6 @@ namespace FROSch {
         // Communicate nodeList //
         //////////////////////////
         if (!nodeListVec.is_null()) {
-            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
             if(this->MpiComm_->getRank() == 0) std::cout<<"Node List is NOT null\n";
             FROSCH_TIMER_START_LEVELID(communicateNodeListTime,"Communicate Node List");
             for (UN i=0; i<nodeListVec.size(); i++) {
@@ -164,7 +163,6 @@ namespace FROSch {
                 }
             }
         } else {
-          this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
           if(this->MpiComm_->getRank() == 0) std::cout<<"Node List is null\n";
             nodeListVec.resize(nmbBlocks);
         }
@@ -235,7 +233,6 @@ namespace FROSch {
             } else {
                 FROSCH_ASSERT(false,"Null Space Type unknown.");
             }
-            //nullSpaceBasisVec[0]->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
             IPOUHarmonicCoarseOperatorPtr iPOUHarmonicCoarseOperator = rcp_static_cast<IPOUHarmonicCoarseOperator<SC,LO,GO,NO> >(CoarseOperator_);
             if (0>iPOUHarmonicCoarseOperator->initialize(dimension,dofsPerNodeVec,repeatedNodesMapVec,dofsMapsVec,nullSpaceBasisVec,nodeListVec,dirichletBoundaryDofsVec)) ret -=10;
         } else if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("GDSWCoarseOperator")) {
@@ -365,8 +362,7 @@ namespace FROSch {
         ///////////////////////////////
         // Initialize CoarseOperator //
         ///////////////////////////////
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0)std::cout<<"Build NullSpace...........\n";
+
         if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("IPOUHarmonicCoarseOperator")) {
             this->ParameterList_->sublist("IPOUHarmonicCoarseOperator").sublist("CoarseSolver").sublist("MueLu").set("Dimension",(int)dimension);
             // Build Null Space
@@ -378,8 +374,7 @@ namespace FROSch {
               nullSpaceBasisVec.resize(repeatedMapVec.size());
               for(int i = 0;i<repeatedMapVec.size();i++){
                 nullSpaceBasisVec[i] = BuildNullSpace(dimension,LinearElasticityNullSpace,repeatedMapVec[i],dofsPerNodeVec[i],dofsMapsVec[i],nodeListVec[i]);
-                //nullSpaceBasisVec[i]->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
-                //nullSpaceBasisVec[i]->describe(*fancy,Teuchos::VERB_EXTREME);
+
               }
             }else if (!this->ParameterList_->get("Null Space Type","Stokes").compare("Laplace")) {
               nullSpaceBasisVec.resize(1);
@@ -389,7 +384,6 @@ namespace FROSch {
             } else {
                 FROSCH_ASSERT(false,"Null Space Type unknown.");
             }
-            //nullSpaceBasisVec[0]->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
             IPOUHarmonicCoarseOperatorPtr iPOUHarmonicCoarseOperator = rcp_static_cast<IPOUHarmonicCoarseOperator<SC,LO,GO,NO> >(CoarseOperator_);
             if (0>iPOUHarmonicCoarseOperator->initialize(dimension,dofsPerNodeVec,repeatedNodesMapVec,dofsMapsVec,nullSpaceBasisVec,nodeListVec,dirichletBoundaryDofsVec)) ret -=10;
         } else if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("GDSWCoarseOperator")) {
@@ -415,14 +409,11 @@ namespace FROSch {
         Teuchos::TimeMonitor CompTM(*CompTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(computeTime,"TwoLevelBlockPreconditioner::compute");
         int ret = 0;
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0)std::cout<<"TLBP  Comp alg...\n";
+
         if (0>this->OverlappingOperator_->compute()) ret -= 1;
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0)std::cout<<"...done \n TLBP  Comp coarse...\n";
+
         if (0>CoarseOperator_->compute()) ret -= 10;
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0)std::cout<<"...done \n ";
+
         return ret;
     }
 

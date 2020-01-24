@@ -245,9 +245,7 @@ namespace FROSch {
              FROSCH_ASSERT(RepeatedMaps.size()==dofsPerNodeVector.size(),"RepeatedMaps.size()!=dofsPerNodeVector.size()");
              FROSCH_ASSERT(RepeatedMaps.size()==dofOrderings.size(),"RepeatedMaps.size()!=dofOrderings.size()");
               Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
-              //RepeatedMaps[0]->describe(*fancy,Teuchos::VERB_EXTREME);
              TLBP = Teuchos::rcp(new TwoLevelBlockPreconditioner<SC,LO,GO,NO>(K_,ParameterList_));
-             //K_->describe(*fancy,Teuchos::VERB_EXTREME);
              //TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,ParameterList_->get("Overlap",1),RepeatedMaps);
              TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,ParameterList_->get("Overlap",1),RepeatedMaps,nullSpaceBasisVec);
     } else {
@@ -391,11 +389,9 @@ namespace FROSch {
             IsComputed_ = true;
 #endif
             } else if(!ParameterList_->get("SolverType","Amesos").compare("TwoLevelBlockPreconditioner")){
-                K_->getMap()->getComm()->barrier();
-                if(K_->getMap()->getComm()->getRank() == 0)std::cout<<"Compute TLBP....\n";
+
                 TLBP->compute();
-                K_->getMap()->getComm()->barrier();
-                if(K_->getMap()->getComm()->getRank() == 0)std::cout<<"....done....\n";
+
                 IsComputed_ = true;
             } else {
             FROSCH_ASSERT(false,"SolverType unknown...");
