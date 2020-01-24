@@ -296,18 +296,13 @@ namespace FROSch {
             LocalPartitionOfUnityBasis_ = LocalPartitionOfUnityBasisPtr(new LocalPartitionOfUnityBasis<SC,LO,GO,NO>(this->MpiComm_,this->SerialComm_,this->DofsPerNode_[blockId],sublist(coarseSpaceList,"LocalPartitionOfUnityBasis"),interfaceNullspaceBasis.getConst(),PartitionOfUnity_->getLocalPartitionOfUnity(),PartitionOfUnity_->getPartitionOfUnityMaps())); // sublist(coarseSpaceList,"LocalPartitionOfUnityBasis") testen
 
             LocalPartitionOfUnityBasis_->buildLocalPartitionOfUnityBasis();
-            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-            if (this->Verbose_) std::cout <<"Before \n";
             if(sublist(coarseSpaceList,"LocalPartitionOfUnityBasis")->get("Coarse NullSpace",false)){
-              this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-              if (this->Verbose_) std::cout <<"In Here \n";
+
               this->CoarseNullSpace_[blockId] = LocalPartitionOfUnityBasis_->getCoarseNullSpace();
-              this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-              if (this->Verbose_) std::cout <<"Before \n";
+
             }
-          
+
             this->InterfaceCoarseSpaces_[blockId] = LocalPartitionOfUnityBasis_->getLocalPartitionOfUnitySpace();
-            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
 
             if (this->Verbose_) std::cout << "FROSch::IPOUHarmonicCoarseOperator : WARNING: Need to build block coarse sizes for use in MueLu nullspace." << std::endl;
             //if (this->Verbose_) {RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout)); this->MVPhiGamma_[blockId]->describe(*fancy,VERB_EXTREME);}

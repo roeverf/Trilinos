@@ -185,7 +185,6 @@ namespace FROSch {
             switch (AddingLayersStrategy_) {
                 case LayersFromGraph:
                     ExtendOverlapByOneLayer(overlappingGraph,this->OverlappingMap_,overlappingGraph,this->OverlappingMap_);
-                    //this->OverlappingMap_->describe(*fancy,Teuchos::VERB_EXTREME);
                     break;
 
                 case LayersFromMatrix:

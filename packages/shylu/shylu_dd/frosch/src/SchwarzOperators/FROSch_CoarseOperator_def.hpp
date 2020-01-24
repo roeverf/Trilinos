@@ -208,7 +208,6 @@ namespace FROSch {
   int MLgatheringSteps = DistributionList_->get("MLGatheringSteps",2);
 
   Teuchos::ArrayView<const GO> elements_ = kRowMap_->getNodeElementList();
-  //kRowMap_->describe(*fancy,Teuchos::VERB_EXTREME);
   UN maxNumElements = -1;
   UN numElementsLocal = elements_.size();
   {
@@ -229,7 +228,6 @@ namespace FROSch {
       }
       ElemGraph->fillComplete();
     }
-    //ElemGraph->describe(*fancy,Teuchos::VERB_EXTREME);
     GraphPtr tmpElemGraph = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(MLGatheringMaps_[1],maxNumElements);
     GraphPtr ElemSGraph;
 
@@ -309,7 +307,6 @@ namespace FROSch {
            BB->doImport(*B,*scatter,Xpetra::INSERT);
          }
          //
-        // BB->describe(*fancy,Teuchos::VERB_EXTREME);
          // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
          Teuchos::Array<GO> repeatedMapEntries(0);
          for (size_t i = 0; i<ReGraph->getRowMap()->getNodeNumElements(); i++) {
@@ -323,7 +320,6 @@ namespace FROSch {
          }
          sortunique(repeatedMapEntries);
          RepeatedMap = Xpetra::MapFactory<LO,GO,NO>::Build(ReGraph->getColMap()->lib(),-1,repeatedMapEntries(),0,ReGraph->getColMap()->getComm());
-         //RepeatedMap->describe(*fancy,Teuchos::VERB_EXTREME);
          return 0;
      }
   //###########################################################################################
@@ -512,14 +508,11 @@ namespace FROSch {
 
         //FROSCH_TIMER_START_LEVELID(setUpCoarseOperatorTime,"CoarseOperator::setUpCoarseOperator");
         if (!Phi_.is_null()) {
-            //std::cout<<"Hallo  "<<this->LevelID_<<std::endl;
             // Build CoarseMatrix_
             XMatrixPtr k0 = buildCoarseMatrix();
-            //k0->describe(*fancy,Teuchos::VERB_EXTREME);
             //------------------------------------------------------------------------------------------------------------------------
             // Communicate coarse matrix
             if (!DistributionList_->get("Type","linear").compare("linear")) {
-                //k0->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
                 XMatrixPtr tmpCoarseMatrix = MatrixFactory<SC,LO,GO,NO>::Build(GatheringMaps_[0],k0->getGlobalMaxNumRowEntries());
                 {
 #ifdef FROSCH_COARSEOPERATOR_DETAIL_TIMERS
@@ -547,9 +540,6 @@ namespace FROSch {
               XExportPtr NullSpaceExport = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseNullSpace_[0]->getMap(),GatheringMaps_[0]);
               tmpNullSpace = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(GatheringMaps_[0],CoarseNullSpace_[0]->getNumVectors());
               tmpNullSpace->doExport(*CoarseNullSpace_[0],*NullSpaceExport,Xpetra::INSERT);
-              //k0->getRowMap()->describe(*fancy,Teuchos::VERB_EXTREME);
-              /*this->MpiComm_->barrier();
-              GatheringMaps_[0]->describe(*fancy,Teuchos::VERB_EXTREME);*/
               CoarseSolveExporters_[0] = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseSpace_->getBasisMap(),GatheringMaps_[0]);
               XMatrixPtr tmpCoarseMatrix = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(GatheringMaps_[0],k0->getGlobalMaxNumRowEntries());
               tmpCoarseMatrix->doExport(*k0,*CoarseSolveExporters_[0],Xpetra::INSERT);
@@ -561,8 +551,7 @@ namespace FROSch {
                 tmpCoarseMatrix = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(GatheringMaps_[j],k0->getGlobalMaxNumRowEntries());
                 tmpCoarseMatrix->doExport(*k0,*CoarseSolveExporters_[j],Xpetra::INSERT);
               }
-              //this->MpiComm_->barrier();
-              //tmpCoarseMatrix->getRowMap()->describe(*fancy,Teuchos::VERB_EXTREME);
+
               CoarseNullSpace_[0] = tmpNullSpace;
               for (UN j=1; j<GatheringMaps_.size(); j++) {
                 tmpNullSpace = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(GatheringMaps_[j],CoarseNullSpace_[0]->getNumVectors());
@@ -588,7 +577,6 @@ namespace FROSch {
                   NullSpaceCoarse_ = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(RepMapCoarse,numBasisFunc);
                   XExportPtr repExport = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseSolveMap_,RepMapCoarse);
                   NullSpaceCoarse_->doExport(*tmpnullSpaceCoarse,*repExport,Xpetra::INSERT);
-                  //NullSpaceCoarse_->describe(*fancy,Teuchos::VERB_EXTREME);
                   CNullSpaces_[0] = NullSpaceCoarse_;
                  //--------------------------------
                    }
@@ -701,25 +689,18 @@ namespace FROSch {
                 }
                 if (!reuseCoarseMatrixSymbolicFactorization) {
                     if (this->IsComputed_ && this->Verbose_) std::cout << "FROSch::CoarseOperator : Recomputing the Symbolic Factorization of the coarse matrix" << std::endl;
-                   //CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-                   //if(CoarseSolveComm_->getRank() == 0)std::cout << "CoarseSolver" << '\n';
+
                     CoarseSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(CoarseMatrix_,sublist(this->ParameterList_,"CoarseSolver")));
-                    //CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-                    //if(CoarseSolveComm_->getRank() == 0)std::cout << "Reset Done" << '\n';
+
                     CoarseSolver_->initialize();
-                    //CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-                    //if(CoarseSolveComm_->getRank() == 0)std::cout << "Init Done" << '\n';
+
 
                } else {
                     FROSCH_ASSERT(!CoarseSolver_.is_null(),"FROSch::CoarseOperator : ERROR: CoarseSolver_.is_null()");
                     CoarseSolver_->resetMatrix(CoarseMatrix_.getConst(),true);
                 }
-                //CoarseMatrix_->describe(*fancy,Teuchos::VERB_EXTREME);
-                //CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-                //if(CoarseSolveComm_->getRank() == 0)std::cout << "Compute ...." << '\n';
+
                 CoarseSolver_->compute();
-                //CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-                //if(CoarseSolveComm_->getRank() == 0)std::cout << "CoarseSolver Compute Done" << '\n';
 
             }
         } else {
@@ -974,7 +955,6 @@ namespace FROSch {
 
                     BuildRepMapZoltan(SubdomainConnectGraph_,ElementNodeList_, DistributionList_,CoarseSolveComm_,CoarseSolveRepeatedMap_);
                     //---Write necessary Parameters for multilevel to ParameterList
-                    //CoarseSolveRepeatedMap_->describe(*fancy,Teuchos::VERB_EXTREME);
                     ConstRepMap = CoarseSolveRepeatedMap_;
                     RepMapCoarse = FROSch::BuildMapFromNodeMapRepeated<LO,GO,NO>(ConstRepMap,dofs,DimensionWise);
                     Teuchos::ArrayRCP<Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > > RepMapVector(1);
@@ -986,22 +966,17 @@ namespace FROSch {
                     dofOrderings[0] = DimensionWise;
                     Teuchos::ArrayRCP<UN> dofsPerNodeVector(1);
                     dofsPerNodeVector[0] = dofs;
-                    //dofsPerNodeVector[0] = 2;
-                     // muss noch berechnte werden
+
                     sublist(this->ParameterList_,"CoarseSolver")->set("DofOrdering Vector",dofOrderings);
                     sublist(this->ParameterList_,"CoarseSolver")->set("DofsPerNode Vector",dofsPerNodeVector);
                     UniqueMap = FROSch::BuildUniqueMap<LO,GO,NO>(CoarseSolveRepeatedMap_);
-                    //UniqueMap->describe(*fancy,Teuchos::VERB_EXTREME);
 
                     UniqueMapAll = FROSch::BuildMapFromNodeMap<LO,GO,NO>(UniqueMap,dofs,DimensionWise);
-                    //UniqueMap->describe(*fancy,Teuchos::VERB_EXTREME);
-                    //-------------------------------------------------------------
                     uniEle = UniqueMapAll->getNodeElementList();
 
 									}
 
                   Teuchos::RCP<Xpetra::Map<LO,GO,NO> > tmpMap = Xpetra::MapFactory<LO,GO,NO>::Build(Xpetra::UseTpetra,-1,uniEle,0,this->MpiComm_);
-                  //tmpMap->describe(*fancy,Teuchos::VERB_EXTREME);
 
                   for (int i=0; i<gatheringSteps-1; i++) {
                     numMyRows = 0;
@@ -1017,7 +992,6 @@ namespace FROSch {
                     GatheringMaps_[i] = Xpetra::MapFactory<LO,GO,NO>::Build(CoarseMap_->lib(),-1,numMyRows,0,this->MpiComm_);
                   }
                   GatheringMaps_[gatheringSteps-1] = tmpMap;
-                  //GatheringMaps_[gatheringSteps-1] ->describe(*fancy,Teuchos::VERB_EXTREME);
                   CoarseSolveMap_ = Xpetra::MapFactory<LO,GO,NO>::Build(CoarseMap_->lib(),-1,tmpMap->getNodeElementList(),0,CoarseSolveComm_);
 
         }else if(!DistributionList_->get("Type","linear").compare("Zoltan2")) {
