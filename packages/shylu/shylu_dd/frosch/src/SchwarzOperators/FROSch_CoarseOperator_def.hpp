@@ -234,8 +234,6 @@ namespace FROSch {
     GraphPtr ElemSGraph;
 
     tmpElemGraph->doExport(*ElemGraph,*MLCoarseSolveExporters_[1],Xpetra::INSERT);
-    if(this->MpiComm_->getRank() == 0) std::cout<<"++++++++++++++++++++++++++++++++++++++++\n";
-    //tmpElemGraph->describe(*fancy,Teuchos::VERB_EXTREME);
     UN gathered = 0;
     for(int i  = 2;i<MLGatheringMaps_.size();i++){
         gathered = 1;
@@ -248,14 +246,10 @@ namespace FROSch {
    if(gathered == 0){
      ElemSGraph = tmpElemGraph;
    }
-   ElemSGraph->describe(*fancy,Teuchos::VERB_EXTREME);
-   this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-   if(this->MpiComm_->getRank() == 0) std::cout<<"###############################################\n";
- MLCoarseMap_ = MapFactory<LO,GO,NO>::Build(MLGatheringMaps_[1]->lib(),-1,MLGatheringMaps_[1]->getNodeElementList(),0,CoarseSolveComm_);
-    ElementNodeList_ =Xpetra::CrsGraphFactory<LO,GO,NO>::Build(MLCoarseMap_,maxNumElements);
+   MLCoarseMap_ = MapFactory<LO,GO,NO>::Build(MLGatheringMaps_[1]->lib(),-1,MLGatheringMaps_[1]->getNodeElementList(),0,CoarseSolveComm_);
+   ElementNodeList_ =Xpetra::CrsGraphFactory<LO,GO,NO>::Build(MLCoarseMap_,maxNumElements);
 
       if(OnCoarseSolveComm_){
-         MLCoarseMap_->describe(*fancy,Teuchos::VERB_EXTREME);
           const size_t numMyElementS = MLCoarseMap_->getNodeNumElements();
           //Teuchos::ArrayView<const GO> myGlobalElements = MLCoarseMap_->getNodeElementList();
           //Teuchos::ArrayView<const LO> idEl;
@@ -269,7 +263,6 @@ namespace FROSch {
 
           }
           ElementNodeList_->fillComplete();
-          ElementNodeList_->describe(*fancy,Teuchos::VERB_EXTREME);
       }
       return 0;
   }
@@ -755,8 +748,6 @@ namespace FROSch {
     template<class SC,class LO,class GO,class NO>
     int CoarseOperator<SC,LO,GO,NO>::buildCoarseSolveMap()
     {
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->Verbose_)std::cout<<"Build CoarseSolveMap \n";
 
         Teuchos::TimeMonitor BuildCMapTM(*BuildCMapTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(buildCoarseSolveMapTime,"CoarseOperator::buildCoarseSolveMap");
@@ -1002,7 +993,6 @@ namespace FROSch {
                     UniqueMap = FROSch::BuildUniqueMap<LO,GO,NO>(CoarseSolveRepeatedMap_);
                     //UniqueMap->describe(*fancy,Teuchos::VERB_EXTREME);
 
-                    CoarseSolveComm_->barrier();
                     UniqueMapAll = FROSch::BuildMapFromNodeMap<LO,GO,NO>(UniqueMap,dofs,DimensionWise);
                     //UniqueMap->describe(*fancy,Teuchos::VERB_EXTREME);
                     //-------------------------------------------------------------
