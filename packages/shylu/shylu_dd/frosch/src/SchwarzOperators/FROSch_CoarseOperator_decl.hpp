@@ -89,7 +89,8 @@ namespace FROSch {
         using ConstXMultiVectorPtr       = RCP<const XMultiVector>;
         using ConstXMultiVectorPtrVecPtr = typename SchwarzOperator<SC,LO,GO,NO>::ConstXMultiVectorPtrVecPtr;
 
-
+        using XImport               = typename SchwarzOperator<SC,LO,GO,NO>::XImport;
+        using XImportPtr            = typename SchwarzOperator<SC,LO,GO,NO>::XImportPtr;
         using XImportPtrVecPtr      = typename SchwarzOperator<SC,LO,GO,NO>::XImportPtrVecPtr;
 
         using XExport               = typename SchwarzOperator<SC,LO,GO,NO>::XExport;
