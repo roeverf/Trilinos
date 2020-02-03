@@ -132,7 +132,12 @@ namespace FROSch {
                           qrSolver.formR();
                           tmpCBasis[i][j]  = qrSolver.getQ();
                           tmpCBasisR[i][j] = qrSolver.getR();
-
+                          /*if(MpiComm_->getRank() == 0){
+                            std::cout<<"Part UNI "<<i<<" entity "<<j<<"\n"<<"Q---\n";
+                            tmpCBasis[i][j]->print(std::cout);
+                            std::cout<<" R \n";
+                            tmpCBasisR[i][j]->print(std::cout);
+                          }*/
                           NumCols[i] = tmpCBasis[i][j]->numCols();
                       } else {
                           tmpCBasis[i][j] = Teuchos::rcpFromRef(tmpCBasisJ);
@@ -215,6 +220,7 @@ namespace FROSch {
                                Teuchos::ArrayView<const SC> constDataC = dataC.getConst()();
                                entityBasis->getDataNonConst(k).deepCopy(constDataC);
                           }
+                        //  if(MpiComm_->getRank() == 0) entityBasis->describe(*fancy,Teuchos::VERB_EXTREME);
 
                         }
 

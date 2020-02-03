@@ -114,6 +114,9 @@ namespace FROSch {
         virtual int sortInterface(ConstXMatrixPtr matrix = null,
                                   ConstXMultiVectorPtr nodeList = null) = 0;
 
+        virtual int buildGlobalGraph(Teuchos::RCP<DDInterface<SC,LO,GO,NO> > theDDInterface_);
+
+
         ConstDDInterfacePtr getDDInterface() const;
 
         DDInterfacePtr getDDInterfaceNonConst() const;

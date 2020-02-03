@@ -108,7 +108,6 @@ namespace FROSch {
 
         int buildGlobalNullSpace(SC treshold);
 
-
         int clearCoarseSpace();
 
         int checkForLinearDependencies();

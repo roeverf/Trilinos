@@ -353,7 +353,7 @@ namespace FROSch {
                 CoarseSpace_->buildGlobalBasisMatrix(this->K_->getRangeMap(),subdomainMap,this->ParameterList_->get("Threshold Phi",1.e-8));
                 FROSCH_ASSERT(CoarseSpace_->hasGlobalBasisMatrix(),"FROSch::CoarseOperator : !CoarseSpace_->hasGlobalBasisMatrix()");
                 Phi_ = CoarseSpace_->getGlobalBasisMatrix();
-                //Phi_->describe(*fancy,Teuchos::VERB_EXTREME);
+
             }
         }
         if (!reuseCoarseMatrix) {
@@ -535,6 +535,8 @@ namespace FROSch {
 
             } else if (!DistributionList_->get("Type","linear").compare("ZoltanDual")) {
               XMultiVectorPtr tmpNullSpace;
+              //CoarseNullSpace_[0]->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
+              //CoarseNullSpace_[0]->describe(*fancy,Teuchos::VERB_EXTREME);
 
               XExportPtr NullSpaceExport = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseNullSpace_[0]->getMap(),GatheringMaps_[0]);
               tmpNullSpace = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(GatheringMaps_[0],CoarseNullSpace_[0]->getNumVectors());
@@ -714,8 +716,9 @@ namespace FROSch {
     {
         Teuchos::TimeMonitor BuildCMatTM(*BuildCMapTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(buildCoarseMatrixTime,"CoarseOperator::buildCoarseMatrix");
+        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
         XMatrixPtr k0 = MatrixFactory<SC,LO,GO,NO>::Build(CoarseSpace_->getBasisMap(),CoarseSpace_->getBasisMap()->getNodeNumElements());
-
+        //Phi_->describe(*fancy,Teuchos::VERB_EXTREME);
         if (this->ParameterList_->get("Use Triple MatrixMultiply",false)) {
             TripleMatrixMultiply<SC,LO,GO,NO>::MultiplyRAP(*Phi_,true,*this->K_,false,*Phi_,false,*k0);
         } else {
@@ -956,10 +959,15 @@ namespace FROSch {
                     BuildRepMapZoltan(SubdomainConnectGraph_,ElementNodeList_, DistributionList_,CoarseSolveComm_,CoarseSolveRepeatedMap_);
                     //---Write necessary Parameters for multilevel to ParameterList
                     ConstRepMap = CoarseSolveRepeatedMap_;
+
+                    if(this->Verbose_)std::cout<<"###################################\n";
+
+                    //CoarseSolveRepeatedMap_->describe(*fancy,Teuchos::VERB_EXTREME);
+                    testMap->describe(*fancy,Teuchos::VERB_EXTREME);
                     RepMapCoarse = FROSch::BuildMapFromNodeMapRepeated<LO,GO,NO>(ConstRepMap,dofs,DimensionWise);
                     Teuchos::ArrayRCP<Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > > RepMapVector(1);
                     RepMapVector[0] = RepMapCoarse;
-
+                    RepMapCoarse->describe(*fancy,Teuchos::VERB_EXTREME);
                     sublist(this->ParameterList_,"CoarseSolver")->set("Repeated Map Vector",RepMapVector);
                     //Set DofOderingVec and DofsPerNodeVec to ParameterList
                     Teuchos::ArrayRCP<DofOrdering> dofOrderings(1);
@@ -969,10 +977,12 @@ namespace FROSch {
 
                     sublist(this->ParameterList_,"CoarseSolver")->set("DofOrdering Vector",dofOrderings);
                     sublist(this->ParameterList_,"CoarseSolver")->set("DofsPerNode Vector",dofsPerNodeVector);
-                    UniqueMap = FROSch::BuildUniqueMap<LO,GO,NO>(CoarseSolveRepeatedMap_);
+                    UniqueMap = FROSch::BuildUniqueMap<LO,GO,NO>(testMap);
 
-                    UniqueMapAll = FROSch::BuildMapFromNodeMap<LO,GO,NO>(UniqueMap,dofs,DimensionWise);
-                    uniEle = UniqueMapAll->getNodeElementList();
+                    //UniqueMapAll = FROSch::BuildMapFromNodeMap<LO,GO,NO>(UniqueMap,dofs,DimensionWise);
+                    //UniqueMapAll->describe(*fancy,Teuchos::VERB_EXTREME);
+                    //UniqueMapAll = testMap;
+                    uniEle = UniqueMap->getNodeElementList();
 
 									}
 
@@ -993,7 +1003,7 @@ namespace FROSch {
                   }
                   GatheringMaps_[gatheringSteps-1] = tmpMap;
                   CoarseSolveMap_ = Xpetra::MapFactory<LO,GO,NO>::Build(CoarseMap_->lib(),-1,tmpMap->getNodeElementList(),0,CoarseSolveComm_);
-
+                  CoarseSolveMap_->describe(*fancy,Teuchos::VERB_EXTREME);
         }else if(!DistributionList_->get("Type","linear").compare("Zoltan2")) {
 #ifdef HAVE_SHYLU_DDFROSCH_ZOLTAN2
             GatheringMaps_.resize(1);

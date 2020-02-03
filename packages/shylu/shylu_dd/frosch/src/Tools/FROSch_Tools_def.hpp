@@ -415,6 +415,42 @@ namespace FROSch {
     }
 
     template <class LO,class GO,class NO>
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildRepeatesMapCoarseLevel(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &nodesMap,
+                                                           unsigned dofsPerNode,
+                                                           unsigned dofOrdering,
+                                                           LO numVert,
+                                                           LO numEdg,
+                                                           LO numFac)
+    {
+      FROSCH_ASSERT(numVert+numEdg+numFac != nodesMap->getGlobalNumElements(),"ERROR: Map does not match number of Entities");
+      Teuchos::Array<GO> nodeEle = nodesMap->getNodeElementList();
+      std::cout<<"Rank "<<nodesMap->getComm()->getRank()<<"   "<<nodeEle<<std::endl;
+      //std::cout<<"Rank "<<nodesMap->getComm()->getRank()<<"   "<<nodeEle[0]+2*numVert<<std::endl;
+      Teuchos::Array<GO> dofEle(nodeEle.size()*dofsPerNode);;
+      if(dofOrdering == 0){
+        for(unsigned i = 0;i<nodeEle.size();i++){
+          for(unsigned j = 0;j<dofsPerNode;j++){
+            if(nodeEle[i]<numVert){
+              dofEle[i*dofsPerNode+j] = nodeEle[i]+j*numVert;
+            }
+            else if (nodeEle[i]>=numVert && nodeEle[i]<numEdg+numVert ){
+              dofEle[i*dofsPerNode+j] = nodeEle[i]+j*numEdg+(dofsPerNode-1)*numVert;
+            }
+            else if (nodeEle[i]<numFac+numVert+numEdg && nodeEle[i]>=numEdg+numVert){
+              dofEle[i*dofsPerNode+j] = nodeEle[i]+j*numFac+(numVert*(dofsPerNode-1))+(numEdg*(dofsPerNode-1));
+            }
+            else{
+              if(nodesMap->getComm()->getRank() == 0) std::cout<<"This should never happen\n";
+            }
+          }
+        }
+      }
+
+      Teuchos::RCP<Xpetra::Map<LO,GO,NO> > tmpMap =   Xpetra::MapFactory<LO,GO,NO>::Build(Xpetra::UseTpetra,-1,dofEle,0,nodesMap->getComm());
+     return tmpMap;
+    }
+
+    template <class LO,class GO,class NO>
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromNodeMapRepeated(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &nodesMap,
                                                              unsigned dofsPerNode,
                                                              unsigned dofOrdering)
