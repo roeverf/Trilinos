@@ -415,16 +415,16 @@ namespace FROSch {
     }
 
     template <class LO,class GO,class NO>
-    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildRepeatesMapCoarseLevel(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &nodesMap,
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildRepeatedMapCoarseLevel(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &nodesMap,
                                                            unsigned dofsPerNode,
                                                            unsigned dofOrdering,
-                                                           LO numVert,
-                                                           LO numEdg,
-                                                           LO numFac)
+                                                           GO numVert,
+                                                           GO numEdg,
+                                                           GO numFac)
     {
       FROSCH_ASSERT(numVert+numEdg+numFac != nodesMap->getGlobalNumElements(),"ERROR: Map does not match number of Entities");
       Teuchos::Array<GO> nodeEle = nodesMap->getNodeElementList();
-      std::cout<<"Rank "<<nodesMap->getComm()->getRank()<<"   "<<nodeEle<<std::endl;
+      //std::cout<<"Rank "<<nodesMap->getComm()->getRank()<<"   "<<nodeEle<<std::endl;
       //std::cout<<"Rank "<<nodesMap->getComm()->getRank()<<"   "<<nodeEle[0]+2*numVert<<std::endl;
       Teuchos::Array<GO> dofEle(nodeEle.size()*dofsPerNode);;
       if(dofOrdering == 0){

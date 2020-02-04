@@ -139,7 +139,7 @@ namespace FROSch {
        UN itmp = 0;
        XMapPtr AssembledNullSpaceMap_ = AssembledBasisMap_;
 
-       AssembledBasisMap_->describe(*fancy,Teuchos::VERB_EXTREME);
+       //AssembledBasisMap_->describe(*fancy,Teuchos::VERB_EXTREME);
        XMultiVectorPtr CoarseNullSpace_ = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(AssembledNullSpaceMap_,NumRowEntries);
        if (!AssembledNullSpaceMap_.is_null()) {
           if(AssembledNullSpaceMap_->getGlobalNumElements()>0){

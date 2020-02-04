@@ -97,6 +97,58 @@ namespace FROSch {
     {
         return DDInterface_;
     }
+
+    template<class SC,class LO, class GO, class NO>
+    int InterfacePartitionOfUnity<SC,LO,GO,NO>::buildGlobalGraph(){
+
+
+     FROSCH_TIMER_START_LEVELID(buildGlobalGraphTime,"CoarseOperator::buildGlobalGraph");
+
+     Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
+     std::map<GO,int> rep;
+     Teuchos::Array<GO> entries;
+     IntVec2D conn;
+     InterfaceEntityPtrVec ConnVec;
+     int connrank;
+     {
+       DDInterface_->identifyConnectivityEntities();
+       EntitySetConstPtr Connect= DDInterface_->getConnectivityEntities();
+       Connect->buildEntityMap(DDInterface_->getNodesMap());
+       ConnVec = Connect->getEntityVector();
+       connrank = Connect->getEntityMap()->getComm()->getRank();
+     }
+
+     GO ConnVecSize = ConnVec.size();
+     conn.resize(ConnVecSize);
+     {
+       if (ConnVecSize>0) {
+         for(GO i = 0;i<ConnVecSize;i++) {
+             conn[i] = ConnVec[i]->getSubdomainsVector();
+             for (int j = 0; j<conn[i].size(); j++) rep.insert(std::pair<GO,int>(conn.at(i).at(j),connrank));
+         }
+         for (auto& x: rep) {
+             entries.push_back(x.first);
+         }
+       }
+     }
+
+     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > GraphMap = Xpetra::MapFactory<LO,GO,NO>::Build(Xpetra::UseTpetra,-1,1,0,this->MpiComm_);
+
+     UN maxNumElements = -1;
+     maxNumNeigh_ = -1;
+     UN numElementsLocal = entries.size();
+     reduceAll(*this->MpiComm_,Teuchos::REDUCE_MAX,numElementsLocal,Teuchos::ptr(&maxNumNeigh_));
+     SubdomainConnectGraph_ = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(GraphMap,maxNumNeigh_);
+     SubdomainConnectGraph_->insertGlobalIndices(GraphMap->getComm()->getRank(),entries());
+
+     return 0;
+   }
+
+    template<class SC,class LO, class GO, class NO>
+    typename InterfacePartitionOfUnity<SC,LO,GO,NO>::GraphPtr InterfacePartitionOfUnity<SC,LO,GO,NO>::getSubdomainGraph() const
+    {
+      return SubdomainConnectGraph_;
+    }
 }
 
 #endif

@@ -99,6 +99,10 @@ namespace FROSch {
         using SCVec                         = Array<SC>;
         using SCVecPtr                      = ArrayRCP<SC>;
 
+        using XCrsGraph                     = CrsGraph<LO,GO,NO>;
+        using GraphPtr                      = RCP<XCrsGraph>;
+        using ConstXCrsGraphPtr             = RCP<const XCrsGraph>;
+
     public:
 
         PartitionOfUnity(CommPtr mpiComm,

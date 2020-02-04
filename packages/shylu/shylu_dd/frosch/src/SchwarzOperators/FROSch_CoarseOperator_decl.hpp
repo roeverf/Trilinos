@@ -226,6 +226,7 @@ namespace FROSch {
         XMapPtr CoarseSolveRepeatedMap_;
         XMapPtr RepMapCoarse;
         XMapPtr MLCoarseMap_;
+        GOVec numEnt;
 
         SubdomainSolverPtr CoarseSolver_;
 

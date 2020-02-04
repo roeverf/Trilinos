@@ -513,7 +513,7 @@ namespace FROSch {
                     global[i] = -1;
                 }
             }
-
+            numEntity = global;
             if (Verbose_) {
                 std::cout << "\n\
     ------------------------------------------------------------------------------\n\
@@ -531,6 +531,11 @@ namespace FROSch {
         }
 
         return 0;
+    }
+
+    template <class SC,class LO,class GO,class NO>
+    typename DDInterface<SC,LO,GO,NO>::GOVec DDInterface<SC,LO,GO,NO>::getNumEnt() const{
+      return numEntity;
     }
 
     template <class SC,class LO,class GO,class NO>

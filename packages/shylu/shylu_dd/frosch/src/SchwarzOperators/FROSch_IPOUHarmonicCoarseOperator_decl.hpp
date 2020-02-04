@@ -51,7 +51,7 @@
 
 
 namespace FROSch {
-    
+
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -80,6 +80,9 @@ namespace FROSch {
         using XMultiVectorPtrVecPtr             = typename SchwarzOperator<SC,LO,GO,NO>::XMultiVectorPtrVecPtr;
         using ConstXMultiVectorPtrVecPtr        = typename SchwarzOperator<SC,LO,GO,NO>::ConstXMultiVectorPtrVecPtr;
 
+        using XCrsGraph                         = typename SchwarzOperator<SC,LO,GO,NO>::XCrsGraph;
+        using GraphPtr                          = typename SchwarzOperator<SC,LO,GO,NO>::GraphPtr;
+        using ConstXCrsGraphPtr                 = typename SchwarzOperator<SC,LO,GO,NO>::ConstXCrsGraphPtr;
         using ParameterListPtr                  = typename SchwarzOperator<SC,LO,GO,NO>::ParameterListPtr;
 
         using DDInterfacePtr                    = typename SchwarzOperator<SC,LO,GO,NO>::DDInterfacePtr;
@@ -165,6 +168,12 @@ namespace FROSch {
                              GOVecPtr2D dirichletBoundaryDofsVec,
                              ConstXMultiVectorPtrVecPtr nodeListVec);
 
+        int buildElementNodeList();
+
+        int buildCoarseGraph();
+
+
+
         virtual int resetCoarseSpaceBlock(UN blockId,
                                           UN dimension,
                                           UN dofsPerNode,
@@ -175,10 +184,14 @@ namespace FROSch {
                                           ConstXMultiVectorPtr nodeList);
 
 
+
+
         /*
          Todo: This should be vectors!
          vvvvvvvvvv
          */
+
+        
         PartitionOfUnityPtr PartitionOfUnity_;
 
         LocalPartitionOfUnityBasisPtr LocalPartitionOfUnityBasis_;
