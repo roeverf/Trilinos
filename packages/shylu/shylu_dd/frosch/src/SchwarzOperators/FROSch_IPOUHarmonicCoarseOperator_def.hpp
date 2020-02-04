@@ -90,6 +90,7 @@ namespace FROSch {
                                                             GOVecPtr2D dirichletBoundaryDofsVec)
     {
         FROSCH_TIMER_START_LEVELID(initializeTime,"IPOUHarmonicCoarseOperator::initialize");
+        this->dim = dimension;
         buildCoarseSpace(dimension,dofsPerNodeVec,repeatedNodesMapVec,repeatedDofMapsVec,nullSpaceBasisVec,dirichletBoundaryDofsVec,nodeListVec);
         this->CoarseMap_ = this->assembleCoarseMap();
         this->buildCoarseSolveMap();
@@ -127,6 +128,7 @@ namespace FROSch {
 
         // Das könnte man noch ändern
         // LÄNGEN NOCHMAL GEGEN NumberOfBlocks_ checken!!!
+        this->dim = dimension;
         this->GammaDofs_.resize(this->GammaDofs_.size()+1);
         this->IDofs_.resize(this->IDofs_.size()+1);
         this->InterfaceCoarseSpaces_.resize(this->InterfaceCoarseSpaces_.size()+1);

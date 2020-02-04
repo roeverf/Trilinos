@@ -975,8 +975,14 @@ namespace FROSch {
                     dofsPerNodeVector[0] = dofs;
                     sublist(this->ParameterList_,"CoarseSolver")->set("DofOrdering Vector",dofOrderings);
                     sublist(this->ParameterList_,"CoarseSolver")->set("DofsPerNode Vector",dofsPerNodeVector);
-
-                    XMapPtr testMap  = BuildRepeatedMapCoarseLevel(ConstRepMap,dofs,NodeWise,numEnt[0],numEnt[1]+numEnt[2]+numEnt[3],numEnt[4]);
+                    XMapPtr testMap;
+                    GO a = 0.0;
+                    if(dim == 2){
+                      testMap  = BuildRepeatedMapCoarseLevel(ConstRepMap,dofs,NodeWise,numEnt[0],numEnt[1]+numEnt[2]+numEnt[3]+numEnt[4],a);
+                    }
+                    if(dim == 3){
+                      testMap  = BuildRepeatedMapCoarseLevel(ConstRepMap,dofs,NodeWise,numEnt[0],numEnt[1]+numEnt[2]+numEnt[3],numEnt[4]);
+                    }
                     UniqueMap = FROSch::BuildUniqueMap<LO,GO,NO>(testMap);
                     //UniqueMap->describe(*fancy,Teuchos::VERB_EXTREME);
                     //UniqueMapAll = FROSch::BuildMapFromNodeMap<LO,GO,NO>(UniqueMap,dofs,DimensionWise);

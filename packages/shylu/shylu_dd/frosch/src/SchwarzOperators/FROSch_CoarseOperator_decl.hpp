@@ -244,6 +244,7 @@ namespace FROSch {
         ConstXMapPtr kRowMap_;
         LO DofsPerNodeCoarse_;
         UN dofs;
+        LO dim;
         UN maxNumNeigh_;
 #ifdef FROSCH_COARSEOPERATOR_EXPORT_AND_IMPORT
         XImportPtrVecPtr CoarseSolveImporters_;
