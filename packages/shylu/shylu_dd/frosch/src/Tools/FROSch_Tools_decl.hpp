@@ -139,9 +139,15 @@ namespace FROSch {
 
     protected:
 
-        using CommPtr                   = RCP<const Comm<int> >;
+        using CommPtr                          = RCP<const Comm<int> >;
 
-        using ConstXMapPtr               = RCP<const Map<LO,GO,NO> >;
+        using XMap                              = Map<LO,GO,NO>;
+        using XMapPtr                           = RCP<XMap>;
+        using ConstXMapPtr                      = RCP<const XMap>;
+        using XMapPtrVecPtr                     = ArrayRCP<XMapPtr>;
+        using ConstXMapPtrVecPtr                = ArrayRCP<ConstXMapPtr>;
+        using XMapPtrVecPtr2D                   = ArrayRCP<XMapPtrVecPtr>;
+        using ConstXMapPtrVecPtr2D              = ArrayRCP<ConstXMapPtrVecPtr>;
 
         using OverlappingDataPtr        = RCP<OverlappingData<LO,GO> >;
         using OverlappingDataPtrVec     = Array<OverlappingDataPtr>;
@@ -226,10 +232,9 @@ namespace FROSch {
     template <class LO,class GO,class NO>
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildRepeatedMapCoarseLevel(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &nodesMap,
                                                            unsigned dofsPerNode,
-                                                           unsigned dofOrdering,
-                                                           GO numVert,
-                                                           GO numEdg,
-                                                           GO numFac);
+                                                           Teuchos::Array<GO> numEnt,
+                                                           unsigned partitionType,
+                                                           ArrayRCP<RCP<const Map<LO,GO,NO>>> dofsMaps);
 
 
     template <class LO,class GO,class NO>

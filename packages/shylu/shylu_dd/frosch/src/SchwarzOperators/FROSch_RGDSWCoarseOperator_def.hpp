@@ -70,7 +70,8 @@ namespace FROSch {
         FROSCH_TIMER_START_LEVELID(resetCoarseSpaceBlockTime,"RGDSWCoarseOperator::resetCoarseSpaceBlock");
         FROSCH_ASSERT(dofsMaps.size()==dofsPerNode,"dofsMaps.size()!=dofsPerNode");
         FROSCH_ASSERT(blockId<this->NumberOfBlocks_,"Block does not exist yet and can therefore not be reset.");
-
+        this->partitionType = 2;
+        this->dim = dimension;
         if (this->Verbose_) {
             std::cout << "\n\
 +---------------------+\n\
@@ -180,7 +181,7 @@ namespace FROSch {
 
                 coarseNodes->buildEntityMap(nodesMap);
                 this->kRowMap_ =coarseNodes->getEntityMap();
-
+                this->numEnt =this->DDInterface_->getNumEnt();
                 XMultiVectorPtrVecPtr translations = this->computeTranslations(blockId,this->DDInterface_->getRoots(),entitySetVector,distanceFunction);
                 tra = translations.size();
                 for (UN i=0; i<translations.size(); i++) {

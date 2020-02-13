@@ -118,6 +118,12 @@ namespace FROSch {
     class NO>
     class TwoLevelBlockPreconditioner;
 
+    template<class SC,
+    class LO,
+    class GO,
+    class NO>
+    class TwoLevelPreconditioner;
+
     template <class SC = double,
               class LO = int,
               class GO = DefaultGlobalOrdinal,
@@ -331,6 +337,8 @@ namespace FROSch {
 #endif
 
        Teuchos::RCP<TwoLevelBlockPreconditioner<SC,LO,GO,NO> > TLBP;
+
+       Teuchos::RCP<TwoLevelPreconditioner<SC,LO,GO,NO> > TLP;
 
         bool IsInitialized_;
 

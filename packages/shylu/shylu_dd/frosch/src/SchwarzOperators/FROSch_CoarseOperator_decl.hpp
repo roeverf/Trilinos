@@ -54,6 +54,10 @@
 #include <Zoltan2_PartitioningProblem.hpp>
 #include <Zoltan2_XpetraCrsGraphAdapter.hpp>
 
+#include <Teuchos_DefaultMpiComm.hpp>
+#include "EpetraExt_OperatorOut.h"
+#include "EpetraExt_VectorOut.h"
+#include "EpetraExt_RowMatrixOut.h"
 
 namespace FROSch {
 
@@ -75,6 +79,7 @@ namespace FROSch {
         using ConstXMapPtr          = typename SchwarzOperator<SC,LO,GO,NO>::ConstXMapPtr;
         using XMapPtrVecPtr         = typename SchwarzOperator<SC,LO,GO,NO>::XMapPtrVecPtr;
         using ConstXMapPtrVecPtr    = typename SchwarzOperator<SC,LO,GO,NO>::ConstXMapPtrVecPtr;
+        using ConstXMapPtrVecPtr2D  = typename SchwarzOperator<SC,LO,GO,NO>::ConstXMapPtrVecPtr2D;
 
         using XMatrixPtr            = typename SchwarzOperator<SC,LO,GO,NO>::XMatrixPtr;
         using ConstXMatrixPtr       = typename SchwarzOperator<SC,LO,GO,NO>::ConstXMatrixPtr;
@@ -246,6 +251,7 @@ namespace FROSch {
         UN dofs;
         LO dim;
         UN maxNumNeigh_;
+        UN partitionType;
 #ifdef FROSCH_COARSEOPERATOR_EXPORT_AND_IMPORT
         XImportPtrVecPtr CoarseSolveImporters_;
 #endif

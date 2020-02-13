@@ -57,6 +57,7 @@ namespace FROSch {
     DDInterface_ ()
     {
         FROSCH_TIMER_START_LEVELID(gDSWCoarseOperatorTime,"GDSWCoarseOperator::GDSWCoarseOperator");
+        this->partitionType = 0;
     }
 
     template <class SC,class LO,class GO,class NO>

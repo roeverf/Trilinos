@@ -67,7 +67,7 @@ namespace FROSch {
     Volumes_ ()
     {
         FROSCH_TIMER_START_LEVELID(constantPartitionOfUnityTime,"ConstantPartitionOfUnity::ConstantPartitionOfUnity");
-        
+
         if (!this->ParameterList_->get("Type","Full").compare("Full")) {
             UseVolumes_ = true;
         } else if (!this->ParameterList_->get("Type","Full").compare("Volumes")) {
@@ -77,7 +77,7 @@ namespace FROSch {
         } else {
             FROSCH_ASSERT(false,"FROSch::ConstantPartitionOfUnity : ERROR: Specify a valid Type.");
         }
-        
+
         CommunicationStrategy communicationStrategy = CreateOneToOneMap;
         if (!this->ParameterList_->get("Interface Communication Strategy","CreateOneToOneMap").compare("CrsMatrix")) {
             communicationStrategy = CommCrsMatrix;
@@ -88,12 +88,12 @@ namespace FROSch {
         } else {
             FROSCH_ASSERT(false,"FROSch::InterfacePartitionOfUnity : ERROR: Specify a valid communication strategy for the identification of the interface components.");
         }
-        
+
         if (DDInterface_.is_null()) DDInterface_.reset(new DDInterface<SC,LO,GO,NO>(dimension,dofsPerNode,nodesMap.getConst(),this->Verbosity_,this->LevelID_,communicationStrategy));
         FROSCH_ASSERT(DDInterface_->getInterface()->getEntity(0)->getNumNodes()==0,"FROSch::ConstantPartitionOfUnity : ERROR: Is only reasonable if there is no interface.");
         DDInterface_->resetGlobalDofs(dofsMaps);
         Volumes_ = DDInterface_->getInterior()->deepCopy();
-        
+
         this->LocalPartitionOfUnity_ = XMultiVectorPtrVecPtr(1);
         this->PartitionOfUnityMaps_ = XMapPtrVecPtr(1);
     }
@@ -124,9 +124,15 @@ namespace FROSch {
     {
         FROSCH_TIMER_START_LEVELID(computePartitionOfUnityTime,"ConstantPartitionOfUnity::computePartitionOfUnity");
         // Interface
+
         UN dofsPerNode = DDInterface_->getInterior()->getEntity(0)->getDofsPerNode();
+
         UN numInteriorDofs = dofsPerNode*DDInterface_->getInterior()->getEntity(0)->getNumNodes();
-        
+
+        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
+
+        DDInterface_->getNodesMap()->describe(*fancy,Teuchos::VERB_EXTREME);
+
         if (UseVolumes_) Volumes_->buildEntityMap(DDInterface_->getNodesMap());
         
         if (this->Verbosity_==All) {
@@ -155,11 +161,11 @@ namespace FROSch {
                 min[0] = -1;
                 max[0] = -1;
             }
-            
+
             if (global[0]<0) {
                 global[0] = -1;
             }
-            
+
             if (this->Verbose_) {
                 std::cout << "\n\
     ------------------------------------------------------------------------------\n\
