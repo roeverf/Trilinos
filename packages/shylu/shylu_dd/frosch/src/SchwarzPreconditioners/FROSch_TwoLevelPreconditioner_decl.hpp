@@ -46,7 +46,7 @@
 
 
 namespace FROSch {
-    
+
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -109,6 +109,24 @@ namespace FROSch {
                        ConstXMapPtr repeatedMap = null,
                        ConstXMapPtrVecPtr dofsMaps = null,
                        GOVecPtr dirichletBoundaryDofs = null);
+
+        int initialize(ConstXMapPtr repeatedMap,
+                       ConstXMultiVectorPtr nullSpaceBasis,
+                       ConstXMapPtr repeatedNodesMap,
+                       ConstXMapPtrVecPtr dofsMaps,
+                       UN dimension,
+                       UN dofsPerNode,
+                       int overlap,
+                       DofOrdering dofOrdering);
+
+        /*int initialize(UN dimension,
+                       UN dofsPerNode,
+                       int overlap = -1,
+                       ConstXMultiVectorPtr nullSpaceBasis = null,
+                       ConstXMapPtr repeatedMap = null,
+                       ConstXMapPtrVecPtr dofsMaps = null,
+                       ConstXMapPtr repeatedNodesMap = null);*/
+
 
         int compute();
 

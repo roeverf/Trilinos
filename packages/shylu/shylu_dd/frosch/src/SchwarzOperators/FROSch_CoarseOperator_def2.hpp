@@ -353,7 +353,6 @@ namespace FROSch {
                 CoarseSpace_->buildGlobalBasisMatrix(this->K_->getRangeMap(),subdomainMap,this->ParameterList_->get("Threshold Phi",1.e-8));
                 FROSCH_ASSERT(CoarseSpace_->hasGlobalBasisMatrix(),"FROSch::CoarseOperator : !CoarseSpace_->hasGlobalBasisMatrix()");
                 Phi_ = CoarseSpace_->getGlobalBasisMatrix();
-                Phi_->describe(*fancy,Teuchos::VERB_EXTREME);
 
             }
         }
@@ -363,6 +362,8 @@ namespace FROSch {
             this->setUpCoarseOperator();
         }
         this->IsComputed_ = true;
+        //Phi_->describe(*fancy,Teuchos::VERB_EXTREME);
+
         return 0;
     }
 
@@ -574,12 +575,12 @@ namespace FROSch {
                           tmpnullSpaceCoarse->replaceLocalValue(j,i,data[j]);
                         }
                   }
-                  CoarseSolveMap_->describe(*fancy,Teuchos::VERB_EXTREME);
-                  tmpnullSpaceCoarse->describe(*fancy,Teuchos::VERB_EXTREME);
+                  //CoarseSolveMap_->describe(*fancy,Teuchos::VERB_EXTREME);
+                  //tmpnullSpaceCoarse->describe(*fancy,Teuchos::VERB_EXTREME);
                   NullSpaceCoarse_ = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(RepMapCoarse,numBasisFunc);
                   XImportPtr repExport = Xpetra::ImportFactory<LO,GO,NO>::Build(CoarseSolveMap_,RepMapCoarse);
                   NullSpaceCoarse_->doImport(*tmpnullSpaceCoarse,*repExport,Xpetra::INSERT);
-                  NullSpaceCoarse_->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
+                  //NullSpaceCoarse_->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
                   CNullSpaces_[0] = NullSpaceCoarse_;
                  //--------------------------------
                    }

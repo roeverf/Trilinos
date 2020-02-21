@@ -81,7 +81,7 @@ namespace FROSch {
     protected:
 
         using CommPtr                           = RCP<const Comm<int> >;
-
+        using MPIPtr                            = RCP<const MpiComm<int> >;
         using XMap                              = Map<LO,GO,NO>;
         using XMapPtr                           = RCP<XMap>;
         using ConstXMapPtr                      = RCP<const XMap>;

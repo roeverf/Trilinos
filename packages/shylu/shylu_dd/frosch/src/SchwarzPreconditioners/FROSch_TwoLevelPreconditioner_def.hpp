@@ -56,6 +56,7 @@ namespace FROSch {
     OneLevelPreconditioner<SC,LO,GO,NO> (k,parameterList),
     CoarseOperator_ ()
     {
+
         FROSCH_TIMER_START_LEVELID(twoLevelPreconditionerTime,"TwoLevelPreconditioner::TwoLevelPreconditioner::");
         if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("IPOUHarmonicCoarseOperator")) {
             // Set the LevelID in the sublist
@@ -78,6 +79,7 @@ namespace FROSch {
         else{
             this->SumOperator_->addOperator(CoarseOperator_);
         }
+
     }
 
     template <class SC,class LO,class GO,class NO>
@@ -121,6 +123,8 @@ namespace FROSch {
                                                         ConstXMapPtrVecPtr dofsMaps,
                                                         GOVecPtr dirichletBoundaryDofs)
     {
+       Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
+
         FROSCH_TIMER_START_LEVELID(initializeTime,"TwoLevelPreconditioner::initialize");
         ////////////
         // Checks //
@@ -131,6 +135,7 @@ namespace FROSch {
         //////////
         // Maps //
         //////////
+
         if (repeatedMap.is_null()) {
             FROSCH_TIMER_START_LEVELID(buildRepeatedMapTime,"BuildRepeatedMap");
             repeatedMap = BuildRepeatedMap(this->K_->getCrsGraph()); // Todo: Achtung, die UniqueMap könnte unsinnig verteilt sein. Falls es eine repeatedMap gibt, sollte dann die uniqueMap neu gebaut werden können. In diesem Fall, sollte man das aber basierend auf der repeatedNodesMap tun
@@ -147,6 +152,126 @@ namespace FROSch {
             }
             if (repeatedNodesMap.is_null()) {
                 repeatedNodesMap = dofsMaps[0];
+
+            }
+        }
+        repeatedNodesMap->describe(*fancy,Teuchos::VERB_EXTREME);
+        //////////////////////////
+        // Communicate nodeList //
+        //////////////////////////
+        if (!nodeList.is_null()) {
+            FROSCH_TIMER_START_LEVELID(communicateNodeListTime,"Communicate Node List");
+            if (!nodeList->getMap()->isSameAs(*repeatedNodesMap)) {
+                RCP<MultiVector<SC,LO,GO,NO> > tmpNodeList = MultiVectorFactory<SC,LO,GO,NO>::Build(repeatedNodesMap,nodeList->getNumVectors());
+                RCP<Import<LO,GO,NO> > scatter = ImportFactory<LO,GO,NO>::Build(nodeList->getMap(),repeatedNodesMap);
+                tmpNodeList->doImport(*nodeList,*scatter,INSERT);
+                nodeList = tmpNodeList.getConst();
+            }
+        }
+
+        /////////////////////////////////////
+        // Determine dirichletBoundaryDofs //
+        /////////////////////////////////////
+        if (dirichletBoundaryDofs.is_null()) {
+            FROSCH_TIMER_START_LEVELID(determineDirichletRowsTime,"Determine Dirichlet Rows");
+#ifdef FindOneEntryOnlyRowsGlobal_Matrix
+            GOVecPtr dirichletBoundaryDofs = FindOneEntryOnlyRowsGlobal(this->K_.getConst(),repeatedMap);
+#else
+            GOVecPtr dirichletBoundaryDofs = FindOneEntryOnlyRowsGlobal(this->K_->getCrsGraph(),repeatedMap);
+#endif
+        }
+
+        ////////////////////////////////////
+        // Initialize OverlappingOperator //
+        ////////////////////////////////////
+        if (!this->ParameterList_->get("OverlappingOperator Type","AlgebraicOverlappingOperator").compare("AlgebraicOverlappingOperator")) {
+            AlgebraicOverlappingOperatorPtr algebraicOverlappigOperator = rcp_static_cast<AlgebraicOverlappingOperator<SC,LO,GO,NO> >(this->OverlappingOperator_);
+            if (0>algebraicOverlappigOperator->initialize(overlap,repeatedMap)) ret -= 1;
+        } else {
+            FROSCH_ASSERT(false,"OverlappingOperator Type unkown.");
+        }
+
+
+        ///////////////////////////////
+        // Initialize CoarseOperator //
+        ///////////////////////////////
+        if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("IPOUHarmonicCoarseOperator")) {
+            // Build Null Space
+            if (!this->ParameterList_->get("Null Space Type","Laplace").compare("Laplace")) {
+                nullSpaceBasis = BuildNullSpace<SC,LO,GO,NO>(dimension,LaplaceNullSpace,repeatedMap,dofsPerNode,dofsMaps);
+            } else if (!this->ParameterList_->get("Null Space Type","Laplace").compare("Linear Elasticity")) {
+                nullSpaceBasis = BuildNullSpace(dimension,LinearElasticityNullSpace,repeatedMap,dofsPerNode,dofsMaps,nodeList);
+            } else if (!this->ParameterList_->get("Null Space Type","Laplace").compare("Input")) {
+                FROSCH_ASSERT(!nullSpaceBasis.is_null(),"Null Space Type is 'Input', but nullSpaceBasis.is_null().");
+                if (!nullSpaceBasis->getMap()->isSameAs(*repeatedMap)) {
+                    FROSCH_TIMER_START_LEVELID(communicateNullSpaceBasis,"Communicate Null Space");
+                    RCP<MultiVector<SC,LO,GO,NO> > tmpNullSpaceBasis = MultiVectorFactory<SC,LO,GO,NO>::Build(repeatedMap,nullSpaceBasis->getNumVectors());
+                    RCP<Import<LO,GO,NO> > scatter = ImportFactory<LO,GO,NO>::Build(nullSpaceBasis->getMap(),repeatedMap);
+                    tmpNullSpaceBasis->doImport(*nullSpaceBasis,*scatter,INSERT);
+                    nullSpaceBasis = tmpNullSpaceBasis.getConst();
+                }
+            } else {
+                FROSCH_ASSERT(false,"Null Space Type unknown.");
+            }
+
+            IPOUHarmonicCoarseOperatorPtr iPOUHarmonicCoarseOperator = rcp_static_cast<IPOUHarmonicCoarseOperator<SC,LO,GO,NO> >(CoarseOperator_);
+            if (0>iPOUHarmonicCoarseOperator->initialize(dimension,dofsPerNode,repeatedNodesMap,dofsMaps,nullSpaceBasis,nodeList,dirichletBoundaryDofs)) ret -=10;
+        } else if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("GDSWCoarseOperator")) {
+            GDSWCoarseOperatorPtr gDSWCoarseOperator = rcp_static_cast<GDSWCoarseOperator<SC,LO,GO,NO> >(CoarseOperator_);
+            if (0>gDSWCoarseOperator->initialize(dimension,dofsPerNode,repeatedNodesMap,dofsMaps,dirichletBoundaryDofs,nodeList)) ret -=10;
+        } else if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("RGDSWCoarseOperator")) {
+            RGDSWCoarseOperatorPtr rGDSWCoarseOperator = rcp_static_cast<RGDSWCoarseOperator<SC,LO,GO,NO> >(CoarseOperator_);
+            if (0>rGDSWCoarseOperator->initialize(dimension,dofsPerNode,repeatedNodesMap,dofsMaps,dirichletBoundaryDofs,nodeList)) ret -=10;
+        } else {
+            FROSCH_ASSERT(false,"CoarseOperator Type unkown.");
+        }
+
+        return ret;
+    }
+
+
+    template <class SC,class LO,class GO,class NO>
+    int TwoLevelPreconditioner<SC,LO,GO,NO>::initialize(ConstXMapPtr repeatedMap,
+                                                        ConstXMultiVectorPtr nullSpaceBasis,
+                                                        ConstXMapPtr repeatedNodesMap,
+                                                        ConstXMapPtrVecPtr dofsMaps,
+                                                        UN dimension,
+                                                        UN dofsPerNode,
+                                                        int overlap,
+                                                        DofOrdering dofOrdering)
+    {
+      Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
+      GOVecPtr dirichletBoundaryDofs;
+      ConstXMultiVectorPtr nodeList;
+
+        FROSCH_TIMER_START_LEVELID(initializeTime,"TwoLevelPreconditioner::initialize");
+        ////////////
+        // Checks //
+        ////////////
+        FROSCH_ASSERT(dofOrdering == NodeWise || dofOrdering == DimensionWise || dofOrdering == Custom,"ERROR: Specify a valid DofOrdering.");
+        int ret = 0;
+
+        //////////
+        // Maps //
+        //////////
+
+        if (repeatedMap.is_null()) {
+            FROSCH_TIMER_START_LEVELID(buildRepeatedMapTime,"BuildRepeatedMap");
+            repeatedMap = BuildRepeatedMap(this->K_->getCrsGraph()); // Todo: Achtung, die UniqueMap könnte unsinnig verteilt sein. Falls es eine repeatedMap gibt, sollte dann die uniqueMap neu gebaut werden können. In diesem Fall, sollte man das aber basierend auf der repeatedNodesMap tun
+        }
+        // Build dofsMaps and repeatedNodesMap
+
+        if (dofsMaps.is_null()) {
+            FROSCH_TIMER_START_LEVELID(buildDofMapsTime,"BuildDofMaps");
+            if (0>BuildDofMaps(repeatedMap,dofsPerNode,dofOrdering,repeatedNodesMap,dofsMaps)) ret -= 100; // Todo: Rückgabewerte
+        } else {
+            FROSCH_ASSERT(dofsMaps.size()==dofsPerNode,"dofsMaps.size()!=dofsPerNode");
+            for (UN i=0; i<dofsMaps.size(); i++) {
+                FROSCH_ASSERT(!dofsMaps[i].is_null(),"dofsMaps[i].is_null()");
+            }
+            if (repeatedNodesMap.is_null()) {
+                repeatedNodesMap = dofsMaps[0];
+
             }
         }
 
@@ -185,6 +310,7 @@ namespace FROSch {
             FROSCH_ASSERT(false,"OverlappingOperator Type unkown.");
         }
 
+
         ///////////////////////////////
         // Initialize CoarseOperator //
         ///////////////////////////////
@@ -206,6 +332,7 @@ namespace FROSch {
             } else {
                 FROSCH_ASSERT(false,"Null Space Type unknown.");
             }
+
             IPOUHarmonicCoarseOperatorPtr iPOUHarmonicCoarseOperator = rcp_static_cast<IPOUHarmonicCoarseOperator<SC,LO,GO,NO> >(CoarseOperator_);
             if (0>iPOUHarmonicCoarseOperator->initialize(dimension,dofsPerNode,repeatedNodesMap,dofsMaps,nullSpaceBasis,nodeList,dirichletBoundaryDofs)) ret -=10;
         } else if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("GDSWCoarseOperator")) {
@@ -217,15 +344,21 @@ namespace FROSch {
         } else {
             FROSCH_ASSERT(false,"CoarseOperator Type unkown.");
         }
+
         return ret;
     }
+
+
 
     template <class SC,class LO,class GO,class NO>
     int TwoLevelPreconditioner<SC,LO,GO,NO>::compute()
     {
         FROSCH_TIMER_START_LEVELID(computeTime,"TwoLevelPreconditioner::compute");
         int ret = 0;
+
         if (0>this->OverlappingOperator_->compute()) ret -= 1;
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0)std::cout<<"Comp O--done\n";
         if (0>CoarseOperator_->compute()) ret -= 10;
         return ret;
     }

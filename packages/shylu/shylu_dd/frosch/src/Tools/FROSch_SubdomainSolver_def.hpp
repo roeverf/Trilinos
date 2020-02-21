@@ -253,6 +253,8 @@ namespace FROSch {
 
                  Teuchos::RCP< const Teuchos::Comm< int > > TC = K_->getMap()->getComm();
                  Teuchos::ArrayRCP<Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > > RepeatedMaps(1);
+                 Teuchos::ArrayRCP<Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > > NodesMaps(1);
+
                  UNVecPtr dofsPerNodeVector;
                  ConstXMultiVectorPtrVecPtr nullSpaceBasisVec(1);
                  Teuchos::ArrayRCP<DofOrdering> dofOrderings;
@@ -268,6 +270,9 @@ namespace FROSch {
                      RepeatedMaps = ExtractVectorFromParameterList<Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > >(*ParameterList_,"Repeated Map Vector");
                  }
 
+                 if(ParameterList_->isParameter("Nodes Map Vector")) {
+                   NodesMaps = ExtractVectorFromParameterList<Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > >(*ParameterList_,"Nodes Map Vector");
+                 }
 
                   if(ParameterList_->isParameter("DofsPerNode Vector")) {
                      dofsPerNodeVector = ExtractVectorFromParameterList<UN>(*ParameterList_,"DofsPerNode Vector");
@@ -288,18 +293,27 @@ namespace FROSch {
                  ConstXMultiVectorPtr nodeList = null;
                  GOVecPtr dirichletBoundaryDofs = null;
 
-
                  TLP = Teuchos::rcp(new TwoLevelPreconditioner<SC,LO,GO,NO>(K_,ParameterList_));
+
                  //TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,ParameterList_->get("Overlap",1),RepeatedMaps);
-                 TLP->initialize(ParameterList_->get("Dimension",3),
-                                 ParameterList_->get("DofsPerNode",3),
-                                 ParameterList_->get("Overlap",1),
+                 /*TLP->initialize(RepeatedMaps[0],
                                  nullSpaceBasisVec[0],
-                                 null,
-                                 dofOrderings[0],
-                                 RepeatedMaps[0],
+                                 NodesMaps[0],
                                  dofsMapsVec[0],
-                                 null);
+                                 ParameterList_->get("Dimension",3),
+                                 dofsPerNodeVector[0],
+                                 ParameterList_->get("Overlap",1),
+                                 dofOrderings[0]);*/
+                nullSpaceBasisVec[0]->describe(*fancy,Teuchos::VERB_EXTREME);       
+                TLP->initialize(ParameterList_->get("Dimension",3),
+                                dofsPerNodeVector[0],
+                                ParameterList_->get("Overlap",1),
+                                nullSpaceBasisVec[0],
+                                nodeList,
+                                dofOrderings[0],
+                                RepeatedMaps[0],
+                                dofsMapsVec[0],
+                                dirichletBoundaryDofs);
 
         } else {
             FROSCH_ASSERT(false,"SolverType unknown...");

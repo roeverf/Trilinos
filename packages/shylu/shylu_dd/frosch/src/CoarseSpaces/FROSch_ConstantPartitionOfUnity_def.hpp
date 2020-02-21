@@ -131,10 +131,10 @@ namespace FROSch {
 
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
 
-        DDInterface_->getNodesMap()->describe(*fancy,Teuchos::VERB_EXTREME);
+        //DDInterface_->getNodesMap()->describe(*fancy,Teuchos::VERB_EXTREME);
 
         if (UseVolumes_) Volumes_->buildEntityMap(DDInterface_->getNodesMap());
-        
+
         if (this->Verbosity_==All) {
             // Count entities
             GOVec global(1);
@@ -148,11 +148,15 @@ namespace FROSch {
                 if (DDInterface_->getNodesMap()->lib()==UseEpetra || Volumes_->getEntityMap()->getGlobalNumElements()>0) {
                     global[0] += 1;
                 }
+
                 if (global[0]<0) global[0] = 0;
                 local[0] = (LO) std::max((LO) Volumes_->getEntityMap()->getNodeNumElements(),(LO) 0);
+
                 reduceAll(*this->MpiComm_,REDUCE_SUM,local[0],ptr(&sum[0]));
+
                 avg[0] = std::max(sum[0]/double(this->MpiComm_->getSize()),0.0);
                 reduceAll(*this->MpiComm_,REDUCE_MIN,local[0],ptr(&min[0]));
+
                 reduceAll(*this->MpiComm_,REDUCE_MAX,local[0],ptr(&max[0]));
             } else {
                 global[0] = -1;

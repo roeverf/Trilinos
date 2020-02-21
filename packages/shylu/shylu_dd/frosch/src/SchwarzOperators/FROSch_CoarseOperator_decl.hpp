@@ -58,6 +58,10 @@
 #include "EpetraExt_OperatorOut.h"
 #include "EpetraExt_VectorOut.h"
 #include "EpetraExt_RowMatrixOut.h"
+#include <Teuchos_DefaultMpiComm.hpp>
+#include <Teuchos_GlobalMPISession.hpp>
+#include <Teuchos_CommandLineProcessor.hpp>
+#include <Xpetra_DefaultPlatform.hpp>
 
 namespace FROSch {
 
