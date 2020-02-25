@@ -117,8 +117,7 @@ namespace FROSch {
                     tmpBasisJ->elementWiseMultiply(ScalarTraits<SC>::one(),*PartitionOfUnity_[i]->getVector(j),*NullspaceBasis_,ScalarTraits<SC>::one());
                     Teuchos::SerialDenseMatrix<LO,SC> tmpCBasisJ(NullspaceBasis_->getMap()->getNodeNumElements(),NullspaceBasis_->getNumVectors());
                     //if(this->MpiComm_->getRank() == 0)tmpBasisJ->describe(*fancy,Teuchos::VERB_EXTREME);
-                    if(MpiComm_->getRank() == 0)tmpBasisJ->describe(*fancy,Teuchos::VERB_EXTREME);
-
+                    //if(MpiComm_->getRank() == 0)tmpBasisJ->describe(*fancy,Teuchos::VERB_EXTREME);
                     if (ParameterList_->get("Orthogonalize",true)) {
                         tmpBasis[i][j] = ModifiedGramSchmidt(tmpBasisJ.getConst());
                         //if(this->MpiComm_->getRank() == 0)tmpBasis[i][j]->describe(*fancy,Teuchos::VERB_EXTREME);
@@ -126,6 +125,8 @@ namespace FROSch {
                     } else {
                         tmpBasis[i][j] = tmpBasisJ;
                     }
+                //tmpBasis[i][j] = MultiVectorFactory<SC,LO,GO,NO>::Build(NullspaceBasis_->getMap(),NullspaceBasis_->getNumVectors());
+
                      for(UN h = 0;h<NullspaceBasis_->getNumVectors();h++){
                           Teuchos::ArrayRCP<SC> data = tmpBasisJ->getDataNonConst(h);
                           for(UN k = 0;k<NullspaceBasis_->getMap()->getNodeNumElements();k++){
@@ -140,21 +141,24 @@ namespace FROSch {
                            qrSolver.formR();
                            tmpCBasis[i][j]  = qrSolver.getQ();
                            tmpCBasisR[i][j] = qrSolver.getR();
-                           if(MpiComm_->getRank() == 0){
+                          /* if(MpiComm_->getRank() == 0){
                               tmpCBasis[i][j]->print(std::cout);
                               tmpCBasisR[i][j]->print(std::cout);
-                           }
+                           }*/
                     }
                     Teuchos::SerialDenseMatrix<LO,SC> transMat (*tmpCBasis[i][j],Teuchos::NO_TRANS);
                     Teuchos::SerialDenseMatrix<LO,SC> transRMat (*tmpCBasisR[i][j],Teuchos::NO_TRANS);
                     UN zero_count = 0;
-                    Teuchos::Array<UN> nullcol(NullspaceBasis_->getNumVectors());
+                    Teuchos::SerialDenseVector<LO,SC>  densvec (NullspaceBasis_->getNumVectors());
+                    Teuchos::Array<UN> nullcol(CMap->getNodeNumElements());
                     for(UN z = 0;z<CMap->getNodeNumElements();z++){
                       for(UN h = 0;h<NullspaceBasis_->getNumVectors();h++){
                         CbasisR->replaceLocalValue(z,h,transRMat(z,h));
-                        if(transRMat(z,h)== 0) zero_count++;
+                        densvec(h) = transRMat(z,h);
+                        //if(transRMat(z,h)<= 1.0e-10) zero_count++;
                       }
-                      if(zero_count == NullspaceBasis_->getNumVectors()) nullcol[z] = 1;
+                      if(densvec.normFrobenius()< 1.0e-10)nullcol[z] = 1;
+                      //if(zero_count == NullspaceBasis_->getNumVectors()) nullcol[z] = 1;
                       else nullcol[z] = 0;
 
                       zero_count =0;
@@ -163,16 +167,17 @@ namespace FROSch {
                     for(UN h = 0;h<NullspaceBasis_->getNumVectors();h++){
                       for(UN z = 0;z<NullspaceBasis_->getMap()->getNodeNumElements();z++){
                           if(nullcol[h] == 0){
-                            tmpBasis[i][j]->replaceLocalValue(z,h,transMat(z,h));
+                            //tmpBasis[i][j]->replaceLocalValue(z,h,transMat(z,h));
                           }//else{
                             //tmpBasis[i][j]->replaceLocalValue(z,h,ScalarTraits<SC>::zero());
                           //}
                       }
                     }
                    tmpBasisR[i][j]=CbasisR;
-                   if(MpiComm_->getRank() == 0){ tmpBasis[i][j]->describe(*fancy,Teuchos::VERB_EXTREME);}
-                    /*if(this->MpiComm_->getRank() == 0){
-                      tmpBasisJ->describe(*fancy,Teuchos::VERB_EXTREME);
+                   /*if(MpiComm_->getRank() == 0){ tmpBasis[i][j]->describe(*fancy,Teuchos::VERB_EXTREME);
+                   std::cout<<"##############################################\n";}
+                    if(this->MpiComm_->getRank() == 0){
+
                       //tmpBasis[i][j]->describe(*fancy,Teuchos::VERB_EXTREME);
                       tmpCBasis[i][j]->print(std::cout);
                       tmpCBasisR[i][j]->print(std::cout);

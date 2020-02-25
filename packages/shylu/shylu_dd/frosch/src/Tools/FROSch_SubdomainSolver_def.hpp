@@ -304,7 +304,7 @@ namespace FROSch {
                                  dofsPerNodeVector[0],
                                  ParameterList_->get("Overlap",1),
                                  dofOrderings[0]);*/
-                nullSpaceBasisVec[0]->describe(*fancy,Teuchos::VERB_EXTREME);       
+                //nullSpaceBasisVec[0]->describe(*fancy,Teuchos::VERB_EXTREME);
                 TLP->initialize(ParameterList_->get("Dimension",3),
                                 dofsPerNodeVector[0],
                                 ParameterList_->get("Overlap",1),
