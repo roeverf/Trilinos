@@ -357,8 +357,7 @@ namespace FROSch {
         int ret = 0;
 
         if (0>this->OverlappingOperator_->compute()) ret -= 1;
-        //this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0)std::cout<<"Comp O--done\n";
+      
         if (0>CoarseOperator_->compute()) ret -= 10;
         return ret;
     }

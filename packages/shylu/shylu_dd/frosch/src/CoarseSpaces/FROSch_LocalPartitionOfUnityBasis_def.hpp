@@ -116,11 +116,9 @@ namespace FROSch {
                     XMultiVectorPtr CbasisR = MultiVectorFactory<SC,LO,GO,NO>::Build(CMap,NullspaceBasis_->getNumVectors());
                     tmpBasisJ->elementWiseMultiply(ScalarTraits<SC>::one(),*PartitionOfUnity_[i]->getVector(j),*NullspaceBasis_,ScalarTraits<SC>::one());
                     Teuchos::SerialDenseMatrix<LO,SC> tmpCBasisJ(NullspaceBasis_->getMap()->getNodeNumElements(),NullspaceBasis_->getNumVectors());
-                    //if(this->MpiComm_->getRank() == 0)tmpBasisJ->describe(*fancy,Teuchos::VERB_EXTREME);
-                    //if(MpiComm_->getRank() == 0)tmpBasisJ->describe(*fancy,Teuchos::VERB_EXTREME);
+
                     if (ParameterList_->get("Orthogonalize",true)) {
                         tmpBasis[i][j] = ModifiedGramSchmidt(tmpBasisJ.getConst());
-                        //if(this->MpiComm_->getRank() == 0)tmpBasis[i][j]->describe(*fancy,Teuchos::VERB_EXTREME);
 
                     } else {
                         tmpBasis[i][j] = tmpBasisJ;
@@ -174,14 +172,6 @@ namespace FROSch {
                       }
                     }
                    tmpBasisR[i][j]=CbasisR;
-                   /*if(MpiComm_->getRank() == 0){ tmpBasis[i][j]->describe(*fancy,Teuchos::VERB_EXTREME);
-                   std::cout<<"##############################################\n";}
-                    if(this->MpiComm_->getRank() == 0){
-
-                      //tmpBasis[i][j]->describe(*fancy,Teuchos::VERB_EXTREME);
-                      tmpCBasis[i][j]->print(std::cout);
-                      tmpCBasisR[i][j]->print(std::cout);
-                    }*/
                 }
 
             } else {
