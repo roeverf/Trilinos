@@ -116,13 +116,15 @@ namespace FROSch {
                     XMultiVectorPtr CbasisR = MultiVectorFactory<SC,LO,GO,NO>::Build(CMap,NullspaceBasis_->getNumVectors());
                     tmpBasisJ->elementWiseMultiply(ScalarTraits<SC>::one(),*PartitionOfUnity_[i]->getVector(j),*NullspaceBasis_,ScalarTraits<SC>::one());
                     Teuchos::SerialDenseMatrix<LO,SC> tmpCBasisJ(NullspaceBasis_->getMap()->getNodeNumElements(),NullspaceBasis_->getNumVectors());
-
+                    XMultiVectorPtr tmpR;
                     if (ParameterList_->get("Orthogonalize",true)) {
                         tmpBasis[i][j] = ModifiedGramSchmidt(tmpBasisJ.getConst());
 
                     } else {
                         tmpBasis[i][j] = tmpBasisJ;
                     }
+                    tmpR = ModGram_FormR(tmpBasisJ.getConst(),tmpBasis[i][j].getConst());
+                    //if(MpiComm_->getRank() == 0)tmpR->describe(*fancy,Teuchos::VERB_EXTREME);
                 //tmpBasis[i][j] = MultiVectorFactory<SC,LO,GO,NO>::Build(NullspaceBasis_->getMap(),NullspaceBasis_->getNumVectors());
 
                      for(UN h = 0;h<NullspaceBasis_->getNumVectors();h++){
@@ -133,7 +135,7 @@ namespace FROSch {
                     }
                     Teuchos::SerialQRDenseSolver<LO,SC> qrSolver;
                     qrSolver.setMatrix(Teuchos::rcp(&tmpCBasisJ, false));
-                     if (ParameterList_->get("Orthogonalize",true)) {
+                     if (ParameterList_->get("Orthogonalize Coarse",true)) {
                            qrSolver.factor();
                            qrSolver.formQ();
                            qrSolver.formR();
@@ -171,7 +173,7 @@ namespace FROSch {
                           //}
                       }
                     }
-                   tmpBasisR[i][j]=CbasisR;
+                   tmpBasisR[i][j]=tmpR;
                 }
 
             } else {

@@ -1149,6 +1149,20 @@ namespace FROSch {
                               }*/
 
     template <class SC, class LO,class GO,class NO>
+    RCP<MultiVector<SC,LO,GO,NO> > ModGram_FormR(RCP<const MultiVector<SC,LO,GO,NO> > multiVector,RCP<const MultiVector<SC,LO,GO,NO> > orthoBasis){
+
+
+
+      RCP<Xpetra::Map<LO,GO,NO> > CMap = MapFactory<LO,GO,NO>::Build(multiVector->getMap()->lib(),multiVector->getNumVectors(),0,multiVector->getMap()->getComm());
+      RCP<MultiVector<SC,LO,GO,NO> > tmpRVec = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(CMap,multiVector->getNumVectors());
+
+      tmpRVec->multiply(Teuchos::TRANS,Teuchos::NO_TRANS,Teuchos::ScalarTraits<SC>::one(),*orthoBasis,*multiVector,Teuchos::ScalarTraits<SC>::zero());
+      return tmpRVec;
+
+    }
+
+
+    template <class SC, class LO,class GO,class NO>
     RCP<MultiVector<SC,LO,GO,NO> > ModifiedGramSchmidt(RCP<const MultiVector<SC,LO,GO,NO> > multiVector,
                                                        ArrayView<unsigned> zero)
     {

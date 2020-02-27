@@ -332,6 +332,8 @@ namespace FROSch {
     template <class SC, class LO,class GO,class NO>
     RCP<MultiVector<SC,LO,GO,NO> > ModifiedGramSchmidt(RCP<const MultiVector<SC,LO,GO,NO> > multiVector,
                                                        ArrayView<unsigned> zero = ArrayView<unsigned>());
+    template <class SC, class LO,class GO,class NO>
+    RCP<MultiVector<SC,LO,GO,NO> > ModGram_FormR(RCP<const MultiVector<SC,LO,GO,NO> > multiVector,RCP<const MultiVector<SC,LO,GO,NO> > orthoBasis);
 
     template <class SC, class LO,class GO,class NO>
     RCP<const MultiVector<SC,LO,GO,NO> > BuildNullSpace(unsigned dimension,

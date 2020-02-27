@@ -683,9 +683,6 @@ namespace FROSch {
 
                     CoarseMatrix_ = MatrixFactory<SC,LO,GO,NO>::Build(CoarseSolveMap_,elemsPerRow,StaticProfile);
 
-                      XMultiVectorPtr CMult = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(CoarseSolveMap_,CoarseMatrix_->getGlobalNumRows());
-
-
                     CoarseMatrix_->fillComplete(CoarseSolveMap_,CoarseSolveMap_);
 
                 }
@@ -743,7 +740,7 @@ namespace FROSch {
         //CC->describe(*fancy,Teuchos::VERB_EXTREME);
 
         //if(this->K_->getMap()->lib() == Xpetra::UseEpetra){
-      /*  if(this->Verbose_)std::cout<<"Jaaaa\n";
+        /*if(this->Verbose_)std::cout<<"Jaaaa\n";
           ConstXMatrixPtr cPhi = Phi_;
           Epetra_MpiComm eComm (MPI_COMM_WORLD);
           RCP<Epetra_CrsMatrix> ephi = FROSch::ConvertToEpetra(*cPhi,Teuchos::rcpFromRef(eComm));
