@@ -68,7 +68,6 @@
 #endif
 
 #include <ShyLU_DDFROSch_config.h>
-
 #include <Tpetra_Distributor.hpp>
 
 #include <Xpetra_MatrixFactory.hpp>
@@ -83,6 +82,7 @@
 #include <Zoltan2_PartitioningProblem.hpp>
 #endif
 
+//#include "vectorT.hpp"
 
 namespace FROSch {
 
@@ -236,6 +236,15 @@ namespace FROSch {
                                                            unsigned partitionType,
                                                            ArrayRCP<RCP<const Map<LO,GO,NO>>> dofsMaps);
 
+    template <class LO,class GO,class NO>
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > Structured2DRepMap( Xpetra::UnderlyingLib thelib,unsigned numberSubs, unsigned numberRegs,RCP<const Comm<int> > MpiComm_, unsigned partitionType);
+
+    template <class LO,class GO, class NO>
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > Laplace2DRegionMap(LO N_hc,
+                                                LO N_h,
+                                                RCP<const Comm<int> > comm,
+                                                Xpetra::UnderlyingLib thelib);
+
 
     template <class LO,class GO,class NO>
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromNodeMapRepeated(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &nodesMap,
@@ -325,6 +334,18 @@ namespace FROSch {
 
     template<class T>
     inline void sort(T &v);
+
+    template <class T>
+    void set_plus(std::vector<T> &u, const std::vector<T> &v);
+
+    template<class T>
+    inline void compact(T &v);
+
+    template <class T> /* entspricht dem matlab operator : */
+    void sequence(std::vector<T> &v, int start, int end, int step=1);
+
+    template<class T>
+    void vseq(std::vector<T> &v, T min, T max, T step=1);
 
     template<class T>
     inline void sortunique(T &v);

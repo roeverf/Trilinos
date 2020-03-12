@@ -106,7 +106,8 @@ namespace FROSch {
           DDResetGlobDofsTimer[i]= ATimer("DDInterface::resetGlobalDofs",i);
           DDSortTimer[i]= ATimer("DDInterface::sortVerticesEdgesFaces",i);
         }
-        Teuchos::TimeMonitor DDMon(*DDIntTimer[current_level-1]);
+        if(MpiComm_->getRank() == 0)std::cout<<"Current Level DD  "<<current_level<<std::endl;
+        //Teuchos::TimeMonitor DDMon(*DDIntTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(dDInterfaceTime,"DDInterface::DDInterface");
         FROSCH_ASSERT(((Dimension_==2)||(Dimension_==3)),"FROSch::DDInterface : ERROR: Only dimension 2 and 3 are available");
 
@@ -116,7 +117,6 @@ namespace FROSch {
         IntVecVec componentsSubdomainsUnique;
 
         communicateLocalComponents(componentsSubdomains,componentsSubdomainsUnique,commStrategy);
-
         identifyLocalComponents(componentsSubdomains,componentsSubdomainsUnique);
     }
 
@@ -129,7 +129,7 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int DDInterface<SC,LO,GO,NO>::resetGlobalDofs(ConstXMapPtrVecPtr dofsMaps)
     {
-        Teuchos::TimeMonitor ReTimeM(*DDResetGlobDofsTimer[current_level-1]);
+        //Teuchos::TimeMonitor ReTimeM(*DDResetGlobDofsTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(resetGlobalDofsTime,"DDInterface::resetGlobalDofs");
         //if (Verbose_ && Verbosity_==All) std::cout << "FROSch::DDInterface : Resetting Global IDs" << std::endl;
 
@@ -200,7 +200,7 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int DDInterface<SC,LO,GO,NO>::divideUnconnectedEntities(ConstXMatrixPtr matrix)
     {
-        Teuchos::TimeMonitor DivTime(*DDDivTimer[current_level-1]);
+        //Teuchos::TimeMonitor DivTime(*DDDivTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(divideUnconnectedEntitiesTime,"DDInterface::divideUnconnectedEntities");
         //if (Verbose_ && Verbosity_==All) std::cout << "FROSch::DDInterface : Decomposing unconnected interface components" << std::endl;
 
@@ -245,7 +245,7 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int DDInterface<SC,LO,GO,NO>::flagEntities(ConstXMultiVectorPtr nodeList)
     {
-        Teuchos::TimeMonitor FlagTime(*DDFlagETimer[current_level-1]);
+        //Teuchos::TimeMonitor FlagTime(*DDFlagETimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(flagEntitiesTime,"DDInterface::flagEntities");
         for (UN l=0; l<EntitySetVector_.size(); l++) {
             EntitySetVector_[l]->flagNodes();
@@ -262,7 +262,7 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int DDInterface<SC,LO,GO,NO>::removeEmptyEntities()
     {
-        Teuchos::TimeMonitor remFlag(*DDRemEmpTimer[current_level-1]);
+        //Teuchos::TimeMonitor remFlag(*DDRemEmpTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(removeEmptyEntitiesTime,"DDInterface::removeEmptyEntities");
         //if (Verbose_ && Verbosity_==All) std::cout << "FROSch::DDInterface : Removing empty interface components" << std::endl;
 
@@ -275,10 +275,10 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int DDInterface<SC,LO,GO,NO>::sortVerticesEdgesFaces(ConstXMultiVectorPtr nodeList)
     {
-        Teuchos::TimeMonitor sortTM(*DDSortTimer[current_level-1]);
+        //Teuchos::TimeMonitor sortTM(*DDSortTimer[current_level-1]);
         FROSCH_TIMER_START_LEVELID(sortVerticesEdgesFacesTime,"DDInterface::sortVerticesEdgesFaces");
         //if (Verbose_ && Verbosity_==All) std::cout << "FROSch::DDInterface : Sorting interface components" << std::endl;
-        
+
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
         // Clear EntitySets if non-empty
         if (Vertices_->getNumEntities()>0) Vertices_.reset(new EntitySet<SC,LO,GO,NO>(VertexType));
@@ -364,7 +364,7 @@ namespace FROSch {
                                                   bool buildLeafsMap)
     {
 
-        Teuchos::TimeMonitor bEMT(*DDEMapsTimer[current_level-1]);
+        //Teuchos::TimeMonitor bEMT(*DDEMapsTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(buildEntityMapsTime,"DDInterface::buildEntityMaps");
         //if (Verbose_ && Verbosity_==All) std::cout << "FROSch::DDInterface : Building global interface component maps" << std::endl;
 
@@ -593,13 +593,14 @@ namespace FROSch {
                                                                EntityFlagVecPtr flags)
     {
 
-        Teuchos::TimeMonitor iCETM(*DDIdentConETimer[current_level-1]);
+        //Teuchos::TimeMonitor iCETM(*DDIdentConETimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(identifyConnectivityEntitiesTime,"DDInterface::identifyConnectivityEntities");
         //if (Verbose_ && Verbosity_==All) std::cout << "FROSch::DDInterface : Preparing subdomain graph" << std::endl;
 
         if (multiplicities.is_null()) {
             multiplicities = UNVecPtr(1,2);
         }
+
         if (flags.is_null()) {
             flags = EntityFlagVecPtr(4);
             flags[0] = DefaultFlag;
@@ -615,6 +616,7 @@ namespace FROSch {
                 }
             }
         }
+
         return 0;
     }
 
@@ -713,7 +715,7 @@ namespace FROSch {
                                                              IntVecVec &componentsSubdomainsUnique,
                                                            CommunicationStrategy commStrategy)
     {
-        Teuchos::TimeMonitor ClcTm(*DDcomComTimer[current_level-1]);
+        //Teuchos::TimeMonitor ClcTm(*DDcomComTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(communicateLocalComponentsTime,"DDInterface::communicateLocalComponents");
         //if (Verbose_ && Verbosity_==All) std::cout << "FROSch::DDInterface : Communicating nodes" << std::endl;
 
@@ -721,7 +723,6 @@ namespace FROSch {
             if (Verbose_) std::cout << "FROSch::DDInterface : WARNING: CreateOneToOneMap communication strategy does not work for Epetra => Switching to CommCrsGraph" << std::endl;
             commStrategy = CommCrsGraph;
         }
-
         // Different communication strategies
         switch (commStrategy) {
             case CommCrsMatrix:
@@ -799,7 +800,6 @@ namespace FROSch {
                     componentsSubdomains = lowerPIDTieBreak->getComponents();
                 }
                 break;
-
             default:
                 FROSCH_ASSERT(false,"FROSch::DDInterface : ERROR: Specify a valid communication strategy.");
                 break;
@@ -822,10 +822,9 @@ namespace FROSch {
                                                           IntVecVec &componentsSubdomainsUnique)
     {
 
-        Teuchos::TimeMonitor iLCTM(*DDIdentLocComTimer[current_level-1]);
+        //Teuchos::TimeMonitor iLCTM(*DDIdentLocComTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(identifyLocalComponentsTime,"DDInterface::identifyLocalComponents");
         //if (Verbose_ && Verbosity_==All) std::cout << "FROSch::DDInterface : Classifying interface components based on equivalence classes" << std::endl;
-
         // Hier herausfinden, ob Ecke, Kante oder Fläche
         UNVecPtr componentsMultiplicity(componentsSubdomainsUnique.size());
         IntVecVecPtr components(componentsSubdomainsUnique.size());
@@ -839,14 +838,12 @@ namespace FROSch {
         for (UN i=0; i<maxMultiplicity+1; i++) {
             EntitySetVector_[i].reset(new EntitySet<SC,LO,GO,NO>(DefaultType));
         }
-
         typename IntVecVec::iterator classIterator;
         LOVecPtr localComponentIndices(NumMyNodes_);
         for (int i=0; i<NumMyNodes_; i++) {
             classIterator = std::lower_bound(componentsSubdomainsUnique.begin(),componentsSubdomainsUnique.end(),componentsSubdomains[i]);
             localComponentIndices[i] = classIterator - componentsSubdomainsUnique.begin();
         }
-
         LO tmp1 = 0; // The interface and interior have multiplicity 0 in our construction
         int *tmp2 = NULL;
         RCP<InterfaceEntity<SC,LO,GO,NO> > interior(new InterfaceEntity<SC,LO,GO,NO>(InteriorType,DofsPerNode_,tmp1,tmp2));
@@ -915,10 +912,8 @@ namespace FROSch {
             tmpEntity->resetEntityType(DefaultType);
             EntitySetVector_[componentsMultiplicity[i]]->addEntity(tmpEntity);
         }
-
         // Remove the empty entity stemming from the interior nodes
         removeEmptyEntities();
-
         // We need to set the unique ID; otherwise, we cannot sort entities
         for (UN i=0; i<EntitySetVector_.size(); i++) {
             EntitySetVector_[i]->setUniqueIDToFirstGlobalNodeID();

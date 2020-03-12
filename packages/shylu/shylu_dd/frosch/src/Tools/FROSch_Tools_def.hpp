@@ -484,6 +484,203 @@ namespace FROSch {
     }
 
     template <class LO,class GO,class NO>
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> >  Structured2DRepMap( Xpetra::UnderlyingLib thelib, unsigned N, unsigned Nh ,RCP<const Comm<int> > MpiComm_, unsigned partitionType)
+    {
+
+      unsigned regInRow = N/Nh;
+      int rank = MpiComm_->getRank();
+      int size = MpiComm_->getSize();
+      int numVer = (N-1)*(N-1);
+      int sqrtNumVer = N-1;
+
+      int vhs,vhe,vvs,vve;
+      MpiComm_->barrier();MpiComm_->barrier();MpiComm_->barrier();
+      if(rank == 0) std::cout<<"Tools0\n";
+      if(rank%Nh == 0){
+        vhs = rank%Nh;
+        vhe = (N-1)%Nh;
+      }else if(rank%Nh == Nh-1){
+        vhs = (rank%Nh)*(N/Nh)-1;
+        vhe = N-2;
+      }else{
+        vhs = (rank%Nh)*(N/Nh)-1;
+        vhe = ((rank+1)%Nh)*(N/Nh)-1;
+      }
+      MpiComm_->barrier();MpiComm_->barrier();MpiComm_->barrier();
+      if(rank == 0) std::cout<<"Tools1\n";
+      if(rank<Nh){
+        vvs = 0;
+        vve = ((N-1)%Nh)+(Nh%(N-1));
+      } else if(rank>= size-Nh){
+        vvs = (size-1)%Nh*(N/Nh)-1;
+        vve = N-2;
+      } else {
+        int row;
+        row = rank/Nh;
+        vvs = (row%Nh)*(N/Nh)-1;
+        vve = ((row+1)%Nh)*(N/Nh)-1;
+      }
+      MpiComm_->barrier();MpiComm_->barrier();MpiComm_->barrier();
+      if(rank == 0) std::cout<<"Tools2\n";
+      int c = 0;
+      Teuchos::Array<GO> indV ((N/Nh)*(N/Nh));
+      for(int i = vvs;i<vve+1;i++){
+        for(int j = vhs;j<vhe+1;j++){
+          indV[c] = j+i*sqrtNumVer;
+          c = c+1;
+        }
+      }
+
+      MpiComm_->barrier();MpiComm_->barrier();MpiComm_->barrier();
+      if(rank == 0) std::cout<<"Tools3\n";
+      int evs,eve,ehs,ehe;
+
+      if(rank<Nh){
+        evs = 0;
+        eve = ((N-1)%Nh)+(Nh%(N-1));
+      }else if (rank>=size-Nh){
+        evs = ((size-1)%Nh)*(N/Nh);
+        eve = N-1;
+      } else{
+        int row = rank/Nh;
+        evs = (row%Nh)*(N/Nh)-1;
+        eve = ((row+1)/Nh)*(N/Nh)-1;
+      }
+
+      ehs = (rank%Nh)*(N/Nh);
+      ehe = ((rank+1)%Nh)*(N/Nh)-1;
+
+      if(rank%Nh == Nh-1){
+        ehe = N-1;
+      }
+
+      int a = 0;
+      Teuchos::Array<GO> indEV((N/Nh)*(N/Nh));
+      Teuchos::Array<GO> indEH((N/Nh)*(N/Nh));
+
+      MpiComm_->barrier();MpiComm_->barrier();MpiComm_->barrier();
+      if(rank == 0) std::cout<<"Tools4\n";
+      for(int i =vhs;i<vhe+1;i++){
+        for(int j = evs;j<eve+1;j++){
+          indEV[a] =i+ j*((N-1)+N)+numVer;
+          a = a+1;
+        }
+      }
+      int b = 0;
+
+      MpiComm_->barrier();MpiComm_->barrier();MpiComm_->barrier();
+      std::cout<<"rank "<<rank<<"  : "<<vvs<<"  "<<vve<<" edHorz "<<ehs<<"  "<<ehe<<std::endl;
+      if(rank == 0) std::cout<<"Tools5\n";
+      for(int i =vvs;i<vve+1;i++){
+        for(int j = ehs;j<ehe+1;j++){
+          indEH[b] =j + (i+1)*(N-1)+numVer+i*N;
+          b = b+1;
+        }
+      }
+      std::cout<<"rankEH"<<rank<<"  : "<<indEH<<std::endl;
+      a = 0;
+      Teuchos::Array<GO> all(indEH.size()+indV.size()+indEV.size());
+      for(int i = 0;i<indV.size();i++){
+        all[a] = indV[i];
+        a = a+1;
+      }
+      for(int j = 0;j<indEH.size();j++){
+        all[a]= indEH[j];
+        a = a+1;
+      }
+      for(int k = 0;k<indEV.size();k++){
+        all[a] = indEV[k];
+        a = a+1;
+      }
+
+      MpiComm_->barrier();MpiComm_->barrier();MpiComm_->barrier();
+      if(rank == 0) std::cout<<"Tools6\n";
+      RCP<Xpetra::Map<LO,GO,NO> > structMap = Xpetra::MapFactory<LO,GO,NO>::Build(thelib,-1,all(),0,MpiComm_);
+      MpiComm_->barrier();MpiComm_->barrier();MpiComm_->barrier();
+      if(rank == 0) std::cout<<"Tools7\n";
+      return structMap;
+    }
+
+    template <class LO,class GO, class NO>
+    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > Laplace2DRegionMap(LO N,
+                                                            LO  Nc,
+                                                            RCP<const Comm<int> > comm,
+                                                            Xpetra::UnderlyingLib thelib)
+    {
+
+        int rank = comm->getRank();
+        int size = comm->getSize();
+
+        LO numEle = N/Nc;
+        Teuchos::Array<LO> hh (Nc-1);
+        for(int i = 0;i<Nc-1;i++){
+          if(i == 0){
+            hh[i] = N/Nc;
+          }else{
+            hh[i] = hh[i-1]+N/Nc;
+          }
+        }
+
+        Teuchos::Array<LO> h (Nc+1);
+        h[0] = 1;
+        h[Nc] = N-1;
+        for(int i = 0;i<Nc-1;i++){
+          h[i+1] = hh[i];
+        }
+
+        //h contains start and end count for euch subdomains
+        //define row col location for each subdomain
+        int row = rank/Nc;
+        int col = rank%Nc;
+
+        Teuchos::Array<GO> verts ((h[row+1]-h[row]+1)*(h[col+1]-h[col]+1));
+        Teuchos::Array<GO> horz (numEle*(h[row+1]-h[row]+1));
+        Teuchos::Array<GO> vertical (((h[col+1]-h[col])+1)*numEle);
+        Teuchos::Array<GO> ElemList(verts.size()+horz.size()+vertical.size());
+
+        int all = 0;
+        int c = 0;
+        for(int i = h[row];i<h[row+1]+1;i++){
+          for(int j = h[col];j<h[col+1]+1;j++){
+            verts[c] = (j-1)+(i-1)*(N-1);
+            ElemList[all] = verts[c];
+            all = all+1;
+            c = c+1;
+          }
+        }
+
+
+        int b = 0;
+        for(int i = col*numEle;i<(col+1)*numEle;i++){
+          for(int j = h[row];j<h[row+1]+1;j++){
+            horz[b] = (j-1)*N+j*(N-1)+i+(N-1)*(N-1);
+            ElemList[all] = horz[b];
+            all = all+1;
+            b = b+1;
+          }
+        }
+
+
+        int a = 0;
+        for(int i = h[col];i<h[col+1]+1;i++){
+          for(int j = row*numEle;j<(row+1)*numEle;j++){
+            vertical[a] = (i-1)+j*N+j*(N-1)+(N-1)*(N-1);
+            ElemList[all] = vertical[a];
+            all = all+1;
+            a = a+1;
+          }
+        }
+      
+        Teuchos::RCP<Xpetra::Map<LO,GO,NO> > structMap = Xpetra::MapFactory<LO,GO,NO>::Build(thelib,-1,ElemList(),0,comm);
+        //Teuchos::RCP<Epetra_Map> Map(new Epetra_Map(-1, NumMyElements,&D_h[MyPID][0],0,*comm));
+        //comm->Barrier();comm->Barrier();comm->Barrier(); std::cout << "nach eptra_map" << std::endl;
+        //std::cout << *Map;
+        return structMap;
+
+    };
+
+
+    template <class LO,class GO,class NO>
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromNodeMapRepeated(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &nodesMap,
                                                              unsigned dofsPerNode,
                                                              unsigned dofOrdering)
@@ -1133,6 +1330,50 @@ namespace FROSch {
     {
         std::sort(v.begin(),v.end());
     }
+
+    template<class T>
+    void vseq(std::vector<T> &v, T min, T max, T step)
+    {
+        while(min<=max)
+        {
+    	v.push_back(min);
+    	min+=step;
+        }
+    }
+
+    template<class T>
+inline void compact(T &v)
+{
+    T tv(v);
+    tv.swap(v);
+     }
+
+    template <class T>
+    void set_plus(std::vector<T> &u, const std::vector<T> &v)  // u und v muessen sortiert sein; u ist weiterhin sortiert
+    {
+      std:: vector<T> tmp;
+      tmp.reserve(u.size()+v.size());
+
+      set_union(u.begin(),
+	              u.end(),
+	              v.begin(),
+	              v.end(),
+	              back_inserter(tmp));
+      swap(u,tmp);
+      compact(u);
+    }
+
+    template <class T> /* entspricht dem matlab operator : */
+    void sequence(std::vector<T> &v, int start, int end, int step)
+    {
+      v.clear();
+      v.reserve((end-start+1)/step);
+      for(int i=start;i<=end;i+=step)
+      {
+	       v.push_back(T(i));
+      }
+     }
+
 
     template<class T>
     inline void sortunique(T &v)

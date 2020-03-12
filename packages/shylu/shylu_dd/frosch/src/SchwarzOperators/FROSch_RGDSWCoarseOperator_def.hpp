@@ -126,11 +126,14 @@ namespace FROSch {
             if (this->Verbose_) std::cout << "FROSch::RGDSWCoarseOperator : WARNING: Rotations cannot be used" << std::endl;
         }
 
+        RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout));
+        //dofsMaps[0]->describe(*fancy,Teuchos::VERB_EXTREME);
         this->DofsMaps_[blockId] = dofsMaps;
         this->DofsPerNode_[blockId] = dofsPerNode;
 
         Array<GO> tmpDirichletBoundaryDofs(dirichletBoundaryDofs()); // Here, we do a copy. Maybe, this is not necessary
         sortunique(tmpDirichletBoundaryDofs);
+
 
         this->DDInterface_.reset(new DDInterface<SC,LO,GO,NO>(dimension,this->DofsPerNode_[blockId],nodesMap.getConst(),verbosity,this->LevelID_,communicationStrategy));
         this->DDInterface_->resetGlobalDofs(dofsMaps);
@@ -158,7 +161,7 @@ namespace FROSch {
             this->InterfaceCoarseSpaces_[blockId].reset(new CoarseSpace<SC,LO,GO,NO>());
 
             if (useForCoarseSpace) {
-
+            
                 if (this->ParameterList_->get("Test Unconnected Interface",true)) {
                     this->DDInterface_->divideUnconnectedEntities(this->K_);
                 }
