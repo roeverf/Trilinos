@@ -86,7 +86,6 @@ namespace FROSch {
 
         using GOVec                         = typename PartitionOfUnity<SC,LO,GO,NO>::GOVec;
         using GOVecView                     = typename PartitionOfUnity<SC,LO,GO,NO>::GOVecView;
-        using TimePtr                       = Teuchos::RCP<Teuchos::Time>;
 
     public:
 
@@ -98,8 +97,7 @@ namespace FROSch {
                                       ConstXMapPtrVecPtr dofsMaps,
                                       ParameterListPtr parameterList,
                                       Verbosity verbosity = All,
-                                      UN levelID = 1,
-                                      UN NumLevel = 2);
+                                      UN levelID = 1);
 
         virtual ~GDSWInterfacePartitionOfUnity();
 
@@ -111,26 +109,19 @@ namespace FROSch {
 
         virtual int computePartitionOfUnity(ConstXMultiVectorPtr nodeList = null);
 
-        static int current_level;
-        Teuchos::Array<TimePtr> ConstTimer;
-        Teuchos::Array<TimePtr> CompPartTimer;
-        Teuchos::Array<TimePtr> RemDirchTimer;
-        Teuchos::Array<TimePtr> SortIntTimer;
-
     protected:
 
-        bool UseVertices_;
-        bool UseShortEdges_;
-        bool UseStraightEdges_;
-        bool UseEdges_;
-        bool UseFaces_;
+        bool UseVertices_ = false;
+        bool UseShortEdges_ = false;
+        bool UseStraightEdges_ = false;
+        bool UseEdges_ = false;
+        bool UseFaces_ = false;
 
         EntitySetPtr Vertices_;
         EntitySetPtr ShortEdges_;
         EntitySetPtr StraightEdges_;
         EntitySetPtr Edges_;
         EntitySetPtr Faces_;
-
     };
 
 }

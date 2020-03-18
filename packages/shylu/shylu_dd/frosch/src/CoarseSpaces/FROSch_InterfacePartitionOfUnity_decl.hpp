@@ -43,7 +43,6 @@
 #define _FROSCH_INTERFACEPARTITIONOFUNITY_DECL_HPP
 
 #include <FROSch_PartitionOfUnity_def.hpp>
-#define ATimer(S,L) Teuchos::TimeMonitor::getNewCounter(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(L) + std::string(")"));
 
 
 namespace FROSch {
@@ -83,30 +82,17 @@ namespace FROSch {
         using ConstDDInterfacePtr           = typename PartitionOfUnity<SC,LO,GO,NO>::ConstDDInterfacePtr;
 
         using EntitySetPtr                  = typename PartitionOfUnity<SC,LO,GO,NO>::EntitySetPtr;
-        using EntitySetConstPtr             = const EntitySetPtr;
         using EntitySetPtrVecPtr            = typename PartitionOfUnity<SC,LO,GO,NO>::EntitySetPtrVecPtr;
-        using EntitySetPtrConstVecPtr       = const EntitySetPtrVecPtr;
 
         using InterfaceEntityPtr            = typename PartitionOfUnity<SC,LO,GO,NO>::InterfaceEntityPtr;
-        using InterfaceEntityPtrVec         = Teuchos::Array<InterfaceEntityPtr>;
-        using InterfaceEntityPtrVecPtr      = Teuchos::ArrayRCP<InterfaceEntityPtr>;
 
         using UN                            = typename PartitionOfUnity<SC,LO,GO,NO>::UN;
         using ConstUN                       = typename PartitionOfUnity<SC,LO,GO,NO>::ConstUN;
-
-        using IntVec                        = Teuchos::Array<int>;
-        using IntVec2D                      = Teuchos::Array<IntVec>;
 
         using GOVec                         = typename PartitionOfUnity<SC,LO,GO,NO>::GOVec;
         using GOVecView                     = typename PartitionOfUnity<SC,LO,GO,NO>::GOVecView;
 
         using SCVecPtr                      = typename PartitionOfUnity<SC,LO,GO,NO>::SCVecPtr;
-
-        using TimePtr                       = Teuchos::RCP<Teuchos::Time>;
-
-        using XCrsGraph                     = typename PartitionOfUnity<SC,LO,GO,NO>::XCrsGraph;
-        using GraphPtr                      = typename PartitionOfUnity<SC,LO,GO,NO>::GraphPtr;
-        using ConstXCrsGraphPtr             = typename PartitionOfUnity<SC,LO,GO,NO>::ConstXCrsGraphPtr;
 
     public:
 
@@ -118,16 +104,12 @@ namespace FROSch {
                                   ConstXMapPtrVecPtr dofsMaps,
                                   ParameterListPtr parameterList,
                                   Verbosity verbosity = All,
-                                  UN levelID = 1,
-                                  UN NumLevel = 2);
+                                  UN levelID = 1);
 
         virtual ~InterfacePartitionOfUnity();
 
         virtual int sortInterface(ConstXMatrixPtr matrix = null,
                                   ConstXMultiVectorPtr nodeList = null) = 0;
-
-        int buildGlobalGraph();
-        GraphPtr getSubdomainGraph() const;
 
         ConstDDInterfacePtr getDDInterface() const;
 
@@ -138,12 +120,7 @@ namespace FROSch {
     protected:
 
         DDInterfacePtr DDInterface_;
-        GraphPtr SubdomainConnectGraph_;
-        UN maxNumNeigh_;
-
-        
     };
-
 
 }
 

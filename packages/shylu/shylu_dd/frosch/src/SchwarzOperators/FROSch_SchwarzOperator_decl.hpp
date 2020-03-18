@@ -48,6 +48,8 @@
 
 #include <Teuchos_DefaultSerialComm.hpp>
 
+#include <Teuchos_SerialQRDenseSolver.hpp>
+
 #include <ShyLU_DDFROSch_config.h>
 
 #include <FROSch_DDInterface_def.hpp>
@@ -58,8 +60,6 @@
 #include <FROSch_LocalPartitionOfUnityBasis_def.hpp>
 
 #include <FROSch_SubdomainSolver_def.hpp>
-
-#include "Teuchos_StackedTimer.hpp"
 
 // TODO: Auf const überprüfen
 // TODO: #ifndef überprüfen ??????
@@ -81,7 +81,7 @@ namespace FROSch {
     protected:
 
         using CommPtr                           = RCP<const Comm<int> >;
-        using MPIPtr                            = RCP<const MpiComm<int> >;
+
         using XMap                              = Map<LO,GO,NO>;
         using XMapPtr                           = RCP<XMap>;
         using ConstXMapPtr                      = RCP<const XMap>;
@@ -114,6 +114,10 @@ namespace FROSch {
 
         using ParameterListPtr                  = RCP<ParameterList>;
 
+        using TSerialDenseMatrixPtr             = RCP<SerialDenseMatrix<LO,SC> >;
+
+        using TSerialQRDenseSolverPtr           = RCP<SerialQRDenseSolver<LO,SC> >;
+
         using DDInterfacePtr                    = RCP<DDInterface<SC,LO,GO,NO> >;
 
         using EntitySetPtr                      = RCP<EntitySet<SC,LO,GO,NO> >;
@@ -143,6 +147,7 @@ namespace FROSch {
         using ConstUN                           = const UN;
         using UNVec                             = Array<UN>;
         using UNVecPtr                          = ArrayRCP<UN>;
+        using ConstUNVecView                    = ArrayView<const UN>;
 
         using LOVec                             = Array<LO>;
         using LOVecPtr                          = ArrayRCP<LO>;
@@ -166,8 +171,6 @@ namespace FROSch {
         using BoolVecPtr                        = ArrayRCP<bool>;
 
         using TimePtr                           = RCP<Teuchos::Time>;
-
-
     public:
 
         SchwarzOperator(CommPtr comm);
@@ -218,19 +221,19 @@ namespace FROSch {
     protected:
 
         CommPtr MpiComm_;
-        CommPtr SerialComm_;
+        CommPtr SerialComm_ = createSerialComm<int>();
 
         ConstXMatrixPtr K_;
 
         ParameterListPtr ParameterList_;
 
-        bool Verbose_;
+        bool Verbose_ = false;
 
-        bool IsInitialized_;
-        bool IsComputed_;
+        bool IsInitialized_ = false;
+        bool IsComputed_ = false;
 
-        ConstUN LevelID_;
-        ConstUN numLevel;
+        ConstUN LevelID_ = 1;
+        ConstUN numLevel = 1;
     };
 
 }

@@ -112,8 +112,9 @@ namespace FROSch {
                                      ConstXMapPtr repeatedMap);
 
         virtual int updateLocalOverlappingMatrices();
+        
 
-        AddingLayersStrategy AddingLayersStrategy_;
+        AddingLayersStrategy AddingLayersStrategy_ = LayersFromGraph;
     };
 
 }

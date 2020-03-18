@@ -63,6 +63,14 @@
 #define FROSCH_TIMER_STOP(A) A.reset();
 #endif
 
+#ifndef FROSCH_WARNING
+#define FROSCH_WARNING(CLASS,VERBOSE,OUTPUT) if (VERBOSE) std::cerr << CLASS << " : WARNING: " << OUTPUT << std::endl;
+#endif
+
+#ifndef FROSCH_NOTIFICATION
+#define FROSCH_NOTIFICATION(CLASS,VERBOSE,OUTPUT) if (VERBOSE) std::cout << CLASS << " : NOTIFICATION: " << OUTPUT << std::endl;
+#endif
+
 #ifndef FROSCH_TEST_OUTPUT
 #define FROSCH_TEST_OUTPUT(COMM,VERBOSE,OUTPUT) COMM->barrier(); COMM->barrier(); COMM->barrier(); if (VERBOSE) std::cout << OUTPUT << std::endl;
 #endif
@@ -75,6 +83,7 @@
 #include <Xpetra_MultiVectorFactory.hpp>
 #include <Xpetra_VectorFactory.hpp>
 #include <Xpetra_ExportFactory.hpp>
+#include <Xpetra_MapFactory.hpp>
 
 #ifdef HAVE_SHYLU_DDFROSCH_ZOLTAN2
 #include <Zoltan2_MatrixAdapter.hpp>
@@ -120,6 +129,7 @@ namespace FROSch {
                         LO lid);
 
         int Merge(const RCP<OverlappingData<LO,GO> > od) const;
+
 
         GO GID_;
 
@@ -213,6 +223,18 @@ namespace FROSch {
                                                               ArrayRCP<const RCP<Map<LO,GO,NO> > > subMaps);
 
     template <class SC,class LO,class GO,class NO>
+    RCP<Map<LO,GO,NO> > BuildRepeatedMapNonConstOld(RCP<const Matrix<SC,LO,GO,NO> > matrix);
+
+    template <class SC,class LO,class GO,class NO>
+    RCP<const Map<LO,GO,NO> > BuildRepeatedMapOld(RCP<const Matrix<SC,LO,GO,NO> > matrix);
+
+    template <class LO,class GO,class NO>
+    RCP<Map<LO,GO,NO> > BuildRepeatedMapNonConstOld(RCP<const CrsGraph<LO,GO,NO> > graph);
+
+    template <class LO,class GO,class NO>
+    RCP<const Map<LO,GO,NO> > BuildRepeatedMapOld(RCP<const CrsGraph<LO,GO,NO> > graph);
+
+    template <class SC,class LO,class GO,class NO>
     RCP<Map<LO,GO,NO> > BuildRepeatedMapNonConst(RCP<const Matrix<SC,LO,GO,NO> > matrix);
 
     template <class SC,class LO,class GO,class NO>
@@ -276,8 +298,11 @@ namespace FROSch {
     RCP<const Map<LO,GO,NO> > SortMapByGlobalIndex(RCP<const Map<LO,GO,NO> > inputMap);
 
     template <class LO,class GO,class NO>
-    RCP<Map<LO,GO,NO> > AssembleMaps(ArrayView<RCP<Map<LO,GO,NO> > > mapVector,
+    RCP<Map<LO,GO,NO> > AssembleMaps(ArrayView<RCP<const Map<LO,GO,NO> > > mapVector,
                                      ArrayRCP<ArrayRCP<LO> > &partMappings);
+    template <class LO,class GO,class NO>
+    RCP<Map<LO,GO,NO> > AssembleMapsNonConst(ArrayView<RCP<Map<LO,GO,NO> > > mapVector,
+                                             ArrayRCP<ArrayRCP<LO> > &partMappings);
 
     template <class LO,class GO,class NO>
     RCP<Map<LO,GO,NO> > AssembleSubdomainMap(unsigned numberOfBlocks,
@@ -312,9 +337,14 @@ namespace FROSch {
                                             unsigned dofOrdering);
 
     template <class LO,class GO,class NO>
-    RCP<Map<LO,GO,NO> > BuildMapFromNodeMap(RCP<Map<LO,GO,NO> > &nodesMap,
+    RCP<Map<LO,GO,NO> > BuildMapFromNodeMap(RCP<const Map<LO,GO,NO> > &nodesMap,
                                             unsigned dofsPerNode,
                                             unsigned dofOrdering);
+
+    template <class LO,class GO,class NO>
+    ArrayRCP<RCP<const Map<LO,GO,NO> > > BuildNodeMapsFromDofMaps(ArrayRCP<ArrayRCP<RCP<const Map<LO,GO,NO> > > >dofsMapsVecVec,
+                                                                  ArrayRCP<unsigned> dofsPerNodeVec,
+                                                                  ArrayRCP<DofOrdering> dofOrderingVec);
 
     template <class LO,class GO,class NO>
     ArrayRCP<RCP<Map<LO,GO,NO> > > BuildSubMaps(RCP<const Map<LO,GO,NO> > &fullMap,

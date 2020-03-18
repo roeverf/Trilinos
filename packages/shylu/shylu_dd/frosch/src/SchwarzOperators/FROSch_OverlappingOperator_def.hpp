@@ -150,14 +150,17 @@ namespace FROSch {
         YOverlap_->replaceMap(OverlappingMap_);
 
         XTmp_->putScalar(ScalarTraits<SC>::zero());
+        ConstXMapPtr yMap = y.getMap();
+        ConstXMapPtr yOverlapMap = YOverlap_->getMap();
         if (Combine_ == Restricted){
             GO globID = 0;
             LO localID = 0;
             for (UN i=0; i<y.getNumVectors(); i++) {
-                for (UN j=0; j<y.getMap()->getNodeNumElements(); j++) {
-                    globID = y.getMap()->getGlobalElement(j);
-                    localID = YOverlap_->getMap()->getLocalElement(globID);
-                    XTmp_->getDataNonConst(i)[j] = YOverlap_->getData(i)[localID];
+                ConstSCVecPtr yOverlapData_i = YOverlap_->getData(i);
+                for (UN j=0; j<yMap->getNodeNumElements(); j++) {
+                    globID = yMap->getGlobalElement(j);
+                    localID = yOverlapMap->getLocalElement(globID);
+                    XTmp_->getDataNonConst(i)[j] = yOverlapData_i[localID];
                 }
             }
         } else {

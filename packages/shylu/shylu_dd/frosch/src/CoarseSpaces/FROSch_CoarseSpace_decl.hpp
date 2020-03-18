@@ -46,10 +46,6 @@
 #include <Xpetra_MapFactory_fwd.hpp>
 
 #include <FROSch_Tools_def.hpp>
-#include <Teuchos_SerialDenseMatrix.hpp>
-#include <Teuchos_SerialQRDenseSolver.hpp>
-#include <Teuchos_SerialDenseVector.hpp>
-#include <Teuchos_SerialDenseHelpers.hpp>
 
 
 namespace FROSch {
@@ -65,89 +61,114 @@ namespace FROSch {
 
     protected:
 
-        using XMap                  = Map<LO,GO,NO>;
-        using XMapPtr               = RCP<XMap>;
-        using ConstXMapPtr          = RCP<const XMap>;
-        using XMapPtrVec            = Array<XMapPtr>;
+        using CommPtr                   = RCP<const Comm<int> >;
 
-        using XMatrix               = Matrix<SC,LO,GO,NO>;
-        using XMatrixPtr            = RCP<XMatrix>;
+        using XMap                      = Map<LO,GO,NO>;
+        using XMapPtr                   = RCP<XMap>;
+        using ConstXMapPtr              = RCP<const XMap>;
+        using XMapPtrVec                = Array<XMapPtr>;
+        using ConstXMapPtrVec           = Array<ConstXMapPtr>;
 
-        using XMultiVector          = MultiVector<SC,LO,GO,NO>;
-        using XMultiVectorPtr       = RCP<XMultiVector>;
-        using XMultiVectorPtrVec    = Array<XMultiVectorPtr>;
+        using XMatrix                   = Matrix<SC,LO,GO,NO>;
+        using XMatrixPtr                = RCP<XMatrix>;
 
-        using ParameterListPtr      = RCP<ParameterList>;
+        using XMultiVector              = MultiVector<SC,LO,GO,NO>;
+        using XMultiVectorPtr           = RCP<XMultiVector>;
+        using ConstXMultiVectorPtr      = RCP<const XMultiVector>;
+        using ConstXMultiVectorPtrVec   = Array<ConstXMultiVectorPtr>;
 
-        using UN                    = unsigned;
+        using ParameterListPtr          = RCP<ParameterList>;
 
-        using LOVec                 = Array<LO>;
-        using GOVec                 = Array<GO>;
-        using LOVecPtr              = ArrayRCP<LO>;
-        using LOVecPtr2D            = ArrayRCP<LOVecPtr>;
+        using UN                        = unsigned;
+        using UNVec                     = Array<UN>;
+        using ConstUNVecView            = ArrayView<const UN>;
 
-        using SCVec                 = Array<SC>;
+        using LOVec                     = Array<LO>;
+        using LOVecPtr                  = ArrayRCP<LO>;
+        using ConstLOVecView            = ArrayView<const LO>;
+        using LOVecPtr2D                = ArrayRCP<LOVecPtr>;
+
+        using GOVec                     = Array<GO>;
+
+        using SCVec                     = Array<SC>;
+        using ConstSCVecPtr             = ArrayRCP<const SC>;
 
     public:
 
-        CoarseSpace();
+        CoarseSpace(CommPtr mpiComm,
+                    CommPtr serialComm);
 
-        int addSubspace(XMapPtr subspaceBasisMap,
-                        XMultiVectorPtr subspaceBasis = null);
+        int addSubspace(ConstXMapPtr subspaceBasisMap,
+                        ConstXMapPtr subspaceBasisMapUnique = null,
+                        ConstXMultiVectorPtr subspaceBasis = null,
+                        UN offset = 0);
 
-        int addNullspace(XMapPtr subspaceBasisMap,
-                        XMultiVectorPtr nullSpaceBasis = Teuchos::null);
+       int addNullspace(ConstXMapPtr subspaceBasisMap,
+                        ConstXMultiVectorPtr nullSpaceBasis = Teuchos::null);
 
         int assembleCoarseSpace();
 
         int assembleNullSpace(UN NumRowEntries);
 
         int buildGlobalBasisMatrix(ConstXMapPtr rowMap,
+                                   ConstXMapPtr rangeMap,
                                    ConstXMapPtr repeatedMap,
                                    SC treshold);
 
         int buildGlobalNullSpace(SC treshold);
 
+
         int clearCoarseSpace();
 
-        int checkForLinearDependencies();
+        int zeroOutBasisVectors(ConstLOVecView zeros);
 
         bool hasUnassembledMaps() const;
 
         bool hasBasisMap() const;
 
-        XMapPtr getBasisMap() const;
+        ConstXMapPtr getBasisMap() const;
+
+        bool hasBasisMapUnique() const;
+
+        ConstXMapPtr getBasisMapUnique() const;
 
         bool hasAssembledBasis() const;
 
-        XMultiVectorPtr getAssembledBasis() const;
-        XMultiVectorPtr getAssembledNullSpace() const;
+        ConstXMultiVectorPtr getAssembledBasis() const;
+
+        ConstXMultiVectorPtr getAssembledNullSpace() const;
+
+        ConstUNVecView getLocalSubspaceSizes() const;
 
         bool hasGlobalBasisMatrix() const;
 
         XMatrixPtr getGlobalBasisMatrix() const;
-        XMultiVectorPtr getGlobalCoarseNullSpace() const;
 
     protected:
 
-        ConstXMapPtr SerialRowMap_;
+        CommPtr MpiComm_;
+        CommPtr SerialComm_;
 
-        XMapPtrVec UnassembledBasesMaps_;
-        XMapPtrVec UnassembledNullSpaceMaps_;
+        ConstXMapPtrVec UnassembledBasesMaps_ = ConstXMapPtrVec(0);
+        ConstXMapPtrVec UnassembledBasesMapsUnique_ = ConstXMapPtrVec(0);
+        ConstXMapPtrVec UnassembledNullSpaceMaps_ = ConstXMapPtrVec(0);
 
-        XMultiVectorPtrVec UnassembledSubspaceBases_;
-        XMultiVectorPtrVec UnassembledNullSpaceBases_;
+        ConstXMultiVectorPtrVec UnassembledSubspaceBases_ = ConstXMultiVectorPtrVec(0);
+        ConstXMultiVectorPtrVec UnassembledNullSpaceBases_= ConstXMultiVectorPtrVec(0);
 
-        XMapPtr AssembledBasisMap_;
-        XMapPtr AssembledNullSpaceMap_;
+        LOVec Offsets_ = LOVec(0);
+
+        ConstXMapPtr AssembledBasisMap_;
+        ConstXMapPtr AssembledBasisMapUnique_;
+        ConstXMapPtr AssembledNullSpaceMap_;
 
         XMultiVectorPtr AssembledBasis_;
         XMultiVectorPtr AssembledNullSpace_;
 
+        UNVec LocalSubspacesSizes_ = UNVec(0);
+
         XMatrixPtr GlobalBasisMatrix_;
         XMultiVectorPtr GlobalNullSpace_;
-
-
     };
 
 }

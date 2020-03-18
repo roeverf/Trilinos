@@ -48,7 +48,7 @@ $ cmake \
 
 $ make NP=16  # Uses ninja -j16
 
-$ ctest -j16  # Might need to be run with srun or some other command, see below
+$ ctest -j4  # Might need to be run with srun or some other command, see below
 ```
 
 The command:
@@ -103,12 +103,14 @@ href="#sems-rhel6-environment">sems-rhel6</a> and <a
 href="#cee-rhel6-environment">cee-rhel6</a> environments are supported.  On
 these CEE LAN RHEL6 machines, when `cee-rhel6` is included in `<build-name>`,
 then the `cee-rhel6` env will be selected.  But if `sems-rhel6` is included in
-the build name or no system name is given, then the `sems-rhel6` env will be
-selected by default on such machines.  Likewise for CEE LAN RHEL7 machines
-with the <a href="#sems-rhel6-environment">sems-rhel7</a> and <a
+the build name (or no system name is listed in the build name), then the
+`sems-rhel6` env will be selected by default on such machines.  The same is
+true for CEE LAN RHEL7 machines with the <a
+href="#sems-rhel6-environment">sems-rhel7</a> and <a
 href="#cee-rhel6-environment">cee-rhel6</a> environments.  And if `spack-rhel`
 is included in `<build-name>`, then the <a
 href="#spack-rhel-environment">spack-rhel</a> will attempted to be loaded.
+(In that case, one must ensure that the ATDM Spack modules have been defined.)
 
 <a name="kokkos_arch"/>
 
@@ -615,6 +617,7 @@ example, skip the configure, skip the build, skip running tests, etc.
 * <a href="#spack-rhel-environment">Spack RHEL Environment</a>
 * <a href="#cee-rhel6-environment">CEE RHEL6 and RHEL7 Environment</a>
 * <a href="#waterman">waterman</a>
+* <a href="#ats-2">ATS-2</a>
 
 
 ### ride/white
@@ -640,7 +643,7 @@ $ cmake \
 
 $ make NP=16
 
-$ bsub -x -Is -q rhel7F -n 16 ctest -j16
+$ bsub -x -Is -q rhel7F -n 16 ctest -j4
 ```
 
 The ATDM configuration of Trilinos is set up to run on the Firestone nodes
@@ -688,7 +691,7 @@ $ cmake \
 
 $ make NP=16
 
-$ srun ctest -j16
+$ srun ctest -j4
 ```
 
 **NOTE:** While the above example shows loading the environment, configuring
@@ -732,7 +735,7 @@ $ cmake \
 
 $ make NP=16
 
-$ salloc -N1 --time=0:20:00 --account=<YOUR_WCID> ctest -j16
+$ salloc -N1 --time=0:20:00 --account=<YOUR_WCID> ctest -j4
 ```
 
 To get information on <YOUR_WCID> used above, there is a WC tool tab on
@@ -1013,7 +1016,7 @@ $ cmake \
 
 $ make NP=20
 
-$ bsub -x -Is -n 20 ctest -j20
+$ bsub -x -Is -n 20 ctest -j4
 ```
 
 **NOTE:** While the above example shows loading the environment, configuring
@@ -1030,6 +1033,48 @@ $ ln -s $TRILINOS_DIR/cmake/std/atdm/checkin-test-atdm.sh .
 $ bsub -x -Is -n 20 \
   ./checkin-test-atdm.sh cuda-debug --enable-packages=MueLu --local-do-all
 ```
+
+
+### ATS-2
+
+Once logged on a suppported ATS-2 system like 'vortex' (SRN), one can either
+build and configure on the login node or the compute node. Make sure to setup
+SSH keys as described in `/opt/VORTEX_INTRO` before trying to build on a
+compute node. For example to configure, build and run the tests for the
+default `cuda-debug` build for `Kokkos` (after cloning Trilinos on the
+`develop` branch), do:
+
+```bash
+$ cd <some_build_dir>/
+
+$ source $TRILINOS_DIR/cmake/std/atdm/load-env.sh cuda-debug
+
+$ cmake -GNinja \
+  -DTrilinos_CONFIGURE_OPTIONS_FILE:STRING=cmake/std/atdm/ATDMDevEnv.cmake \
+  -DTrilinos_ENABLE_TESTS=ON \
+  -DTrilinos_ENABLE_Kokkos=ON \
+  $TRILINOS_DIR
+
+$ make NP=20
+```
+
+You may run the above commands from an interactive bsub session as well:
+```bash
+$ bsub -J <YOUR_JOB_NAME> -W 4:00 -Is bash
+```
+
+CTest runs everything using the `jsrun` command. You must run jsrun from a
+compute node which can be acquired using the above bsub command.
+
+Once you're on a compute node, you can run ctest. For example:
+```bash
+$ ctest -j4
+```
+
+**NOTES:**
+- Do NOT do `module purge` before loading the environment. Simply start off with
+  a clean default environment on vortex.
+- One can also `ssh` to a compute node and run ctest from there.
 
 
 ## Building and installing Trilinos for ATDM Applications
@@ -1404,7 +1449,7 @@ they support are:
 
 * `spack-rhel/`: RHEL (and likely other Linux) systems with the SNL ATDM Spack modules installed.
 
-* `serrano/`: Supports SNL HPC CTS-1 machines 'serrano', 'eclipse', and
+* `cts1/`: Supports SNL HPC CTS-1 machines 'serrano', 'eclipse', and
   'ghost'.
 
 * `shiller/`: Supports GNU, Intel, and CUDA builds on both the SRN machine
@@ -1413,6 +1458,8 @@ they support are:
 * `tlcc2/`: Supports SNL HPC TLCC-2 machines 'chama', 'skybridge', etc..
 
 * `waterman/`: Supports GNU and CUDA builds on the SRN machine 'waterman'.
+
+* `ats2/`: Supports GNU and CUDA builds on the SRN machine 'vortex'.
 
 
 ## Custom systems and configurations

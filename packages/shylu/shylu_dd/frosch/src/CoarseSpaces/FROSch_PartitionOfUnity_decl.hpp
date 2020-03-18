@@ -63,6 +63,7 @@ namespace FROSch {
         using XMap                          = Map<LO,GO,NO>;
         using XMapPtr                       = RCP<XMap>;
         using ConstXMapPtr                  = RCP<const XMap>;
+        using XMapPtrVec                    = Array<XMapPtr>;
         using XMapPtrVecPtr                 = ArrayRCP<XMapPtr>;
         using ConstXMapPtrVecPtr            = ArrayRCP<ConstXMapPtr>;
 
@@ -99,10 +100,6 @@ namespace FROSch {
         using SCVec                         = Array<SC>;
         using SCVecPtr                      = ArrayRCP<SC>;
 
-        using XCrsGraph                     = CrsGraph<LO,GO,NO>;
-        using GraphPtr                      = RCP<XCrsGraph>;
-        using ConstXCrsGraphPtr             = RCP<const XCrsGraph>;
-
     public:
 
         PartitionOfUnity(CommPtr mpiComm,
@@ -113,7 +110,7 @@ namespace FROSch {
                          ParameterListPtr parameterList,
                          Verbosity verbosity = All,
                          UN levelID = 1,
-                         UN NumLevel = 2);
+                         UN NumLevel_ = 1);
 
         virtual ~PartitionOfUnity();
 
@@ -143,12 +140,13 @@ namespace FROSch {
 
         XMapPtr AssmbledPartitionOfUnityMap_;
 
-        bool Verbose_;
+        bool Verbose_ = false;
 
-        Verbosity Verbosity_;
+        Verbosity Verbosity_ = All;
 
         const UN LevelID_;
         const UN numLevel_;
+
     };
 
 }

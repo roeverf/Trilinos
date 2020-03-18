@@ -60,11 +60,7 @@ namespace FROSch {
                                                                                       ParameterListPtr parameterList,
                                                                                       Verbosity verbosity,
                                                                                       UN levelID) :
-    GDSWInterfacePartitionOfUnity<SC,LO,GO,NO> (mpiComm,serialComm,dimension,dofsPerNode,nodesMap,dofsMaps,parameterList,verbosity,levelID),
-    UseRoots_ (false),
-    Roots_ (),
-    EntitySetVector_ (),
-    DistanceFunction_ (ConstantDistanceFunction)
+    GDSWInterfacePartitionOfUnity<SC,LO,GO,NO> (mpiComm,serialComm,dimension,dofsPerNode,nodesMap,dofsMaps,parameterList,verbosity,levelID)
     {
         FROSCH_TIMER_START_LEVELID(GDSWStarInterfacePartitionOfUnityTime,"GDSWStarInterfacePartitionOfUnity::GDSWStarInterfacePartitionOfUnity");
         this->UseVertices_ = false;
@@ -184,10 +180,10 @@ namespace FROSch {
             }
             this->LocalPartitionOfUnity_[0] = tmpVector;
         }
-        
+
         if (UseLeafs_ && Leafs_->getNumEntities()>0) {
             XMultiVectorPtr tmpVector = MultiVectorFactory<SC,LO,GO,NO>::Build(serialInterfaceMap,Leafs_->getNumEntities());
-            
+
             for (UN i=0; i<Leafs_->getNumEntities(); i++) {
                 InterfaceEntityPtr tmpEntity = Leafs_->getEntity(i);
                 LO leafID = tmpEntity->getLeafID();

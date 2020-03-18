@@ -419,13 +419,13 @@ namespace Intrepid2
                       
                       int degreeLengthField1 = degreesField1.extent_int(0);
                       int degreeLengthField2 = degreesField2.extent_int(0);
-                      for (int d=0; d<degreeLengthField1; d++)
+                      for (int d3=0; d3<degreeLengthField1; d3++)
                       {
-                        this->fieldOrdinalPolynomialDegree_(tensorFieldOrdinal,d) = degreesField1(d);
+                        this->fieldOrdinalPolynomialDegree_(tensorFieldOrdinal,d3) = degreesField1(d3);
                       }
-                      for (int d=0; d<degreeLengthField2; d++)
+                      for (int d3=0; d3<degreeLengthField2; d3++)
                       {
-                        this->fieldOrdinalPolynomialDegree_(tensorFieldOrdinal,d+degreeLengthField1) = degreesField2(d);
+                        this->fieldOrdinalPolynomialDegree_(tensorFieldOrdinal,d3+degreeLengthField1) = degreesField2(d3);
                       }
                     }
                   } // localDofID1
@@ -686,9 +686,8 @@ namespace Intrepid2
             const int outputVectorSize = getVectorSizeForHierarchicalParallelism<OutputValueType>();
             const int pointVectorSize  = getVectorSizeForHierarchicalParallelism<PointValueType>();
             const int vectorSize = std::max(outputVectorSize,pointVectorSize);
-            const int teamSize = basisCardinality2;
             
-            auto policy = Kokkos::TeamPolicy<ExecutionSpace>(basisCardinality1,teamSize,vectorSize);
+            auto policy = Kokkos::TeamPolicy<ExecutionSpace>(basisCardinality1,Kokkos::AUTO(),vectorSize);
             
             double weight = 1.0;
             using FunctorType = TensorViewFunctor<ExecutionSpace, OutputValueType, OutputViewType>;
@@ -840,9 +839,8 @@ namespace Intrepid2
       const int outputVectorSize = getVectorSizeForHierarchicalParallelism<OutputValueType>();
       const int pointVectorSize  = getVectorSizeForHierarchicalParallelism<PointValueType>();
       const int vectorSize = std::max(outputVectorSize,pointVectorSize);
-      const int teamSize = basisCardinality2;
       
-      auto policy = Kokkos::TeamPolicy<ExecutionSpace>(basisCardinality1,teamSize,vectorSize);
+      auto policy = Kokkos::TeamPolicy<ExecutionSpace>(basisCardinality1,Kokkos::AUTO(),vectorSize);
       
       using FunctorType = TensorViewFunctor<ExecutionSpace, OutputValueType, OutputViewType>;
       
@@ -1342,9 +1340,8 @@ namespace Intrepid2
       const int outputVectorSize = getVectorSizeForHierarchicalParallelism<OutputScalar>();
       const int pointVectorSize  = getVectorSizeForHierarchicalParallelism<PointScalar>();
       const int vectorSize = std::max(outputVectorSize,pointVectorSize);
-      const int teamSize = basisCardinality2;
       
-      auto policy = Kokkos::TeamPolicy<ExecutionSpace>(basisCardinality1,teamSize,vectorSize);
+      auto policy = Kokkos::TeamPolicy<ExecutionSpace>(basisCardinality1,Kokkos::AUTO(),vectorSize);
       
       using FunctorType = TensorBasis3_Functor<ExecutionSpace, OutputScalar, OutputViewType>;
       FunctorType functor(outputValues, outputValues1, outputValues2, outputValues3, tensorPoints, weight);

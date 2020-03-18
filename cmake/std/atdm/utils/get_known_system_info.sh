@@ -36,17 +36,23 @@ realHostname=`hostname`
 #
 # List out all of the known system envs
 #
-# These are listed in order of presidence where if the current machine matches
-# more than one of these, the first match will be selected if the system name
-# is not given in the build name.
+# The order these are listed in this array matters only if multiple known
+# system name keywords are listed in the build name string.  For example, if
+# both 'ride' and 'cts1' are listed in the build name, then 'ride' will be the
+# one recognized and 'cts1' will be ignored (because 'ride' is listed above
+# 'cts1').
+#
+# However, it is important that "all" of the known systems be listed in this
+# array in order for each system name to recognized in the build name string.
 #
 
 ATDM_KNOWN_SYSTEM_NAMES_LIST=(
   shiller
   ride
-  mutrino   # Will be repalced by 'cts1'
+  mutrino   # Will be repalced by 'ats1'
   waterman
-  serrano   # Will be replaced by 'cts1'
+  ats2
+  cts1
   tlcc2
   sems-rhel7
   sems-rhel6
@@ -94,28 +100,20 @@ elif [[ $realHostname == "mutrino"* ]] ; then
 elif [[ $realHostname == "waterman"* ]] ; then
   hostnameMatch=waterman
   hostnameMatchSystemName=waterman
-
-# Specifically named cts1 systems
-elif [[ $realHostname == "serrano"* ]] || [[ $realHostname =~ ser[0-9]+ ]] ; then
-  hostnameMatch=serrano
-  hostnameMatchSystemName=serrano
-elif [[ $realHostname == "eclipse"* ]] || [[ $realHostname =~ ec[0-9]+ ]] ; then
-  hostnameMatch=eclipse
-  hostnameMatchSystemName=serrano
-elif [[ $realHostname == "ghost"* ]] || [[ $realHostname =~ gho[0-9]+ ]] ; then
-  hostnameMatch=ghost
-  hostnameMatchSystemName=serrano
-elif [[ $realHostname == "attaway"* ]] || [[ $realHostname =~ swa[0-9]+ ]] ; then
-  hostnameMatch=attaway
-  hostnameMatchSystemName=serrano
- 
+elif [[ $realHostname == "vortex"* ]] ; then
+  hostnameMatch=vortex
+  hostnameMatchSystemName=ats2
 # End specifically named systems
 fi
 
 #echo "hostnameMatch ='${hostnameMatch}'"
 
-systemNameTypeMatchedList+=(${hostnameMatchSystemName})
-systemNameTypeMatchedListHostNames[${hostnameMatchSystemName}]=${hostnameMatch}
+if [[ "${hostnameMatch}" != "" ]] ; then
+  # A matching system by hostname becomes the first preferred match (but not
+  # the only possible match)
+  systemNameTypeMatchedList+=(${hostnameMatchSystemName})
+  systemNameTypeMatchedListHostNames[${hostnameMatchSystemName}]=${hostnameMatch}
+fi
 
 #
 # C) Look for known system types that matches this machine
@@ -126,11 +124,16 @@ systemNameTypeMatchedListHostNames[${hostnameMatchSystemName}]=${hostnameMatch}
 # matching system type will be selected.
 #
 
-
 # TLCC2 systems
 if [[ $SNLSYSTEM == "tlcc2"* ]] ; then
   systemNameTypeMatchedList+=(tlcc2)
   systemNameTypeMatchedListHostNames[tlcc2]=$SNLCLUSTER
+fi
+
+# CTS1 systems
+if [[ $SNLSYSTEM == "cts1" ]] ; then
+  systemNameTypeMatchedList+=(cts1)
+  systemNameTypeMatchedListHostNames[cts1]=$SNLCLUSTER
 fi
 
 # SEMS RHEL6 and RHEL7 systems
@@ -186,21 +189,14 @@ fi
 ATDM_HOSTNAME=
 ATDM_SYSTEM_NAME=
 
-# D.1) First, go with the system name in the build name.
+# D.1) First, go with the system name in the build name if one was recognised
 if [[ "${ATDM_SYSTEM_NAME}" == "" ]] && [[ "${knownSystemNameInBuildName}" != "" ]] ; then
   ATDM_SYSTEM_NAME=${knownSystemNameInBuildName}
   ATDM_HOSTNAME=${systemNameTypeMatchedListHostNames[${ATDM_SYSTEM_NAME}]}
-  assert_selected_system_matches_known_host_in_build_name || return
-  assert_selected_system_matches_known_system_type_mathces || return
+  assert_selected_system_matches_known_system_type_matches || return
 fi
 
-# D.2) Second, go with matches based on hostname
-if [[ "${ATDM_SYSTEM_NAME}" == "" ]] && [[ "${hostnameMatch}" != "" ]] ; then
-  ATDM_SYSTEM_NAME=${hostnameMatchSystemName}
-  ATDM_HOSTNAME=${hostnameMatch}
-fi
-
-# D.3) Last, go with a matching system type
+# D.2) Last, go with the first matching system name on this machine
 if [[ "${ATDM_SYSTEM_NAME}" == "" ]] && [[ "${systemNameTypeMatchedList}" != "" ]] ; then
   ATDM_SYSTEM_NAME=${systemNameTypeMatchedList[0]}  # First matching system type is preferred!
   ATDM_HOSTNAME=${systemNameTypeMatchedListHostNames[${ATDM_SYSTEM_NAME}]}

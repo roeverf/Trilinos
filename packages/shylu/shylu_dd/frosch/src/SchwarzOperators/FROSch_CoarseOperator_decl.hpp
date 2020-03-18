@@ -197,7 +197,7 @@ namespace FROSch {
 
         XMatrixPtr buildCoarseMatrix();
 
-        int buildCoarseSolveMap();
+        int buildCoarseSolveMap(ConstXMapPtr coarseMapUnique);
 
         //Repeated Coarse map
         virtual int buildElementNodeList();
@@ -208,9 +208,9 @@ namespace FROSch {
 
         CommPtr CoarseSolveComm_;
 
-        bool OnCoarseSolveComm_;
+        bool OnCoarseSolveComm_ = false;
 
-        int NumProcsCoarseSolve_;
+        int NumProcsCoarseSolve_ = 0;
 
         CoarseSpacePtr CoarseSpace_;
 
@@ -227,8 +227,8 @@ namespace FROSch {
         mutable XMultiVectorPtr YCoarseSolve_;
         mutable XMultiVectorPtr YCoarseSolveTmp_;
 
-        ConstXMapPtrVecPtr GatheringMaps_;
         XMapPtrVecPtr MLGatheringMaps_;
+        ConstXMapPtrVecPtr GatheringMaps_ = ConstXMapPtrVecPtr(0);
 
         XMapPtr CoarseMap_;
         XMapPtr CoarseSolveMap_;
@@ -241,14 +241,15 @@ namespace FROSch {
 
         ParameterListPtr DistributionList_;
 
-        XExportPtrVecPtr CoarseSolveExporters_;
+        XExportPtrVecPtr CoarseSolveExporters_ = XExportPtrVecPtr(0);
+
         XExportPtrVecPtr MLCoarseSolveExporters_;
 
         GraphPtr SubdomainConnectGraph_;
         GraphPtr ElementNodeList_;
         Teuchos::RCP<Xpetra::CrsMatrix<GO,LO,GO,NO> > GraphEntriesList_;
 
-        XMultiVectorPtrVecPtr CoarseNullSpace_;
+        ConstXMultiVectorPtrVecPtr CoarseNullSpace_;
 
         ConstXMapPtr kRowMap_;
         LO DofsPerNodeCoarse_;
@@ -256,8 +257,9 @@ namespace FROSch {
         LO dim;
         UN maxNumNeigh_;
         UN partitionType;
+
 #ifdef FROSCH_COARSEOPERATOR_EXPORT_AND_IMPORT
-        XImportPtrVecPtr CoarseSolveImporters_;
+        XImportPtrVecPtr CoarseSolveImporters_ = XImportPtrVecPtr(0);
 #endif
     };
 

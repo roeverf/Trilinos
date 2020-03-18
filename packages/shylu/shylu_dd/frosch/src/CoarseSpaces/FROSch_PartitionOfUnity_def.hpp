@@ -59,17 +59,14 @@ namespace FROSch {
                                                     ParameterListPtr parameterList,
                                                     Verbosity verbosity,
                                                     UN levelID,
-                                                    UN NumLevel) :
+                                                    UN NumLevel_) :
     MpiComm_ (mpiComm),
     SerialComm_ (serialComm),
     ParameterList_ (parameterList),
-    LocalPartitionOfUnity_ (),
-    PartitionOfUnityMaps_ (),
-    AssmbledPartitionOfUnityMap_ (),
     Verbose_ (MpiComm_->getRank() == 0),
     Verbosity_ (verbosity),
     LevelID_ (levelID),
-    numLevel_(NumLevel)
+    numLevel_ (NumLevel_)
     {
 
     }
@@ -84,10 +81,12 @@ namespace FROSch {
     int PartitionOfUnity<SC,LO,GO,NO>::assembledPartitionOfUnityMaps()
     {
         if (!AssmbledPartitionOfUnityMap_.is_null()) {
-            if (Verbosity_) std::cout << "FROSch::PartitionOfUnity : WARNING: AssmbledPartitionOfUnityMap_ has already been assembled." << std::endl;
+            FROSCH_NOTIFICATION("FROSch::PartitionOfUnity",Verbosity_,"AssmbledPartitionOfUnityMap_ has already been assembled previously.");
         }
         LOVecPtr2D partMappings;
-        AssmbledPartitionOfUnityMap_ = AssembleMaps(PartitionOfUnityMaps_(),partMappings);
+        //ConstXMapPtrVecPtr  cpartMaps = PartitionOfUnityMaps_();
+        AssmbledPartitionOfUnityMap_ = AssembleMapsNonConst(PartitionOfUnityMaps_(),partMappings);
+        //AssmbledPartitionOfUnityMap_ = AssembleMaps(cpartMaps(),partMappings);
         return 0;
     }
 

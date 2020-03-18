@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
         nullspace->replaceLocalValue(dofsMaps[2]->getGlobalElement(nodes[i]),5,-ScalarTraits<SC>::one()*double(i));
     }
 
-
+    RCP<const MultiVector<SC,LO,GO,NO> > nullspace1  = nullspace;
     Array<GO> partitionOfUnityMapVec1(2);
     partitionOfUnityMapVec1[0] = 0;
     partitionOfUnityMapVec1[1] = 1;
@@ -174,7 +174,7 @@ int main(int argc, char *argv[])
 
     RCP<ParameterList> parameterList = getParametersFromXmlFile("Parameters.xml");
 
-    LocalPartitionOfUnityBasis<SC,LO,GO,NO> TestBasis(SerialComm,SerialComm,3,parameterList,nullspace,partitionOfUnity,partitionOfUnityMaps);
+    LocalPartitionOfUnityBasis<SC,LO,GO,NO> TestBasis(SerialComm,SerialComm,3,parameterList,nullspace1,partitionOfUnity,partitionOfUnityMaps);
     TestBasis.buildLocalPartitionOfUnityBasis();
 
     RCP<CoarseSpace<SC,LO,GO,NO> > coarseSpace = TestBasis.getLocalPartitionOfUnitySpace();

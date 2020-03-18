@@ -110,7 +110,6 @@ if (TPL_ENABLE_MPI)
   XHOSTTYPE Windows
   )
 endif()
-endif()
 
 TRIBITS_ADD_ADVANCED_TEST(exodus32_to_exodus64
    TEST_0 EXEC io_shell ARGS -64 ${DECOMP_ARG} ${JOIN_ARG} ${CMAKE_CURRENT_SOURCE_DIR}/test/8-block.g 8-block64.g
@@ -157,6 +156,7 @@ ELSE()
     COMM mpi serial
     FINAL_PASS_REGULAR_EXPRESSION
   )
+ENDIF()
 ENDIF()
 ENDIF()
 ENDIF()
@@ -378,6 +378,21 @@ TRIBITS_ADD_ADVANCED_TEST(structured_cgns_roundtrip_zgc
    TEST_2 CMND ${CGNS_CGNSDIFF_BINARY} ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/test/5blocks-struc.cgns 5blocks2.cgns
      NUM_MPI_PROCS 1
   COMM mpi serial
+  )
+
+TRIBITS_ADD_ADVANCED_TEST(structured_cgns_periodic_roundtrip_fpp
+   TEST_0 EXEC io_shell ARGS --compose external ${CMAKE_CURRENT_SOURCE_DIR}/test/self-looping-grid.cgns self-looping-fpp.cgns
+     NUM_MPI_PROCS 1-4
+     NOEXEPREFIX NOEXESUFFIX
+   TEST_1 EXEC io_shell ARGS --external --compose external self-looping-fpp.cgns self-looping2.cgns
+     NUM_MPI_PROCS 1-4
+     NOEXEPREFIX NOEXESUFFIX
+   TEST_2 EXEC io_shell ARGS --external self-looping2.cgns self-looping3.cgns
+     NUM_MPI_PROCS 1-4
+     NOEXEPREFIX NOEXESUFFIX
+   TEST_3 CMND ${CGNS_CGNSDIFF_BINARY} ARGS -d ${CMAKE_CURRENT_SOURCE_DIR}/test/self-looping-grid.cgns self-looping3.cgns
+     NUM_MPI_PROCS 1
+  COMM mpi
   )
 
 TRIBITS_ADD_ADVANCED_TEST(structured_cgns_roundtrip_fpp

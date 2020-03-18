@@ -196,11 +196,9 @@ namespace Thyra {
                                               UnderlyingLib lib) const;
 
 
-        ParameterListPtr paramList_;
-
+        ParameterListPtr paramList_ = rcp(new ParameterList());
     };
+
 }
-
-
 
 #endif

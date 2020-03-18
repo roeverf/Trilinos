@@ -185,13 +185,12 @@ namespace FROSch {
         static int counter = 0;
         for (idx = 0; idx < numLids; ++idx) {
             // Organize the overlapping data to send it back to the original processes
-            if (ElementCounter_>=OverlappingDataList_.size()) std::cout << "FUUUUUUUUCCCCKKKKK!!!!!!!" << ElementCounter_ << " " << OverlappingDataList_.size() << std::endl;
             if (ElementCounter_<OverlappingDataList_.size()) {
                 OverlappingDataList_[ElementCounter_].reset(new OverlappingData<LO,GO>(GID,
                                                                                        pid_and_lid[idx].first,
                                                                                        pid_and_lid[idx].second));
             } else {
-                if (counter == 0) std::cout << "FROSch::LowerPIDTieBreak : WARNING: Preallocation for OverlappingDataList_ is not sufficient on proc " << MpiComm_->getRank() << std::endl;
+                FROSCH_WARNING("FROSch::LowerPIDTieBreak",counter == 0,"Preallocation for OverlappingDataList_ is not sufficient on proc.");
                 OverlappingDataList_.push_back(RCP<OverlappingData<LO,GO> >(new OverlappingData<LO,GO>(GID,
                                                                                                        pid_and_lid[idx].first,
                                                                                                        pid_and_lid[idx].second)));
@@ -227,12 +226,12 @@ namespace FROSch {
             RCP<const TpetraMap<LO,GO,NO> > xTpetraMapUnique(new const TpetraMap<LO,GO,NO>(tpetraMapUnique));
             return rcp_dynamic_cast<const Map<LO,GO,NO> >(xTpetraMapUnique);
         } else { // This is an alternative implementation to createOneToOneMap()
-            if (map->lib()==UseEpetra && map->getComm()->getRank()==0) std::cout << "FROSch::BuildUniqueMap : WARNING: createOneToOneMap() does not exist for Epetra => Using a different implementation" << std::endl;
+            FROSCH_WARNING("FROSch::BuildUniqueMap",(map->lib()==UseEpetra && map->getComm()->getRank()==0),"createOneToOneMap() does not exist for Epetra => Using a different implementation.");
 
             RCP<Vector<GO,LO,GO,NO> > myIndices = VectorFactory<GO,LO,GO,NO>::Build(map);
             myIndices->putScalar(map->getComm()->getRank()+1);
 
-            RCP<Map<LO,GO,NO> > linearMap = MapFactory<LO,GO,NO>::Build(map->lib(),map->getMaxAllGlobalIndex()+1,0,map->getComm());
+            RCP<Map<LO,GO,NO> > linearMap = Xpetra::MapFactory<LO,GO,NO>::Build(map->lib(),map->getMaxAllGlobalIndex()+1,0,map->getComm());
             RCP<Vector<GO,LO,GO,NO> > globalIndices = VectorFactory<GO,LO,GO,NO>::Build(linearMap);
 
             RCP<Import<LO,GO,NO> > importer = ImportFactory<LO,GO,NO>::Build(map,linearMap);
@@ -247,7 +246,7 @@ namespace FROSch {
                     uniqueVector.push_back(map->getGlobalElement(i));
                 }
             }
-            return MapFactory<LO,GO,NO>::Build(map->lib(),-1,uniqueVector(),0,map->getComm()); // We need this setup for maps with offset (with MaxGID+1 not being the number of global elements), or we need an allreduce to determine the number of global elements from uniqueVector
+            return Xpetra::MapFactory<LO,GO,NO>::Build(map->lib(),-1,uniqueVector(),0,map->getComm()); // We need this setup for maps with offset (with MaxGID+1 not being the number of global elements), or we need an allreduce to determine the number of global elements from uniqueVector
             //        return MapFactory<LO,GO,NO>::Build(map->lib(),map->getMaxAllGlobalIndex()+1,uniqueVector(),0,map->getComm());
         }
     }
@@ -289,10 +288,10 @@ namespace FROSch {
     }
 
     template <class SC,class LO,class GO,class NO>
-    RCP<Map<LO,GO,NO> > BuildRepeatedMapNonConst(RCP<const Matrix<SC,LO,GO,NO> > matrix)
+    RCP<Map<LO,GO,NO> > BuildRepeatedMapNonConstOld(RCP<const Matrix<SC,LO,GO,NO> > matrix)
     {
-        FROSCH_TIMER_START(buildRepeatedMapNonConstTime,"BuildRepeatedMapNonConst");
-        RCP<Map<LO,GO,NO> > uniqueMap = MapFactory<LO,GO,NO>::Build(matrix->getRowMap(),1);
+        FROSCH_TIMER_START(buildRepeatedMapNonConstTime,"BuildRepeatedMapNonConstOld");
+        RCP<Map<LO,GO,NO> > uniqueMap = Xpetra::MapFactory<LO,GO,NO>::Build(matrix->getRowMap(),1);
         RCP<const Map<LO,GO,NO> > overlappingMap = uniqueMap.getConst();
         ExtendOverlapByOneLayer<SC,LO,GO,NO>(matrix,overlappingMap,matrix,overlappingMap);
 
@@ -377,42 +376,16 @@ namespace FROSch {
             }
         }
         sortunique(repeatedIndices);
-        return MapFactory<LO,GO,NO>::Build(tmpMatrix->getRowMap()->lib(),-1,repeatedIndices(),0,matrix->getRowMap()->getComm());
+        return Xpetra::MapFactory<LO,GO,NO>::Build(tmpMatrix->getRowMap()->lib(),-1,repeatedIndices(),0,matrix->getRowMap()->getComm());
     }
 
     template <class SC,class LO,class GO,class NO>
-    RCP<const Map<LO,GO,NO> > BuildRepeatedMap(RCP<const Matrix<SC,LO,GO,NO> > matrix)
+    RCP<const Map<LO,GO,NO> > BuildRepeatedMapOld(RCP<const Matrix<SC,LO,GO,NO> > matrix)
     {
         return BuildRepeatedMapNonConst(matrix).getConst();
     }
 
-    template <class LO,class GO,class NO>
-    Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildMapFromNodeMap(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &nodesMap,
-                                                             unsigned dofsPerNode,
-                                                             unsigned dofOrdering)
-    {
-        FROSCH_ASSERT(dofOrdering==0 || dofOrdering==1,"ERROR: Specify a valid DofOrdering.");
-        FROSCH_ASSERT(!nodesMap.is_null(),"nodesMap.is_null().");
 
-        unsigned numNodes = nodesMap->getNodeNumElements();
-        Teuchos::Array<GO> globalIDs(dofsPerNode*numNodes);
-        if (dofOrdering==0) {
-            for (unsigned i=0; i<dofsPerNode; i++) {
-                for (unsigned j=0; j<numNodes; j++) {
-                    globalIDs[dofsPerNode*j+i] = dofsPerNode*nodesMap->getGlobalElement(j)+i;
-                }
-            }
-        } else if (dofOrdering == 1) {
-            for (unsigned i=0; i<dofsPerNode; i++) {
-                for (unsigned j=0; j<numNodes; j++) {
-                    globalIDs[j+i*numNodes] = nodesMap->getGlobalElement(j)+i*nodesMap->getGlobalNumElements();
-                }
-            }
-        } else {
-            FROSCH_ASSERT(false,"dofOrdering unknown.");
-        }
-        return Xpetra::MapFactory<LO,GO,NO>::Build(nodesMap->lib(),-1,globalIDs(),0,nodesMap->getComm());
-    }
 
     template <class LO,class GO,class NO>
     Teuchos::RCP<Xpetra::Map<LO,GO,NO> > BuildRepeatedMapCoarseLevel(Teuchos::RCP<const Xpetra::Map<LO,GO,NO> > &nodesMap,
@@ -670,14 +643,14 @@ namespace FROSch {
             a = a+1;
           }
         }
-      
+
         Teuchos::RCP<Xpetra::Map<LO,GO,NO> > structMap = Xpetra::MapFactory<LO,GO,NO>::Build(thelib,-1,ElemList(),0,comm);
         //Teuchos::RCP<Epetra_Map> Map(new Epetra_Map(-1, NumMyElements,&D_h[MyPID][0],0,*comm));
         //comm->Barrier();comm->Barrier();comm->Barrier(); std::cout << "nach eptra_map" << std::endl;
         //std::cout << *Map;
         return structMap;
 
-    };
+    }
 
 
     template <class LO,class GO,class NO>
@@ -712,12 +685,12 @@ namespace FROSch {
     template <class LO,class GO,class NO>
     RCP<Map<LO,GO,NO> > BuildRepeatedMapNonConst(RCP<const CrsGraph<LO,GO,NO> > graph)
     {
-        FROSCH_TIMER_START(buildRepeatedMapNonConstTime,"BuildRepeatedMapNonConst");
+        FROSCH_TIMER_START(buildRepeatedMapNonConstTime,"BuildRepeatedMapNonConstOld");
         RCP<Map<LO,GO,NO> > uniqueMap = MapFactory<LO,GO,NO>::Build(graph->getRowMap(),1);
         RCP<const Map<LO,GO,NO> > overlappingMap = uniqueMap.getConst();
         ExtendOverlapByOneLayer<LO,GO,NO>(graph,overlappingMap,graph,overlappingMap);
 
-        RCP<CrsGraph<LO,GO,NO> > tmpGraph = CrsGraphFactory<LO,GO,NO>::Build(overlappingMap,graph->getGlobalMaxNumRowEntries());
+        RCP<CrsGraph<LO,GO,NO> > tmpGraph = CrsGraphFactory<LO,GO,NO>::Build(overlappingMap);
 
         RCP<Import<LO,GO,NO> > scatter;
         RCP<Export<LO,GO,NO> > gather = ExportFactory<LO,GO,NO>::Build(overlappingMap,uniqueMap);
@@ -796,6 +769,25 @@ namespace FROSch {
         sortunique(repeatedIndices);
         return MapFactory<LO,GO,NO>::Build(tmpGraph->getRowMap()->lib(),-1,repeatedIndices(),0,graph->getRowMap()->getComm());
     }
+
+    template <class LO,class GO,class NO>
+    RCP<const Map<LO,GO,NO> > BuildRepeatedMapOld(RCP<const CrsGraph<LO,GO,NO> > graph)
+    {
+        return BuildRepeatedMapNonConstOld(graph).getConst();
+    }
+
+    template <class SC,class LO,class GO,class NO>
+    RCP<Map<LO,GO,NO> > BuildRepeatedMapNonConst(RCP<const Matrix<SC,LO,GO,NO> > matrix)
+    {
+        return BuildRepeatedMapNonConst(matrix->getCrsGraph());
+    }
+
+    template <class SC,class LO,class GO,class NO>
+    RCP<const Map<LO,GO,NO> > BuildRepeatedMap(RCP<const Matrix<SC,LO,GO,NO> > matrix)
+    {
+        return BuildRepeatedMapNonConst(matrix).getConst();
+    }
+
 
     template <class LO,class GO,class NO>
     RCP<const Map<LO,GO,NO> > BuildRepeatedMap(RCP<const CrsGraph<LO,GO,NO> > graph)
@@ -965,7 +957,7 @@ namespace FROSch {
     }
 
     template <class LO,class GO,class NO>
-    RCP<Map<LO,GO,NO> > AssembleMaps(ArrayView<RCP<Map<LO,GO,NO> > > mapVector,
+    RCP<Map<LO,GO,NO> > AssembleMaps(ArrayView<RCP<const Map<LO,GO,NO> > > mapVector,
                                      ArrayRCP<ArrayRCP<LO> > &partMappings)
     {
         FROSCH_TIMER_START(assembleMapsTime,"AssembleMaps");
@@ -1007,6 +999,52 @@ namespace FROSch {
         }
         return MapFactory<LO,GO,NO>::Build(mapVector[0]->lib(),-1,assembledMapTmp(),0,mapVector[0]->getComm());
     }
+
+
+        template <class LO,class GO,class NO>
+        RCP<Map<LO,GO,NO> > AssembleMapsNonConst(ArrayView<RCP<Map<LO,GO,NO> > > mapVector,
+                                         ArrayRCP<ArrayRCP<LO> > &partMappings)
+        {
+            FROSCH_TIMER_START(assembleMapsTime,"AssembleMaps");
+            FROSCH_ASSERT(mapVector.size()>0,"Length of mapVector is == 0!");
+            LO i = 0;
+            LO localstart = 0;
+            LO sizetmp = 0;
+            LO size = 0;
+            GO globalstart = 0;
+
+            partMappings = ArrayRCP<ArrayRCP<LO> >(mapVector.size());
+
+            ArrayRCP<GO> assembledMapTmp(0);
+            for (unsigned j=0; j<mapVector.size(); j++) {
+                sizetmp = mapVector[j]->getNodeNumElements();
+                partMappings[j] = ArrayRCP<LO>(sizetmp);
+
+                size += sizetmp;
+                assembledMapTmp.resize(size);
+
+                localstart = i;
+                while (i<localstart+sizetmp) {
+                    partMappings[j][i-localstart] = i;
+                    assembledMapTmp[i] = globalstart + mapVector[j]->getGlobalElement(i-localstart);
+                    i++;
+                }
+                //std::cout << mapVector[j]->getMaxAllGlobalIndex() << std::endl;
+                /*
+                globalstart += mapVector[j]->getMaxAllGlobalIndex();
+
+                if (mapVector[0]->lib()==UseEpetra || mapVector[j]->getGlobalNumElements()>0) {
+                    globalstart += 1;
+                }
+                 */
+
+                globalstart += std::max(mapVector[j]->getMaxAllGlobalIndex(),(GO)-1)+1; // AH 04/05/2018: mapVector[j]->getMaxAllGlobalIndex() can result in -2147483648 if the map is empty on the process => introducing max(,)
+
+                //if (mapVector[j]->getComm()->getRank() == 0) std::cout << std::endl << globalstart << std::endl;
+            }
+            return MapFactory<LO,GO,NO>::Build(mapVector[0]->lib(),-1,assembledMapTmp(),0,mapVector[0]->getComm());
+        }
+
 
     template <class LO,class GO,class NO>
     RCP<Map<LO,GO,NO> > AssembleSubdomainMap(unsigned numberOfBlocks,
@@ -1166,7 +1204,7 @@ namespace FROSch {
     }
 
     template <class LO,class GO,class NO>
-    RCP<Map<LO,GO,NO> > BuildMapFromNodeMap(RCP<Map<LO,GO,NO> > &nodesMap,
+    RCP<Map<LO,GO,NO> > BuildMapFromNodeMap(RCP<const Map<LO,GO,NO> > &nodesMap,
                                             unsigned dofsPerNode,
                                             unsigned dofOrdering)
     {
@@ -1200,6 +1238,96 @@ namespace FROSch {
 //
 //          RCP<Map<LO,GO,NO> > fullMapNonConst = rcp_dynamic_cast<Map<LO,GO,NO> >(fullMap);
 //    }
+    template <class LO,class GO,class NO>
+    ArrayRCP<RCP<const Map<LO,GO,NO> > > BuildNodeMapsFromDofMaps(ArrayRCP<ArrayRCP<RCP<const Map<LO,GO,NO> > > > dofsMapsVecVec,
+                                                            ArrayRCP<unsigned> dofsPerNodeVec,
+                                                            ArrayRCP<DofOrdering> dofOrderingVec)
+    {
+
+        typedef Map<LO,GO,NO> Map;
+        typedef RCP<const Map> MapConstPtr;
+        typedef ArrayRCP<MapConstPtr> MapConstPtrVecPtr;
+
+        FROSCH_ASSERT(!dofsMapsVecVec.is_null(),"dofsMapsVecVec.is_null().");
+        FROSCH_ASSERT(dofsPerNodeVec.size()==dofOrderingVec.size() && dofsPerNodeVec.size()==dofsMapsVecVec.size(),"ERROR: Wrong number of maps, dof information and/or dof orderings");
+        unsigned nmbBlocks = dofsMapsVecVec.size();
+        for (unsigned i=0; i<nmbBlocks; i++){
+            FROSCH_ASSERT(dofOrderingVec[i]==NodeWise || dofOrderingVec[i]==DimensionWise,"ERROR: Specify a valid DofOrdering.");
+            FROSCH_ASSERT(dofsMapsVecVec[i].size() == dofsPerNodeVec[i] ,"ERROR: The number of dofsPerNode does not match the number of dofsMaps for a block.");
+        }
+
+        RCP<const Comm<int> > comm = dofsMapsVecVec[0][0]->getComm();
+
+        //Check if the current block is a real block, or if dof indicies are consecutive over more than one block.
+        Array<bool> isMergedPrior( nmbBlocks, false );
+        Array<bool> isMergedAfter( nmbBlocks, false );
+
+        for (unsigned block=1; block<nmbBlocks; block++) {
+            if ( dofsMapsVecVec[block-1][0]->getMaxAllGlobalIndex() > dofsMapsVecVec[block][0]->getMinAllGlobalIndex()) {// It is enough to compare the first dofMaps of each block
+                isMergedPrior[block] = true;
+                isMergedAfter[block-1] = true;
+            }
+        }
+
+        //Determine offset for each block based on isMergedPrior and isMergedAfter.
+        Array<GO> blockOffset( nmbBlocks, ScalarTraits<GO>::zero() ); //if blocks are real blocks, this entry here will give provide the correct offset.
+        Array<GO> consBlockOffset( nmbBlocks, ScalarTraits<GO>::zero() );
+        Array<GO> consThisBlockOffset( nmbBlocks, ScalarTraits<GO>::zero() );
+        for (unsigned block=0; block<nmbBlocks; block++) {
+
+            consBlockOffset[block] += dofsPerNodeVec[block]; //add own dofs
+
+            unsigned i = block;
+            while (isMergedAfter[i]) {
+                consBlockOffset[block] += dofsPerNodeVec[i+1];
+                i++;
+            }
+            i = block;
+            while (isMergedPrior[i]) {
+                consBlockOffset[block] += dofsPerNodeVec[i-1];
+                i--;
+            }
+
+            if ( !isMergedPrior[block] && block>0 ) {
+                blockOffset[block] += dofsMapsVecVec[block-1][dofsMapsVecVec[block-1].size()-1]->getMaxAllGlobalIndex(); //It is assumed that the last dofMap of a block has the highest GID of all block dof maps.
+                unsigned j = block;
+                while (isMergedAfter[j]) {
+                    blockOffset[j] = blockOffset[block];
+                    j++;
+                }
+            }
+        }
+
+        MapConstPtrVecPtr nodeMapsVec( nmbBlocks );
+        // Build node maps for all blocks
+        for (unsigned block=0; block<nmbBlocks; block++) {
+
+            if (dofOrderingVec[block] == NodeWise) {
+                ArrayView< const GO > globalIndices = dofsMapsVecVec[block][0]->getNodeElementList();
+                Array<GO> globalIndicesNode( globalIndices );
+                GO offset = dofsMapsVecVec[block][0]->getMinAllGlobalIndex();
+                for (unsigned i=0; i<globalIndicesNode.size(); i++){
+                    // multiplier is not correct if isMergedPrior==true because we substract minAllGIDBlock. We have to adjust for this later
+                    // was ist wenn mergedPrior und blockOffset existiert, dann ist multiplier falsch.
+                    GO multiplier = (globalIndicesNode[i] - offset) / (consBlockOffset[block]);
+                    GO rest = (globalIndicesNode[i] - offset) % (consBlockOffset[block]);
+                    globalIndicesNode[i] = multiplier + rest;
+
+                }
+                nodeMapsVec[block] = MapFactory<LO,GO,NO>::Build( dofsMapsVecVec[block][0]->lib(), -1,globalIndicesNode(), 0, dofsMapsVecVec[block][0]->getComm() );
+            }
+            else{ //DimensionWise
+                GO minGID = dofsMapsVecVec[block][0]->getMinAllGlobalIndex();
+                ArrayView< const GO > globalIndices = dofsMapsVecVec[block][0]->getNodeElementList();
+                Array<GO> globalIndicesNode( globalIndices );
+                for (unsigned i=0; i<globalIndicesNode.size(); i++)
+                    globalIndicesNode[i] -= minGID;
+
+                nodeMapsVec[block] = MapFactory<LO,GO,NO>::Build( dofsMapsVecVec[block][0]->lib(), -1,globalIndicesNode(), 0, dofsMapsVecVec[block][0]->getComm() );
+            }
+        }
+        return nodeMapsVec;
+    }
 
     template <class LO,class GO,class NO>
     ArrayRCP<RCP<Map<LO,GO,NO> > > BuildSubMaps(RCP<const Map<LO,GO,NO> > &fullMap,
@@ -1423,21 +1551,25 @@ inline void compact(T &v)
          */
         unsigned numVec = multiVector->getNumVectors();
         Array<unsigned> arrayZero(0);
+        RCP<const Map<LO,GO,NO> > multiVectorMap = multiVector->getMap();
         RCP<MultiVector<SC,LO,GO,NO> > resultMultiVector;
         if (numVec>0) {
             unsigned itmp = 0;
             SC en = ScalarTraits<SC>::zero();
             SC de = ScalarTraits<SC>::zero();
             SC norm = ScalarTraits<SC>::zero();
-            RCP<MultiVector<SC,LO,GO,NO> > tmpMultiVector = MultiVectorFactory<SC,LO,GO,NO>::Build(multiVector->getMap(),numVec);
+            RCP<MultiVector<SC,LO,GO,NO> > tmpMultiVector = MultiVectorFactory<SC,LO,GO,NO>::Build(multiVectorMap,numVec);
             for (unsigned i=0; i<numVec; i++) {
-                tmpMultiVector->getVectorNonConst(i-itmp)->update(ScalarTraits<SC>::one(),*multiVector->getVector(i),ScalarTraits<SC>::zero());
+                RCP<const Vector<SC,LO,GO,NO> > multiVector_i = multiVector->getVector(i);
+                RCP<Vector<SC,LO,GO,NO> > tmpMultiVectorNonConst_i_itmp = tmpMultiVector->getVectorNonConst(i-itmp);
+                tmpMultiVectorNonConst_i_itmp->update(ScalarTraits<SC>::one(),*multiVector_i,ScalarTraits<SC>::zero());
                 for (unsigned j=0; j<i-itmp; j++) {
-                    en = tmpMultiVector->getVector(i-itmp)->dot(*tmpMultiVector->getVector(j));
-                    de = tmpMultiVector->getVector(j)->dot(*tmpMultiVector->getVector(j));
-                    tmpMultiVector->getVectorNonConst(i-itmp)->update(-en/de,*tmpMultiVector->getVector(j),ScalarTraits<SC>::one());
+                    RCP<const Vector<SC,LO,GO,NO> > tmpMultiVector_j = tmpMultiVector->getVector(j);
+                    en = tmpMultiVectorNonConst_i_itmp->dot(*tmpMultiVector_j);
+                    de = tmpMultiVector_j->dot(*tmpMultiVector_j);
+                    tmpMultiVectorNonConst_i_itmp->update(-en/de,*tmpMultiVector_j,ScalarTraits<SC>::one());
                 }
-                norm = tmpMultiVector->getVector(i-itmp)->norm2();
+                norm = tmpMultiVectorNonConst_i_itmp->norm2();
                 if (norm<1.0e-10) {
                     arrayZero.push_back(i);
                     itmp++;
@@ -1445,7 +1577,7 @@ inline void compact(T &v)
                     //tmpMultiVector->getVectorNonConst(i-itmp)->scale(1.0/norm);
                 }
             }
-            resultMultiVector = MultiVectorFactory<SC,LO,GO,NO>::Build(multiVector->getMap(),numVec);
+            resultMultiVector = MultiVectorFactory<SC,LO,GO,NO>::Build(multiVectorMap,numVec);
             for (unsigned i=0; i<numVec-itmp; i++) {
                 resultMultiVector->getVectorNonConst(i)->update(ScalarTraits<SC>::one(),*tmpMultiVector->getVector(i),ScalarTraits<SC>::zero());
             }

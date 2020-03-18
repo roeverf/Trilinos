@@ -123,7 +123,7 @@ namespace FROSch {
         if (useRotations && nodeList.is_null()) {
             //FROSCH_ASSERT(option==1,"Only option 1 can be constructed without a valid node list.");
             useRotations = false;
-            if (this->Verbose_) std::cout << "FROSch::RGDSWCoarseOperator : WARNING: Rotations cannot be used" << std::endl;
+            FROSCH_WARNING("FROSch::RGDSWCoarseOperator",this->Verbose_,"Rotations cannot be used since nodeList.is_null().");
         }
 
         RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout));
@@ -144,7 +144,7 @@ namespace FROSch {
 
         // Check for interface
         if (interface->getEntity(0)->getNumNodes()==0) {
-            if (this->Verbose_) std::cout << "FROSch::RGDSWCoarseOperator : WARNING: No interface found => Volume functions will be used instead.";
+            FROSCH_NOTIFICATION("FROSch::RGDSWCoarseOperator",this->Verbose_,"No interface found => Volume functions will be used instead.");
             this->computeVolumeFunctions(blockId,dimension,nodesMap,nodeList,interior);
         } else {
             this->GammaDofs_[blockId] = LOVecPtr(this->DofsPerNode_[blockId]*interface->getEntity(0)->getNumNodes());
@@ -158,10 +158,10 @@ namespace FROSch {
                 }
             }
 
-            this->InterfaceCoarseSpaces_[blockId].reset(new CoarseSpace<SC,LO,GO,NO>());
+            this->InterfaceCoarseSpaces_[blockId].reset(new CoarseSpace<SC,LO,GO,NO>(this->MpiComm_,this->SerialComm_));
 
             if (useForCoarseSpace) {
-            
+
                 if (this->ParameterList_->get("Test Unconnected Interface",true)) {
                     this->DDInterface_->divideUnconnectedEntities(this->K_);
                 }
@@ -188,14 +188,15 @@ namespace FROSch {
                 XMultiVectorPtrVecPtr translations = this->computeTranslations(blockId,this->DDInterface_->getRoots(),entitySetVector,distanceFunction);
                 tra = translations.size();
                 for (UN i=0; i<translations.size(); i++) {
-                    this->InterfaceCoarseSpaces_[blockId]->addSubspace(this->DDInterface_->getRoots()->getEntityMap(),translations[i]);
+                    this->InterfaceCoarseSpaces_[blockId]->addSubspace(this->DDInterface_->getRoots()->getEntityMap(),null,translations[i]);
                 }
 
                 if (useRotations) {
                     XMultiVectorPtrVecPtr rotations = this->computeRotations(blockId,dimension,nodeList,this->DDInterface_->getRoots(),entitySetVector,distanceFunction);
                     rot = rotations.size();
+
                     for (UN i=0; i<rotations.size(); i++) {
-                      this->InterfaceCoarseSpaces_[blockId]->addSubspace(this->DDInterface_->getRoots()->getEntityMap(),rotations[i]);
+                      this->InterfaceCoarseSpaces_[blockId]->addSubspace(this->DDInterface_->getRoots()->getEntityMap(),null,rotations[i]);
                     }
                 }
 

@@ -62,7 +62,6 @@ namespace FROSch {
     SerialComm_ (serialComm),
     DofsPerNode_ (dofsPerNode),
     ParameterList_ (parameterList),
-    LocalPartitionOfUnitySpace_ (),
     PartitionOfUnity_ (partitionOfUnity),
     NullspaceBasis_ (nullSpaceBasis),
     PartitionOfUnityMaps_ (partitionOfUnityMaps)
@@ -93,14 +92,16 @@ namespace FROSch {
         FROSCH_ASSERT(!NullspaceBasis_.is_null(),"Nullspace Basis is not set.");
         FROSCH_ASSERT(!PartitionOfUnity_.is_null(),"Partition Of Unity is not set.");
         FROSCH_ASSERT(!PartitionOfUnityMaps_.is_null(),"Partition Of Unity Map is not set.");
+
+        LocalPartitionOfUnitySpace_ = CoarseSpacePtr(new CoarseSpace<SC,LO,GO,NO>(this->MpiComm_,this->SerialComm_));
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
-        LocalPartitionOfUnitySpace_ = CoarseSpacePtr(new CoarseSpace<SC,LO,GO,NO>());
 
         Teuchos::Array<Teuchos::Array<Teuchos::RCP<Teuchos::SerialDenseMatrix<LO,SC> > > > tmpCBasis(PartitionOfUnity_.size());
         Teuchos::Array<Teuchos::Array<Teuchos::RCP<Teuchos::SerialDenseMatrix<LO,SC> > > > tmpCBasisR(PartitionOfUnity_.size());
 
         XMultiVectorPtrVecPtr2D tmpBasis(PartitionOfUnity_.size());
         XMultiVectorPtrVecPtr2D tmpBasisR(PartitionOfUnity_.size());
+        ConstXMapPtr nullspaceBasisMap = NullspaceBasis_->getMap();
         for (UN i=0; i<PartitionOfUnity_.size(); i++) {
             if (!PartitionOfUnity_[i].is_null()) {
                 FROSCH_ASSERT(PartitionOfUnityMaps_[i]->getNodeNumElements()>0,"PartitionOfUnityMaps_[i]->getNodeNumElements()==0");
@@ -181,30 +182,29 @@ namespace FROSch {
             }
         }
 
-        // Determine Number of Basisfunctions per Entity
         UNVecPtr maxNV(PartitionOfUnity_.size());
-        for (UN i=0; i<PartitionOfUnity_.size(); i++) {
-            UN maxNVLocal = 0;
-            if (!PartitionOfUnityMaps_[i].is_null()) {
-                if (!PartitionOfUnity_[i].is_null()) {
-                    for (UN j=0; j<tmpBasis[i].size(); j++) {
-                        maxNVLocal = std::max(maxNVLocal,(UN) tmpBasis[i][j]->getNumVectors());
-                    }
-                }
-                reduceAll(*MpiComm_,REDUCE_MAX,maxNVLocal,ptr(&maxNV[i]));
-            }
-        }
+      for (UN i=0; i<PartitionOfUnity_.size(); i++) {
+          UN maxNVLocal = 0;
+          if (!PartitionOfUnityMaps_[i].is_null()) {
+              if (!PartitionOfUnity_[i].is_null()) {
+                  for (UN j=0; j<tmpBasis[i].size(); j++) {
+                      maxNVLocal = std::max(maxNVLocal,(UN) tmpBasis[i][j]->getNumVectors());
+                  }
+              }
+              reduceAll(*MpiComm_,REDUCE_MAX,maxNVLocal,ptr(&maxNV[i]));
+          }
+      }
 
-        if (!ParameterList_->get("Number of Basisfunctions per Entity","MaxAll").compare("MaxAll")) {
-            UNVecPtr::iterator max = std::max_element(maxNV.begin(),maxNV.end());
-            for (UN i=0; i<maxNV.size(); i++) {
-                maxNV[i] = *max;
-            }
-        } else if (!ParameterList_->get("Number of Basisfunctions per Entity","MaxAll").compare("MaxEntityType")) {
+      if (!ParameterList_->get("Number of Basisfunctions per Entity","MaxAll").compare("MaxAll")) {
+          UNVecPtr::iterator max = std::max_element(maxNV.begin(),maxNV.end());
+          for (UN i=0; i<maxNV.size(); i++) {
+              maxNV[i] = *max;
+          }
+      } else if (!ParameterList_->get("Number of Basisfunctions per Entity","MaxAll").compare("MaxEntityType")) {
 
-        } else {
-            FROSCH_ASSERT(false,"Number of Basisfunctions per Entity type is unknown.");
-        } // Testen!!!!!!!!!!!!!!!!!!!!!!!! AUSGABE IMPLEMENTIEREN!!!!!!
+      } else {
+          FROSCH_ASSERT(false,"Number of Basisfunctions per Entity type is unknown.");
+      } // Testen!!!!!!!!!!!!!!!!!!!!!!!! AUSGABE IMPLEMENTIEREN!!!!!!
 
         // Kann man das schöner machen?
         for (UN i=0; i<PartitionOfUnity_.size(); i++) {
@@ -226,14 +226,18 @@ namespace FROSch {
                                 entityBasisR->getDataNonConst(k).deepCopy(tmpBasisR[i][k]->getData(j)());
                             }
                         }
-                        LocalPartitionOfUnitySpace_->addSubspace(PartitionOfUnityMaps_[i],entityBasis);
+                        LocalPartitionOfUnitySpace_->addSubspace(PartitionOfUnityMaps_[i],null,entityBasis);
                         if (ParameterList_->get("Coarse NullSpace",false)) {
                            LocalPartitionOfUnitySpace_->addNullspace(PartitionOfUnityMaps_[i],entityBasisR);
                         }
                     }
                 } else {
-                    LocalPartitionOfUnitySpace_->addSubspace(PartitionOfUnityMaps_[i]);
+                    for (UN j=0; j<NullspaceBasis_->getNumVectors(); j++) {
+                        LocalPartitionOfUnitySpace_->addSubspace(PartitionOfUnityMaps_[i]);
+                    }
                 }
+            } else {
+                FROSCH_WARNING("FROSch::LocalPartitionOfUnityBasis",this->MpiComm_->getRank()==0,"PartitionOfUnityMaps_[i].is_null()");
             }
         }
         UN maxNumBasis = *std::max_element(maxNV.begin(),maxNV.end());
@@ -261,7 +265,7 @@ namespace FROSch {
     }
 
     template<class SC,class LO,class GO,class NO>
-    typename LocalPartitionOfUnityBasis<SC,LO,GO,NO>::XMultiVectorPtr LocalPartitionOfUnityBasis<SC,LO,GO,NO>::getCoarseNullSpace() const
+    typename LocalPartitionOfUnityBasis<SC,LO,GO,NO>::ConstXMultiVectorPtr LocalPartitionOfUnityBasis<SC,LO,GO,NO>::getCoarseNullSpace() const
     {
         FROSCH_ASSERT(!CoarseNullSpace_.is_null(),"Nullspace Basis is not set.");
         return CoarseNullSpace_;

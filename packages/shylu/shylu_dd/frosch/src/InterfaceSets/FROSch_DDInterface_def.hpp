@@ -65,19 +65,7 @@ namespace FROSch {
     Dimension_ (dimension),
     DofsPerNode_ (dofsPerNode),
     NumMyNodes_ (localToGlobalMap->getNodeNumElements()),
-    Vertices_ (new EntitySet<SC,LO,GO,NO>(VertexType)),
-    ShortEdges_ (new EntitySet<SC,LO,GO,NO>(EdgeType)),
-    StraightEdges_ (new EntitySet<SC,LO,GO,NO>(EdgeType)),
-    Edges_ (new EntitySet<SC,LO,GO,NO>(EdgeType)),
-    Faces_ (new EntitySet<SC,LO,GO,NO>(FaceType)),
-    Interface_ (new EntitySet<SC,LO,GO,NO>(InterfaceType)),
-    Interior_ (new EntitySet<SC,LO,GO,NO>(InteriorType)),
-    Roots_ (new EntitySet<SC,LO,GO,NO>(DefaultType)),
-    Leafs_ (new EntitySet<SC,LO,GO,NO>(DefaultType)),
-    ConnectivityEntities_ (new EntitySet<SC,LO,GO,NO>(DefaultType)),
-    EntitySetVector_ (),
     NodesMap_ (localToGlobalMap),
-    UniqueNodesMap_ (),
     Verbose_ (MpiComm_->getRank()==0),
     Verbosity_ (verbosity),
     LevelID_ (levelID),
@@ -720,7 +708,7 @@ namespace FROSch {
         //if (Verbose_ && Verbosity_==All) std::cout << "FROSch::DDInterface : Communicating nodes" << std::endl;
 
         if (NodesMap_->lib() == UseEpetra && commStrategy == CreateOneToOneMap) {
-            if (Verbose_) std::cout << "FROSch::DDInterface : WARNING: CreateOneToOneMap communication strategy does not work for Epetra => Switching to CommCrsGraph" << std::endl;
+            FROSCH_WARNING("FROSch::DDInterface",Verbose_,"CreateOneToOneMap communication strategy does not work for Epetra => Switching to CommCrsGraph.");
             commStrategy = CommCrsGraph;
         }
         // Different communication strategies
@@ -737,12 +725,12 @@ namespace FROSch {
                     for (int i=0; i<NumMyNodes_; i++) {
                         commMat->insertGlobalValues(NodesMap_->getGlobalElement(i),myPID(),one());
                     }
-                    XMapPtr rangeMap = MapFactory<LO,GO,NO>::Build(NodesMap_->lib(),-1,myPID(),0,NodesMap_->getComm());
+                    XMapPtr domainMap = MapFactory<LO,GO,NO>::Build(NodesMap_->lib(),-1,myPID(),0,NodesMap_->getComm());
 
-                    commMat->fillComplete(NodesMap_,rangeMap);
+                    commMat->fillComplete(domainMap,NodesMap_);
                     commMatTmp->doExport(*commMat,*commExporter,INSERT);
-                    commMatTmp->fillComplete(UniqueNodesMap_,rangeMap);
-                    commMat = MatrixFactory<SC,LO,GO,NO>::Build(NodesMap_,10);
+                    commMatTmp->fillComplete(domainMap,UniqueNodesMap_);
+                    commMat = MatrixFactory<SC,LO,GO,NO>::Build(NodesMap_,LO(0));
                     commMat->doImport(*commMatTmp,*commExporter,INSERT);
 
                     componentsSubdomains = IntVecVecPtr(NumMyNodes_);
@@ -771,12 +759,12 @@ namespace FROSch {
                     for (int i=0; i<NumMyNodes_; i++) {
                         commGraph->insertGlobalIndices(NodesMap_->getGlobalElement(i),myPID());
                     }
-                    XMapPtr rangeMap = MapFactory<LO,GO,NO>::Build(NodesMap_->lib(),-1,myPID(),0,NodesMap_->getComm());
+                    XMapPtr domainMap = MapFactory<LO,GO,NO>::Build(NodesMap_->lib(),-1,myPID(),0,NodesMap_->getComm());
 
-                    commGraph->fillComplete(NodesMap_,rangeMap); // AH 08/07/2019: Can we remove some fillComplete?
+                    commGraph->fillComplete(domainMap,NodesMap_); // AH 08/07/2019: Can we remove some fillComplete?
                     commGraphTmp->doExport(*commGraph,*commExporter,INSERT);
-                    commGraphTmp->fillComplete(UniqueNodesMap_,rangeMap);
-                    commGraph = CrsGraphFactory<LO,GO,NO>::Build(NodesMap_,10);
+                    commGraphTmp->fillComplete(domainMap,UniqueNodesMap_);
+                    commGraph = CrsGraphFactory<LO,GO,NO>::Build(NodesMap_);
                     commGraph->doImport(*commGraphTmp,*commExporter,INSERT);
 
                     componentsSubdomains = IntVecVecPtr(NumMyNodes_);
