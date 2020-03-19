@@ -777,7 +777,7 @@ namespace FROSch {
             CC->replaceLocalValue(i,indices[j],values[j]);
           }
         }
-        //CC->describe(*fancy,Teuchos::VERB_EXTREME);
+        //Phi_->describe(*fancy,Teuchos::VERB_EXTREME);
 
         //if(this->K_->getMap()->lib() == Xpetra::UseEpetra){
         /*if(this->Verbose_)std::cout<<"Jaaaa\n";
@@ -1185,7 +1185,7 @@ namespace FROSch {
             if(OnCoarseSolveComm_){
               //Coarse DofsMaps so far only one Block will work
               ConstXMapPtrVecPtr2D CoarseDofsMaps(1);
-              if(this->Verbose_)std::cout<<nRegions<<"   "<<nSubdomains<<std::endl;
+              //if(this->Verbose_)std::cout<<nRegions<<"   "<<nSubdomains<<std::endl;
               //CoarseSolveRepeatedMap_ = Structured2DRepMap<LO,GO,NO>(MLCoarseMap_->lib(),nSubdomains,nRegions,CoarseSolveComm_,partitionType);
               CoarseSolveRepeatedMap_ = Laplace2DRegionMap<LO,GO,NO>(nSubdomains,nRegions,CoarseSolveComm_,CoarseMap_->lib());
               ConstRepMap = CoarseSolveRepeatedMap_;

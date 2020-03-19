@@ -93,6 +93,8 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int CoarseSpace<SC,LO,GO,NO>::assembleCoarseSpace()
     {
+        RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout));
+
         FROSCH_ASSERT(UnassembledBasesMaps_.size()>0,"FROSch::CoarseSpace : ERROR: UnassembledBasesMaps_.size()==0");
         FROSCH_ASSERT(UnassembledBasesMapsUnique_.size()>0,"FROSch::CoarseSpace : ERROR: UnassembledBasesMapsUnique_.size()==0");
         FROSCH_ASSERT(UnassembledSubspaceBases_.size()>0,"FROSch::CoarseSpace : ERROR: UnassembledSubspaceBases_.size()==0");
@@ -131,12 +133,14 @@ namespace FROSch {
                     if (!UnassembledSubspaceBases_[i].is_null()) totalSize = std::max(totalSize,LO(UnassembledSubspaceBases_[i]->getLocalLength()+Offsets_[i]));
                 }
                 XMapPtr serialMap = MapFactory<LO,GO,NO>::Build(AssembledBasisMap_->lib(),totalSize,0,this->SerialComm_);
-
+                MpiComm_->barrier();MpiComm_->barrier();MpiComm_->barrier();
                 AssembledBasis_ = MultiVectorFactory<SC,LO,GO,NO >::Build(serialMap,AssembledBasisMap_->getNodeNumElements());
                 for (UN i=0; i<UnassembledSubspaceBases_.size(); i++) {
                     if (!UnassembledSubspaceBases_[i].is_null()) {
                         for (UN j=0; j<UnassembledSubspaceBases_[i]->getNumVectors(); j++) {
                             ConstSCVecPtr unassembledSubspaceBasesData = UnassembledSubspaceBases_[i]->getData(j);
+                            //std::cout<<MpiComm_->getRank()<<" "<<*unassembledSubspaceBasesData<<std::endl;
+
                             for (UN k=0; k<UnassembledSubspaceBases_[i]->getLocalLength(); k++) {
                                 FROSCH_ASSERT(itmp<AssembledBasis_->getNumVectors(),"FROSch::CoarseSpace : ERROR: itmp>=AssembledBasis_->getNumVectors()");
                                 FROSCH_ASSERT(k+Offsets_[i]<AssembledBasis_->getLocalLength(),"FROSch::CoarseSpace : ERROR: k+Offsets_[i]>=AssembledBasis_->getLocalLength()");
@@ -160,12 +164,12 @@ namespace FROSch {
 
         LOVec emptyVec4;
         Offsets_.swap(emptyVec4);
-
+        //AssembledBasis_->describe(*fancy,Teuchos::VERB_EXTREME);
         UnassembledBasesMaps_.push_back(AssembledBasisMap_);
         UnassembledBasesMapsUnique_.push_back(AssembledBasisMapUnique_);
         UnassembledSubspaceBases_.push_back(AssembledBasis_);
         Offsets_.push_back(0);
-
+        MpiComm_->barrier();MpiComm_->barrier();
         return 0;
     }
 

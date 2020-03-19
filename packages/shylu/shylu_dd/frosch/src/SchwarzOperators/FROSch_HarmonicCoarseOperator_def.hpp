@@ -82,6 +82,8 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     typename HarmonicCoarseOperator<SC,LO,GO,NO>::XMapPtr HarmonicCoarseOperator<SC,LO,GO,NO>::computeCoarseSpace(CoarseSpacePtr coarseSpace)
     {
+      RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout));
+
         Teuchos::TimeMonitor CompCSpaceTM(*CompCSpaceTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(computeCoarseSpaceTime,"HarmonicCoarseOperator::computeCoarseSpace");
         XMapPtr repeatedMap = AssembleSubdomainMap(NumberOfBlocks_,DofsMaps_,DofsPerNode_);
@@ -110,14 +112,20 @@ namespace FROSch {
         XMatrixPtr kGammaGamma;
 
         BuildSubmatrices(repeatedMatrix,indicesIDofsAll(),kII,kIGamma,kGammaI,kGammaGamma);
-
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->Verbose_)std::cout<<"##################################################\n";
+        //AssembledInterfaceCoarseSpace_->getAssembledBasis()->describe(*fancy,Teuchos::VERB_EXTREME);
         //Detect linear dependencies
         if (!this->ParameterList_->get("Skip Orthogonalization",false)) {
             LOVecPtr linearDependentVectors = detectLinearDependencies(indicesGammaDofsAll(),this->K_->getRowMap(),this->K_->getRangeMap(),repeatedMap,this->ParameterList_->get("Threshold Phi",1.e-8));
             // std::cout << this->MpiComm_->getRank() << " " << linearDependentVectors.size() << std::endl;
             AssembledInterfaceCoarseSpace_->zeroOutBasisVectors(linearDependentVectors());
         }
-
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->Verbose_)std::cout<<"----------------Huhu----------------------------\n";
+      //  AssembledInterfaceCoarseSpace_->getAssembledBasis()->describe(*fancy,Teuchos::VERB_EXTREME);
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->Verbose_)std::cout<<"----------------Huhu----------------------------\n";
         // Build the saddle point harmonic extensions
         XMultiVectorPtr localCoarseSpaceBasis;
         if (AssembledInterfaceCoarseSpace_->getBasisMap()->getNodeNumElements()) {
@@ -519,7 +527,10 @@ namespace FROSch {
 
             //Compute Phi^T * Phi
             RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout));
-            XMatrixPtr phiTPhi = MatrixMatrix<SC,LO,GO,NO>::Multiply(*phiGamma,true,*phiGamma,false,*fancy); phiGamma->describe(*fancy,VERB_EXTREME);//phiTPhi->describe(*fancy,VERB_EXTREME);AssembledInterfaceCoarseSpace_->getBasisMap()->describe(*fancy,VERB_EXTREME);
+            XMatrixPtr phiTPhi = MatrixMatrix<SC,LO,GO,NO>::Multiply(*phiGamma,true,*phiGamma,false,*fancy);
+            //phiGamma->describe(*fancy,VERB_EXTREME);
+
+            //AssembledInterfaceCoarseSpace_->getBasisMap()->describe(*fancy,VERB_EXTREME);
 
             // Extract local part of the matrix
             ConstXMatrixPtr repeatedPhiTPhi = ExtractLocalSubdomainMatrix(phiTPhi.getConst(),AssembledInterfaceCoarseSpace_->getBasisMap());
@@ -579,6 +590,8 @@ namespace FROSch {
     {
         FROSCH_TIMER_START_LEVELID(computeExtensionsTime,"HarmonicCoarseOperator::computeExtensions");
         //this->Phi_ = MatrixFactory<SC,LO,GO,NO>::Build(this->K_->getRangeMap(),AssembledInterfaceCoarseSpace_->getBasisMap(),AssembledInterfaceCoarseSpace_->getBasisMap()->getNodeNumElements()); // Nonzeroes abhängig von dim/dofs!!!
+        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
+
         XMultiVectorPtr mVPhi = MultiVectorFactory<SC,LO,GO,NO>::Build(localMap,AssembledInterfaceCoarseSpace_->getBasisMap()->getNodeNumElements());
         XMultiVectorPtr mVtmp = MultiVectorFactory<SC,LO,GO,NO>::Build(kII->getRowMap(),AssembledInterfaceCoarseSpace_->getBasisMap()->getNodeNumElements());
         XMultiVectorPtr mVPhiI = MultiVectorFactory<SC,LO,GO,NO>::Build(kII->getRowMap(),AssembledInterfaceCoarseSpace_->getBasisMap()->getNodeNumElements());
@@ -588,12 +601,15 @@ namespace FROSch {
         if (AssembledInterfaceCoarseSpace_->hasAssembledBasis()) {
             for (UN i=0; i<AssembledInterfaceCoarseSpace_->getAssembledBasis()->getNumVectors(); i++) {
                 ConstSCVecPtr assembledInterfaceCoarseSpaceData = AssembledInterfaceCoarseSpace_->getAssembledBasis()->getData(i);
+                //std::cout<<this->MpiComm_->getRank()<<" "<<*assembledInterfaceCoarseSpaceData<<std::endl;
                 for (UN j=0; j<AssembledInterfaceCoarseSpace_->getAssembledBasis()->getLocalLength(); j++) {
                     mVPhiGamma->replaceLocalValue(j,i,assembledInterfaceCoarseSpaceData[j]);
                     mVPhi->replaceLocalValue(indicesGammaDofsAll[j],i,assembledInterfaceCoarseSpaceData[j]);
                 }
             }
         }
+
+        //mVPhi->describe(*fancy,Teuchos::VERB_EXTREME);
 //        LO jj=0;
 //        LO kk=0;
 //        UNVec numLocalBlockRows(NumberOfBlocks_);
@@ -670,6 +686,8 @@ namespace FROSch {
                 itmp++;
             }
         }
+
+
         return mVPhi;
     }
 
