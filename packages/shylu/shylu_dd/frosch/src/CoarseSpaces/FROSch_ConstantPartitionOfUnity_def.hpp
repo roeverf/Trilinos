@@ -47,6 +47,7 @@
 
 namespace FROSch {
 
+    using namespace std;
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -135,46 +136,66 @@ namespace FROSch {
 
         if (this->Verbosity_==All) {
             // Count entities
-            GOVec global(1);
-            LOVec local(1);
-            LOVec sum(1);
-            SCVec avg(1);
-            LOVec min(1);
-            LOVec max(1);
+            GOVec globalVec(1);
+            LOVec localVec(1);
+            LOVec sumVec(1);
+            SCVec avgVec(1);
+            LOVec minVec(1);
+            LOVec maxVec(1);
             if (UseVolumes_) {
-                global[0] = Volumes_->getEntityMap()->getMaxAllGlobalIndex();
+                globalVec[0] = Volumes_->getEntityMap()->getMaxAllGlobalIndex();
                 if (DDInterface_->getNodesMap()->lib()==UseEpetra || Volumes_->getEntityMap()->getGlobalNumElements()>0) {
-                    global[0] += 1;
+                    globalVec[0] += 1;
                 }
-
-                if (global[0]<0) global[0] = 0;
-                local[0] = (LO) std::max((LO) Volumes_->getEntityMap()->getNodeNumElements(),(LO) 0);
-
-                reduceAll(*this->MpiComm_,REDUCE_SUM,local[0],ptr(&sum[0]));
-
-                avg[0] = std::max(sum[0]/double(this->MpiComm_->getSize()),0.0);
-                reduceAll(*this->MpiComm_,REDUCE_MIN,local[0],ptr(&min[0]));
-
-                reduceAll(*this->MpiComm_,REDUCE_MAX,local[0],ptr(&max[0]));
+                if (globalVec[0]<0) globalVec[0] = 0;
+                localVec[0] = (LO) max((LO) Volumes_->getEntityMap()->getNodeNumElements(),(LO) 0);
+                reduceAll(*this->MpiComm_,REDUCE_SUM,localVec[0],ptr(&sumVec[0]));
+                avgVec[0] = max(sumVec[0]/double(this->MpiComm_->getSize()),0.0);
+                reduceAll(*this->MpiComm_,REDUCE_MIN,localVec[0],ptr(&minVec[0]));
+                reduceAll(*this->MpiComm_,REDUCE_MAX,localVec[0],ptr(&maxVec[0]));
             } else {
-                global[0] = -1;
-                local[0] = -1;
-                avg[0] = -1;
-                min[0] = -1;
-                max[0] = -1;
+                globalVec[0] = -1;
+                localVec[0] = -1;
+                avgVec[0] = -1;
+                minVec[0] = -1;
+                maxVec[0] = -1;
             }
 
-            if (global[0]<0) {
-                global[0] = -1;
+            if (globalVec[0]<0) {
+                globalVec[0] = -1;
             }
 
             if (this->Verbose_) {
-                std::cout << "\n\
-    ------------------------------------------------------------------------------\n\
-     Volumes statistics\n\
-    ------------------------------------------------------------------------------\n\
-      Volumes:        total / avg / min / max     ---  " << global[0] << " / " << avg[0] << " / " << min[0] << " / " << max[0] << "\n\
-    ------------------------------------------------------------------------------\n";
+                cout
+                << "\n" << setw(FROSCH_INDENT) << " "
+                << setw(89) << "-----------------------------------------------------------------------------------------"
+                << "\n" << setw(FROSCH_INDENT) << " "
+                << "| "
+                << left << setw(85) << "Volumes statistics" << right
+                << " |"
+                << "\n" << setw(FROSCH_INDENT) << " "
+                << setw(89) << "========================================================================================="
+                << "\n" << setw(FROSCH_INDENT) << " "
+                << "| " << left << setw(19) << " " << right
+                << " | " << setw(10) << "total"
+                << " | " << setw(10) << "avg"
+                << " | " << setw(10) << "min"
+                << " | " << setw(10) << "max"
+                << " | " << setw(10) << "global sum"
+                << " |"
+                << "\n" << setw(FROSCH_INDENT) << " "
+                << setw(89) << "-----------------------------------------------------------------------------------------"
+                << "\n" << setw(FROSCH_INDENT) << " "
+                << "| " << left << setw(19) << "Volumes" << right
+                << " | "; globalVec[0]<0 ? cout << setw(10) << " " : cout << setw(10) << globalVec[0]; cout
+                << " | "; avgVec[0]<0 ? cout << setw(10) << " " : cout << setw(10) << avgVec[0]; cout
+                << " | "; minVec[0]<0 ? cout << setw(10) << " " : cout << setw(10) << minVec[0]; cout
+                << " | "; maxVec[0]<0 ? cout << setw(10) << " " : cout << setw(10) << maxVec[0]; cout
+                << " | "; sumVec[0]<0 ? cout << setw(10) << " " : cout << setw(10) << sumVec[0]; cout
+                << " |"
+                << "\n" << setw(FROSCH_INDENT) << " "
+                << setw(89) << "-----------------------------------------------------------------------------------------"
+                << endl;
             }
         }
 
@@ -184,12 +205,22 @@ namespace FROSch {
         }
 
         if (this->Verbose_) {
-            std::cout << std::boolalpha << "\n\
-    ------------------------------------------------------------------------------\n\
-     Constant Partition Of Unity \n\
-    ------------------------------------------------------------------------------\n\
-      Volumes                                     --- " << UseVolumes_ << "\n\
-    ------------------------------------------------------------------------------\n" << std::noboolalpha;
+            cout
+            << "\n" << setw(FROSCH_INDENT) << " "
+            << setw(89) << "-----------------------------------------------------------------------------------------"
+            << "\n" << setw(FROSCH_INDENT) << " "
+            << "| "
+            << left << setw(85) << "Constant Partition Of Unity" << right
+            << " |"
+            << "\n" << setw(FROSCH_INDENT) << " "
+            << setw(89) << "========================================================================================="
+            << "\n" << setw(FROSCH_INDENT) << " "
+            << "| " << left << setw(41) << "Volumes" << right
+            << " | " << setw(41) << boolalpha << UseVolumes_ << noboolalpha
+            << " |"
+            << "\n" << setw(FROSCH_INDENT) << " "
+            << setw(89) << "-----------------------------------------------------------------------------------------"
+            << endl;
         }
 
         // Build Partition Of Unity Vectors

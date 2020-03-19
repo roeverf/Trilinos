@@ -216,7 +216,7 @@ namespace FROSch {
     }
 
     template <class SC,class LO,class GO,class NO>
-    std::string GDSWCoarseOperator<SC,LO,GO,NO>::description() const
+    string GDSWCoarseOperator<SC,LO,GO,NO>::description() const
     {
         return "GDSW Coarse Operator";
     }
@@ -363,7 +363,7 @@ namespace FROSch {
         FROSCH_ASSERT(blockId<this->NumberOfBlocks_,"Block does not exist yet and can therefore not be reset.");
 
         if (this->Verbose_) {
-            std::cout << "\n\
+            cout << "\n\
 +--------------------+\n\
 | GDSWCoarseOperator |\n\
 |  Block " << blockId << "           |\n\
@@ -372,9 +372,9 @@ namespace FROSch {
 
 
         // Process the parameter list
-        std::stringstream blockIdStringstream;
+        stringstream blockIdStringstream;
         blockIdStringstream << blockId+1;
-        std::string blockIdString = blockIdStringstream.str();
+        string blockIdString = blockIdStringstream.str();
         RCP<ParameterList> coarseSpaceList = sublist(sublist(this->ParameterList_,"Blocks"),blockIdString.c_str());
 
         CommunicationStrategy communicationStrategy = CreateOneToOneMap;
@@ -511,7 +511,8 @@ namespace FROSch {
                     XMultiVectorPtrVecPtr translations = this->computeTranslations(blockId,DDInterface_->getStraightEdges());
                     tra += translations.size();
                     ConstXMapPtr straightEdgesEntityMap = DDInterface_->getStraightEdges()->getEntityMap();
-                    for (UN i=0; i<translations.size(); i++) {                        this->InterfaceCoarseSpaces_[blockId]->addSubspace(straightEdgesEntityMap,null,translations[i]);
+                    for (UN i=0; i<translations.size(); i++) {
+                        this->InterfaceCoarseSpaces_[blockId]->addSubspace(straightEdgesEntityMap,null,translations[i]);
                     }
                 }
                 if (useStraightEdgeRotations) {
@@ -560,20 +561,54 @@ namespace FROSch {
                 this->InterfaceCoarseSpaces_[blockId]->assembleCoarseSpace();
                 this->dofs = tra + rot;
                 if (this->Verbose_) {
-                    std::cout << std::boolalpha << "\n\
-    ------------------------------------------------------------------------------\n\
-     GDSW coarse space\n\
-    ------------------------------------------------------------------------------\n\
-      Vertices: translations                      --- " << useVertexTranslations << "\n\
-      ShortEdges: translations                    --- " << useShortEdgeTranslations << "\n\
-      ShortEdges: rotations                       --- " << useShortEdgeRotations << "\n\
-      StraightEdges: translations                 --- " << useStraightEdgeTranslations << "\n\
-      StraightEdges: rotations                    --- " << useStraightEdgeRotations << "\n\
-      Edges: translations                         --- " << useEdgeTranslations << "\n\
-      Edges: rotations                            --- " << useEdgeRotations << "\n\
-      Faces: translations                         --- " << useFaceTranslations << "\n\
-      Faces: rotations                            --- " << useFaceRotations << "\n\
-    ------------------------------------------------------------------------------\n" << std::noboolalpha;
+                    cout
+                    << "\n" << setw(FROSCH_INDENT) << " "
+                    << setw(89) << "-----------------------------------------------------------------------------------------"
+                    << "\n" << setw(FROSCH_INDENT) << " "
+                    << "| "
+                    << left << setw(85) << "GDSW coarse space" << right
+                    << " |"
+                    << "\n" << setw(FROSCH_INDENT) << " "
+                    << setw(89) << "========================================================================================="
+                    << "\n" << setw(FROSCH_INDENT) << " "
+                    << "| " << left << setw(19) << "Vertices " << " | " << setw(19) << " Translations" << right
+                    << " | " << setw(41) << boolalpha << useVertexTranslations << noboolalpha
+                    << " |"
+                    << "\n" << setw(FROSCH_INDENT) << " "
+                    << "| " << left << setw(19) << "ShortEdges " << " | " << setw(19) << " Translations" << right
+                    << " | " << setw(41) << boolalpha << useShortEdgeTranslations << noboolalpha
+                    << " |"
+                    << "\n" << setw(FROSCH_INDENT) << " "
+                    << "| " << left << setw(19) << "ShortEdges " << " | " << setw(19) << " Rotations" << right
+                    << " | " << setw(41) << boolalpha << useShortEdgeRotations << noboolalpha
+                    << " |"
+                    << "\n" << setw(FROSCH_INDENT) << " "
+                    << "| " << left << setw(19) << "StraightEdges " << " | " << setw(19) << " Translations" << right
+                    << " | " << setw(41) << boolalpha << useStraightEdgeTranslations << noboolalpha
+                    << " |"
+                    << "\n" << setw(FROSCH_INDENT) << " "
+                    << "| " << left << setw(19) << "StraightEdges " << " | " << setw(19) << " Rotations" << right
+                    << " | " << setw(41) << boolalpha << useStraightEdgeRotations << noboolalpha
+                    << " |"
+                    << "\n" << setw(FROSCH_INDENT) << " "
+                    << "| " << left << setw(19) << "Edges " << " | " << setw(19) << " Translations" << right
+                    << " | " << setw(41) << boolalpha << useEdgeTranslations << noboolalpha
+                    << " |"
+                    << "\n" << setw(FROSCH_INDENT) << " "
+                    << "| " << left << setw(19) << "Edges " << " | " << setw(19) << " Rotations" << right
+                    << " | " << setw(41) << boolalpha << useEdgeRotations << noboolalpha
+                    << " |"
+                    << "\n" << setw(FROSCH_INDENT) << " "
+                    << "| " << left << setw(19) << "Faces " << " | " << setw(19) << " Translations" << right
+                    << " | " << setw(41) << boolalpha << useFaceTranslations << noboolalpha
+                    << " |"
+                    << "\n" << setw(FROSCH_INDENT) << " "
+                    << "| " << left << setw(19) << "Faces " << " | " << setw(19) << " Rotations" << right
+                    << " | " << setw(41) << boolalpha << useFaceRotations << noboolalpha
+                    << " |"
+                    << "\n" << setw(FROSCH_INDENT) << " "
+                    << setw(89) << "-----------------------------------------------------------------------------------------"
+                    << endl;
                 }
 
             }

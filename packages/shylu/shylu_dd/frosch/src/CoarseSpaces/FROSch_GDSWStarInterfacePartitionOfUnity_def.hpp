@@ -47,6 +47,7 @@
 
 namespace FROSch {
 
+    using namespace std;
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -128,14 +129,27 @@ namespace FROSch {
             this->PartitionOfUnityMaps_[1] = Leafs_->getEntityMap();
         }
 
-        if (this->MpiComm_->getRank() == 0) {
-            std::cout << std::boolalpha << "\n\
-    ------------------------------------------------------------------------------\n\
-     GDSW Star Interface Partition Of Unity (GDSW Star IPOU)\n\
-    ------------------------------------------------------------------------------\n\
-      Roots                                      --- " << UseRoots_ << "\n\
-      Leafs                                      --- " << UseRoots_ << "\n\
-    ------------------------------------------------------------------------------\n" << std::noboolalpha;
+        if (this->Verbose_) {
+            cout
+            << "\n" << setw(FROSCH_INDENT) << " "
+            << setw(89) << "-----------------------------------------------------------------------------------------"
+            << "\n" << setw(FROSCH_INDENT) << " "
+            << "| "
+            << left << setw(85) << "GDSW Star Interface Partition Of Unity (GDSW Star IPOU)" << right
+            << " |"
+            << "\n" << setw(FROSCH_INDENT) << " "
+            << setw(89) << "========================================================================================="
+            << "\n" << setw(FROSCH_INDENT) << " "
+            << "| " << left << setw(41) << "Roots" << right
+            << " | " << setw(41) << boolalpha << UseRoots_ << noboolalpha
+            << " |"
+            << "\n" << setw(FROSCH_INDENT) << " "
+            << "| " << left << setw(41) << "Leafs" << right
+            << " | " << setw(41) << boolalpha << UseLeafs_ << noboolalpha
+            << " |"
+            << "\n" << setw(FROSCH_INDENT) << " "
+            << setw(89) << "-----------------------------------------------------------------------------------------"
+            << endl;
         }
 
         // Build Partition Of Unity Vectors

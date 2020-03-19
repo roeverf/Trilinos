@@ -75,6 +75,10 @@
 #define FROSCH_TEST_OUTPUT(COMM,VERBOSE,OUTPUT) COMM->barrier(); COMM->barrier(); COMM->barrier(); if (VERBOSE) std::cout << OUTPUT << std::endl;
 #endif
 
+#ifndef FROSCH_INDENT
+#define FROSCH_INDENT 5
+#endif
+
 #include <ShyLU_DDFROSch_config.h>
 #include <Tpetra_Distributor.hpp>
 
