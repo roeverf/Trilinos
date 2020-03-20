@@ -118,7 +118,7 @@ namespace FROSch {
         //AssembledInterfaceCoarseSpace_->getAssembledBasis()->describe(*fancy,Teuchos::VERB_EXTREME);
         //Detect linear dependencies
         if (!this->ParameterList_->get("Skip DetectLinearDependencies",false)) {
-            LOVecPtr linearDependentVectors = detectLinearDependencies(indicesGammaDofsAll(),this->K_->getRowMap(),this->K_->getRangeMap(),repeatedMap,this->ParameterList_->get("Threshold Phi",0.0));
+            LOVecPtr linearDependentVectors = detectLinearDependencies(indicesGammaDofsAll(),this->K_->getRowMap(),this->K_->getRangeMap(),repeatedMap,this->ParameterList_->get("Threshold Phi",1e-20));
             // cout << this->MpiComm_->getRank() << " " << linearDependentVectors.size() << endl;
             AssembledInterfaceCoarseSpace_->zeroOutBasisVectors(linearDependentVectors());
         }
