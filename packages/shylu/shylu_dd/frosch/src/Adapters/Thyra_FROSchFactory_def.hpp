@@ -48,6 +48,7 @@
 namespace Thyra {
 
     using namespace FROSch;
+    using namespace std;
     using namespace Teuchos;
     using namespace Thyra;
     using namespace Xpetra;
@@ -56,7 +57,7 @@ namespace Thyra {
     template <class SC, class LO, class GO, class NO>
     FROSchFactory<SC,LO,GO,NO>::FROSchFactory()
     {
-        
+
     }
 
     //-----------------------------------------------------------
@@ -281,21 +282,13 @@ namespace Thyra {
                 FROSCH_ASSERT(repeatedMaps.size()==dofOrderings.size(),"RepeatedMaps.size()!=dofOrderings.size()");
 
                 RCP<TwoLevelBlockPreconditioner<SC,LO,GO,NO> > TLBP(new TwoLevelBlockPreconditioner<SC,LO,GO,NO>(A,paramList_));
-                if(!coordinatesList.is_null()){
-                  TLBP->initialize(paramList_->get("Dimension",3),
+
+                TLBP->initialize(paramList_->get("Dimension",3),
                                  dofsPerNodeVector,
                                  dofOrderings,
                                  paramList_->get("Overlap",1),
                                  coordinatesList,
                                  repeatedMaps);
-                }else{
-                  TLBP->initialize(paramList_->get("Dimension",3),
-                                 dofsPerNodeVector,
-                                 dofOrderings,
-                                 paramList_->get("Overlap",1),
-                                 repeatedMaps);
-
-                }
 
                 SchwarzPreconditioner = TLBP;
             } else {
@@ -421,7 +414,7 @@ namespace Thyra {
     }
 
     template <class SC, class LO, class GO, class NO>
-    std::string FROSchFactory<SC,LO,GO,NO>::description() const
+    string FROSchFactory<SC,LO,GO,NO>::description() const
     {
         return "FROSchFactory";
     }

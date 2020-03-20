@@ -47,6 +47,7 @@
 
 namespace FROSch {
 
+    using namespace std;
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -107,7 +108,7 @@ namespace FROSch {
     }
 
     template <class SC,class LO,class GO,class NO>
-    std::string IPOUHarmonicCoarseOperator<SC,LO,GO,NO>::description() const
+    string IPOUHarmonicCoarseOperator<SC,LO,GO,NO>::description() const
     {
         return "Interface Partition of Unity Coarse Operator";
     }
@@ -181,7 +182,7 @@ namespace FROSch {
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::VerboseObjectBase::getDefaultOStream();
 
         if (this->Verbose_) {
-            std::cout << "\n\
+            cout << "\n\
 +----------------------------+\n\
 | IPOUHarmonicCoarseOperator |\n\
 |  Block " << blockId << "                   |\n\
@@ -189,9 +190,9 @@ namespace FROSch {
         }
 
         // Process the parameter list
-        std::stringstream blockIdStringstream;
+        stringstream blockIdStringstream;
         blockIdStringstream << blockId+1;
-        std::string blockIdString = blockIdStringstream.str();
+        string blockIdString = blockIdStringstream.str();
         RCP<ParameterList> coarseSpaceList = sublist(sublist(this->ParameterList_,"Blocks"),blockIdString.c_str());
 
         Verbosity verbosity = All;
@@ -328,7 +329,7 @@ namespace FROSch {
 
             this->InterfaceCoarseSpaces_[blockId] = LocalPartitionOfUnityBasis_->getLocalPartitionOfUnitySpace();
             FROSCH_NOTIFICATION("FROSch::IPOUHarmonicCoarseOperator",this->Verbose_,"Need to build block coarse sizes for use in MueLu nullspace. This is not performed here yet.");
-            //if (this->Verbose_) {RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout)); this->MVPhiGamma_[blockId]->describe(*fancy,VERB_EXTREME);}
+            //if (this->Verbose_) {RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(cout)); this->MVPhiGamma_[blockId]->describe(*fancy,VERB_EXTREME);}
         }
         return 0;
     }

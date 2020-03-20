@@ -96,6 +96,7 @@
 namespace Thyra {
 
     using namespace FROSch;
+    using namespace std;
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -182,7 +183,7 @@ namespace Thyra {
 
         ConstParameterListPtr getValidParameters() const;
 
-        std::string description() const;
+        string description() const;
 
     private:
 

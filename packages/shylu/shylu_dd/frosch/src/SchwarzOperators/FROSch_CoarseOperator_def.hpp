@@ -778,7 +778,7 @@ namespace FROSch {
             CC->replaceLocalValue(i,indices[j],values[j]);
           }
         }
-        //Phi_->describe(*fancy,Teuchos::VERB_EXTREME);
+        CC->describe(*fancy,Teuchos::VERB_EXTREME);
 
         //if(this->K_->getMap()->lib() == Xpetra::UseEpetra){
         /*if(this->Verbose_)std::cout<<"Jaaaa\n";

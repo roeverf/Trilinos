@@ -52,6 +52,7 @@
 
 namespace FROSch {
 
+    using namespace std;
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -148,7 +149,7 @@ namespace FROSch {
         void describe(FancyOStream &out,
                       const EVerbosityLevel verbLevel=Describable::verbLevel_default) const;
 
-        std::string description() const;
+        string description() const;
 
     protected:
 
@@ -192,7 +193,7 @@ namespace FROSch {
          vvvvvvvvvv
          */
 
-        
+
         PartitionOfUnityPtr PartitionOfUnity_;
 
         LocalPartitionOfUnityBasisPtr LocalPartitionOfUnityBasis_;

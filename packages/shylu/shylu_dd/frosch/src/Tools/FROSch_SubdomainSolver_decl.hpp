@@ -107,6 +107,7 @@
 
 namespace FROSch {
 
+    using namespace std;
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -277,7 +278,7 @@ namespace FROSch {
 
         \return String describing this operator
         */
-        virtual std::string description() const;
+        virtual string description() const;
 
         //! @name Access to class members
         //!@{

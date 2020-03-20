@@ -508,7 +508,7 @@ namespace FROSch {
                     globalVec[i] = -1;
                 }
             }
-            numEntity = global;
+            numEntity = globalVec;
             if (Verbose_) {
                 cout
                 << "\n" << setw(FROSCH_INDENT) << " "

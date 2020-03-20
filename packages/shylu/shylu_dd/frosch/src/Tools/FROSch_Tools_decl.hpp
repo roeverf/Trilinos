@@ -99,6 +99,7 @@
 
 namespace FROSch {
 
+    using namespace std;
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -195,8 +196,8 @@ namespace FROSch {
 
         int sendDataToOriginalMap();
 
-        virtual std::size_t selectedIndex(GO GID,
-                                          const std::vector<std::pair<int,LO> > & pid_and_lid) const;
+        virtual size_t selectedIndex(GO GID,
+                                          const vector<pair<int,LO> > & pid_and_lid) const;
 
     protected:
 
@@ -456,11 +457,11 @@ namespace FROSch {
 
     template <class Type>
     RCP<Type> ExtractPtrFromParameterList(ParameterList& paramList,
-                                          std::string namePtr="Ptr");
+                                          string namePtr="Ptr");
 
     template <class Type>
     ArrayRCP<Type> ExtractVectorFromParameterList(ParameterList& paramList,
-                                                  std::string nameVector="Vector");
+                                                  string nameVector="Vector");
 
 #ifdef HAVE_SHYLU_DDFROSCH_EPETRA
     template <class LO,class GO,class NO>
@@ -477,7 +478,7 @@ namespace FROSch {
 #endif
 
     template <class LO>
-    Array<LO> GetIndicesFromString(std::string string);
+    Array<LO> GetIndicesFromString(string string);
 
 #ifdef HAVE_SHYLU_DDFROSCH_ZOLTAN2
     template <class SC,class LO,class GO,class NO>
@@ -496,11 +497,11 @@ namespace FROSch {
     \param[in] forschObj FROSch object that is asking for the missing package
     \param[in] packageName Name of the missing package
     */
-    inline void ThrowErrorMissingPackage(const std::string& froschObj,
-                                         const std::string& packageName)
+    inline void ThrowErrorMissingPackage(const string& froschObj,
+                                         const string& packageName)
     {
         // Create the error message
-        std::stringstream errMsg;
+        stringstream errMsg;
         errMsg << froschObj << " is asking for the Trilinos packate '"<< packageName << "', "
         "but this package is not included in your build configuration. "
         "Please enable '" << packageName << "' in your build configuration to be used with ShyLU_DDFROSch.";

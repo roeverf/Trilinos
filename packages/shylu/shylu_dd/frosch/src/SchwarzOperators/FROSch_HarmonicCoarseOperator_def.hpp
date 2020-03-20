@@ -118,13 +118,13 @@ namespace FROSch {
         //AssembledInterfaceCoarseSpace_->getAssembledBasis()->describe(*fancy,Teuchos::VERB_EXTREME);
         //Detect linear dependencies
         if (!this->ParameterList_->get("Skip DetectLinearDependencies",false)) {
-            LOVecPtr linearDependentVectors = detectLinearDependencies(indicesGammaDofsAll(),this->K_->getRowMap(),this->K_->getRangeMap(),repeatedMap,this->ParameterList_->get("Threshold Phi",1.e-8));
+            LOVecPtr linearDependentVectors = detectLinearDependencies(indicesGammaDofsAll(),this->K_->getRowMap(),this->K_->getRangeMap(),repeatedMap,this->ParameterList_->get("Threshold Phi",0.0));
             // cout << this->MpiComm_->getRank() << " " << linearDependentVectors.size() << endl;
             AssembledInterfaceCoarseSpace_->zeroOutBasisVectors(linearDependentVectors());
         }
         this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
         if(this->Verbose_)std::cout<<"----------------Huhu----------------------------\n";
-      //  AssembledInterfaceCoarseSpace_->getAssembledBasis()->describe(*fancy,Teuchos::VERB_EXTREME);
+        //AssembledInterfaceCoarseSpace_->getAssembledBasis()->describe(*fancy,Teuchos::VERB_EXTREME);
         this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
         if(this->Verbose_)std::cout<<"----------------Huhu----------------------------\n";
         // Build the saddle point harmonic extensions
@@ -542,6 +542,19 @@ namespace FROSch {
             //Compute Phi^T * Phi
             RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(cout));
             XMatrixPtr phiTPhi = MatrixMatrix<SC,LO,GO,NO>::Multiply(*phiGamma,true,*phiGamma,false,*fancy); //phiGamma->describe(*fancy,VERB_EXTREME);//phiTPhi->describe(*fancy,VERB_EXTREME);AssembledInterfaceCoarseSpace_->getBasisMap()->describe(*fancy,VERB_EXTREME);
+
+            /*
+            XMultiVectorPtr CC = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(phiTPhi->getMap(),phiTPhi->getGlobalNumCols());
+            ConstLOVecView indices;
+            ConstSCVecView values;
+            for(UN i = 0;i<phiTPhi->getMap()->getNodeNumElements();i++){
+              phiTPhi->getLocalRowView(i,indices,values);
+              for(UN j = 0;j<indices.size();j++){
+                CC->replaceLocalValue(i,indices[j],values[j]);
+              }
+            }
+            CC->describe(*fancy,Teuchos::VERB_EXTREME);
+            */
 
             // Extract local part of the matrix
             ConstXMatrixPtr repeatedPhiTPhi = ExtractLocalSubdomainMatrix(phiTPhi.getConst(),AssembledInterfaceCoarseSpace_->getBasisMap());

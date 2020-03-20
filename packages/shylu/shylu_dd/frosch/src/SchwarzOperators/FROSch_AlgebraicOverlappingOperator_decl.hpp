@@ -51,6 +51,7 @@
 #define ATimer(S,L) Teuchos::TimeMonitor::getNewCounter(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(L) + std::string(")"));
 namespace FROSch {
 
+    using namespace std;
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -112,7 +113,7 @@ namespace FROSch {
                                      ConstXMapPtr repeatedMap);
 
         virtual int updateLocalOverlappingMatrices();
-        
+
 
         AddingLayersStrategy AddingLayersStrategy_ = LayersFromGraph;
     };

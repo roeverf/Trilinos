@@ -47,6 +47,7 @@
 
 namespace FROSch {
 
+    using namespace std;
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -203,9 +204,7 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     int OverlappingOperator<SC,LO,GO,NO>::computeOverlappingOperator()
     {
-        RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout));
-        Teuchos::TimeMonitor CompTM(*CompTimer[current_level-1]);
-        //FROSCH_TIMER_START_LEVELID(computeOverlappingOperatorTime,"OverlappingOperator::computeOverlappingOperator");
+        FROSCH_TIMER_START_LEVELID(computeOverlappingOperatorTime,"OverlappingOperator::computeOverlappingOperator");
 
         updateLocalOverlappingMatrices();
 
@@ -215,7 +214,7 @@ namespace FROSch {
         }
 
         if (!reuseSymbolicFactorization) {
-            if (this->IsComputed_ && this->Verbose_) std::cout << "FROSch::OverlappingOperator : Recomputing the Symbolic Factorization" << std::endl;
+            if (this->IsComputed_ && this->Verbose_) cout << "FROSch::OverlappingOperator : Recomputing the Symbolic Factorization" << endl;
             SubdomainSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(OverlappingMatrix_,sublist(this->ParameterList_,"Solver")));
 
             SubdomainSolver_->initialize();

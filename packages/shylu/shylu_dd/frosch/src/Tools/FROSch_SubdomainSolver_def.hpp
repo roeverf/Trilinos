@@ -47,6 +47,7 @@
 
 namespace FROSch {
 
+    using namespace std;
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -588,7 +589,7 @@ namespace FROSch {
     }
 
     template<class SC,class LO,class GO,class NO>
-    std::string SubdomainSolver<SC,LO,GO,NO>::description() const
+    string SubdomainSolver<SC,LO,GO,NO>::description() const
     {
         return "Subdomain Solver";
     }

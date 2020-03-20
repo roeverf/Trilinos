@@ -47,6 +47,7 @@
 
 namespace FROSch {
 
+    using namespace std;
     using namespace Teuchos;
     using namespace Xpetra;
 
@@ -370,7 +371,7 @@ namespace FROSch {
                 UN k = 0;
                 while (k<dofsPerNode) {
                     GO dofGlobal = getEntity(i)->getGlobalDofID(itmp,k);
-                    if (std::binary_search(dirichletBoundaryDofs.begin(),dirichletBoundaryDofs.end(),dofGlobal)) {
+                    if (binary_search(dirichletBoundaryDofs.begin(),dirichletBoundaryDofs.end(),dofGlobal)) {
                         getEntity(i)->removeNode(itmp);
                         break;
                     }
@@ -403,7 +404,7 @@ namespace FROSch {
         }
 
         std::sort(EntityVector_.begin(),EntityVector_.end(),compareInterfaceEntities<SC,LO,GO,NO>);
-        EntityVector_.erase(std::unique(EntityVector_.begin(),EntityVector_.end(),equalInterfaceEntities<SC,LO,GO,NO>),EntityVector_.end());
+        EntityVector_.erase(unique(EntityVector_.begin(),EntityVector_.end(),equalInterfaceEntities<SC,LO,GO,NO>),EntityVector_.end());
         EntityMapIsUpToDate_ = false;
         return 0;
     }
