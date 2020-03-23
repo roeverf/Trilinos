@@ -118,7 +118,7 @@ namespace FROSch {
         //AssembledInterfaceCoarseSpace_->getAssembledBasis()->describe(*fancy,Teuchos::VERB_EXTREME);
         //Detect linear dependencies
         if (!this->ParameterList_->get("Skip DetectLinearDependencies",false)) {
-            LOVecPtr linearDependentVectors = detectLinearDependencies(indicesGammaDofsAll(),this->K_->getRowMap(),this->K_->getRangeMap(),repeatedMap,this->ParameterList_->get("Threshold Phi",1e-20));
+            LOVecPtr linearDependentVectors = detectLinearDependencies(indicesGammaDofsAll(),this->K_->getRowMap(),this->K_->getRangeMap(),repeatedMap,this->ParameterList_->get("Threshold Phi",1e-8));
             // cout << this->MpiComm_->getRank() << " " << linearDependentVectors.size() << endl;
             AssembledInterfaceCoarseSpace_->zeroOutBasisVectors(linearDependentVectors());
         }
@@ -543,7 +543,9 @@ namespace FROSch {
             RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(cout));
             XMatrixPtr phiTPhi = MatrixMatrix<SC,LO,GO,NO>::Multiply(*phiGamma,true,*phiGamma,false,*fancy); //phiGamma->describe(*fancy,VERB_EXTREME);//phiTPhi->describe(*fancy,VERB_EXTREME);AssembledInterfaceCoarseSpace_->getBasisMap()->describe(*fancy,VERB_EXTREME);
 
-            /*
+
+
+
             XMultiVectorPtr CC = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(phiTPhi->getMap(),phiTPhi->getGlobalNumCols());
             ConstLOVecView indices;
             ConstSCVecView values;
@@ -553,8 +555,8 @@ namespace FROSch {
                 CC->replaceLocalValue(i,indices[j],values[j]);
               }
             }
-            CC->describe(*fancy,Teuchos::VERB_EXTREME);
-            */
+            //CC->describe(*fancy,Teuchos::VERB_EXTREME);
+
 
             // Extract local part of the matrix
             ConstXMatrixPtr repeatedPhiTPhi = ExtractLocalSubdomainMatrix(phiTPhi.getConst(),AssembledInterfaceCoarseSpace_->getBasisMap());
@@ -582,14 +584,37 @@ namespace FROSch {
 
             //Compute local QR factorization
             TSerialQRDenseSolverPtr qRSolver(new SerialQRDenseSolver<LO,SC>());
+
             qRSolver->setMatrix(denseRepeatedPhiTPhi);
             qRSolver->factor();
             qRSolver->formQ();
             qRSolver->formR();
+            TSerialDenseMatrixPtr r = qRSolver->getR();
+
+            XMultiVectorPtr qq = ModifiedGramSchmidt(CC.getConst());
+            std::cout<<this->MpiComm_->getRank()<<"   "<<CC->getNumVectors()<<"  "<<CC->getMap()->getMaxAllGlobalIndex()<<std::endl;
+            std::cout<<this->MpiComm_->getRank()<<"   "<<qq->getNumVectors()<<"  "<<qq->getMap()->getMaxAllGlobalIndex()<<std::endl;
+
+            XMultiVectorPtr tmpR = ModGram_FormR(CC.getConst(),qq.getConst());
+            //Teuchos::RCP<Teuchos::SerialDenseMatrix<LO,SC> > r(tmpR->getNumVectors(),tmpR->getNumVectors());
+
+          /*  for(UN h = 0;h<tmpR->getNumVectors();h++){
+                 Teuchos::ArrayRCP<SC> data =tmpR->getDataNonConst(h);
+                 for(UN k = 0;k<data.size();k++){
+                   (*r)(k,h) = data[k];
+               }
+           }
+            Teuchos::SerialDenseMatrix<LO,SC> Tr (*r,Teuchos::TRANS);*/
+
 
             //Find rows of R approx. zero
-            TSerialDenseMatrixPtr r = qRSolver->getR();
             LO tmp = 0;
+            /*for(LO i = 0;i<Tr.numRows();i++){
+              if(Teuchos::getCol<int,double>( Teuchos::View, Tr, i).normFrobenius()<treshold){
+                linearDependentVectors[tmp] = i;
+                tmp++;
+              }
+            }*/
             for (LO i=0; i<r->numRows(); i++) {
                 SC normRow = 0.0;
                 for (LO j=0; j<r->numCols(); j++) {

@@ -43,6 +43,11 @@
 #define _FROSCH_HARMONICCOARSEOPERATOR_DECL_HPP
 
 #include <FROSch_CoarseOperator_def.hpp>
+#include "EpetraExt_OperatorOut.h"
+#include "EpetraExt_VectorOut.h"
+#include "EpetraExt_RowMatrixOut.h"
+#include <Epetra_MpiComm.h>
+
 #define ATimer(S,L) Teuchos::TimeMonitor::getNewCounter(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(L) + std::string(")"));
 
 
