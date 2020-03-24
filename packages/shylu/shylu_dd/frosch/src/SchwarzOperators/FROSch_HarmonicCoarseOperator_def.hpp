@@ -52,9 +52,6 @@ namespace FROSch {
     using namespace Xpetra;
 
     template <class SC,class LO,class GO,class NO>
-    int HarmonicCoarseOperator<SC,LO,GO,NO>::current_level= 0;
-
-    template <class SC,class LO,class GO,class NO>
     HarmonicCoarseOperator<SC,LO,GO,NO>::HarmonicCoarseOperator(ConstXMatrixPtr k,
                                                                 ParameterListPtr parameterList) :
     CoarseOperator<SC,LO,GO,NO> (k,parameterList),
@@ -66,27 +63,17 @@ namespace FROSch {
     GammaDofs_ (0),
     IDofs_ (0),
     DofsMaps_ (0),
-    NumberOfBlocks_ (0),
-    AssemCSpaceTimer(this->numLevel),
-    CompCSpaceTimer(this->numLevel),
-    CompExtTimer(this->numLevel)
+    NumberOfBlocks_ (0)
     {
-        for(UN i = 0;i<this->numLevel;i++){
-          AssemCSpaceTimer[i] = ATimer("HarmonicCoarseOperator::assembleCoarseMap",i);
-          CompCSpaceTimer[i]  = ATimer("HarmonicCoarseOperator::computeCoarseSpace",i);
-          CompExtTimer[i] = ATimer("HarmonicCoarseOperator::computeExtensions",i);
-        }
-        current_level = current_level + 1;
         FROSCH_TIMER_START_LEVELID(harmonicCoarseOperatorTime,"HarmonicCoarseOperator::HarmonicCoarseOperator");
     }
 
     template <class SC,class LO,class GO,class NO>
     typename HarmonicCoarseOperator<SC,LO,GO,NO>::XMapPtr HarmonicCoarseOperator<SC,LO,GO,NO>::computeCoarseSpace(CoarseSpacePtr coarseSpace)
     {
-      RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(std::cout));
+        FROSCH_TIMER_START_LEVELID(computeCoarseSpaceTime,"HarmonicCoarseOperator::computeCoarseSpace");
+        RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(cout));
 
-        Teuchos::TimeMonitor CompCSpaceTM(*CompCSpaceTimer[current_level-1]);
-        //FROSCH_TIMER_START_LEVELID(computeCoarseSpaceTime,"HarmonicCoarseOperator::computeCoarseSpace");
         XMapPtr repeatedMap = AssembleSubdomainMap(NumberOfBlocks_,DofsMaps_,DofsPerNode_);
 
         // Build local saddle point problem
@@ -113,20 +100,13 @@ namespace FROSch {
         XMatrixPtr kGammaGamma;
 
         BuildSubmatrices(repeatedMatrix,indicesIDofsAll(),kII,kIGamma,kGammaI,kGammaGamma);
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->Verbose_)std::cout<<"##################################################\n";
-        //AssembledInterfaceCoarseSpace_->getAssembledBasis()->describe(*fancy,Teuchos::VERB_EXTREME);
+
         //Detect linear dependencies
         if (!this->ParameterList_->get("Skip DetectLinearDependencies",false)) {
-            LOVecPtr linearDependentVectors = detectLinearDependencies(indicesGammaDofsAll(),this->K_->getRowMap(),this->K_->getRangeMap(),repeatedMap,this->ParameterList_->get("Threshold Phi",1e-8));
+            LOVecPtr linearDependentVectors = detectLinearDependencies(indicesGammaDofsAll(),this->K_->getRowMap(),this->K_->getRangeMap(),repeatedMap,this->ParameterList_->get("Threshold Phi",1.e-8));
             // cout << this->MpiComm_->getRank() << " " << linearDependentVectors.size() << endl;
             AssembledInterfaceCoarseSpace_->zeroOutBasisVectors(linearDependentVectors());
         }
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->Verbose_)std::cout<<"----------------Huhu----------------------------\n";
-        //AssembledInterfaceCoarseSpace_->getAssembledBasis()->describe(*fancy,Teuchos::VERB_EXTREME);
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->Verbose_)std::cout<<"----------------Huhu----------------------------\n";
         // Build the saddle point harmonic extensions
         XMultiVectorPtr localCoarseSpaceBasis;
         if (AssembledInterfaceCoarseSpace_->getBasisMap()->getNodeNumElements()) {
@@ -217,27 +197,6 @@ namespace FROSch {
         DofsPerNode_[blockId] = 1;
 
         return 0;
-    }
-
-    template <class SC,class LO,class GO,class NO>
-    typename HarmonicCoarseOperator<SC,LO,GO,NO>::XMapPtr HarmonicCoarseOperator<SC,LO,GO,NO>::assembleCoarseMap()
-    {
-        FROSCH_TIMER_START_LEVELID(assembleCoarseMapTime,"HarmonicCoarseOperator::assembleCoarseMap");
-        GOVec mapVector(0);
-        GO tmp = 0;
-        for (UN i=0; i<NumberOfBlocks_; i++) {
-            if (!InterfaceCoarseSpaces_[i].is_null()) {
-                if (InterfaceCoarseSpaces_[i]->hasBasisMap()) {
-                    for (UN j=0; j<InterfaceCoarseSpaces_[i]->getBasisMap()->getNodeNumElements(); j++) {
-                        mapVector.push_back(InterfaceCoarseSpaces_[i]->getBasisMap()->getGlobalElement(j)+tmp);
-                    }
-                    if (InterfaceCoarseSpaces_[i]->getBasisMap()->getMaxAllGlobalIndex()>=0) {
-                        tmp += InterfaceCoarseSpaces_[i]->getBasisMap()->getMaxAllGlobalIndex()+1;
-                    }
-                }
-            }
-        }
-        return MapFactory<LO,GO,NO>::Build(DofsMaps_[0][0]->lib(),-1,mapVector(),0,this->MpiComm_);
     }
 
     template <class SC,class LO,class GO,class NO>
@@ -343,6 +302,31 @@ namespace FROSch {
         }
         return translations;
     }
+
+
+    template <class SC,class LO,class GO,class NO>
+    typename HarmonicCoarseOperator<SC,LO,GO,NO>::XMapPtr HarmonicCoarseOperator<SC,LO,GO,NO>::assembleCoarseMap()
+    {
+        //FROSCH_TIMER_START_LEVELID(assembleCoarseMapTime,"HarmonicCoarseOperator::assembleCoarseMap");
+        GOVec mapVector(0);
+        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
+
+        GO tmp = 0;
+        for (UN i=0; i<NumberOfBlocks_; i++) {
+            if (!InterfaceCoarseSpaces_[i].is_null()) {
+                if (InterfaceCoarseSpaces_[i]->hasBasisMap()) {
+                    for (UN j=0; j<InterfaceCoarseSpaces_[i]->getBasisMap()->getNodeNumElements(); j++) {
+                        mapVector.push_back(InterfaceCoarseSpaces_[i]->getBasisMap()->getGlobalElement(j)+tmp);
+                    }
+                    if (InterfaceCoarseSpaces_[i]->getBasisMap()->getMaxAllGlobalIndex()>=0) {
+                        tmp += InterfaceCoarseSpaces_[i]->getBasisMap()->getMaxAllGlobalIndex()+1;
+                    }
+                }
+            }
+        }
+        return MapFactory<LO,GO,NO>::Build(DofsMaps_[0][0]->lib(),-1,mapVector(),0,this->MpiComm_);
+    }
+
 
     template <class SC,class LO,class GO,class NO>
     typename HarmonicCoarseOperator<SC,LO,GO,NO>::XMultiVectorPtrVecPtr HarmonicCoarseOperator<SC,LO,GO,NO>::computeRotations(UN blockId,
@@ -543,21 +527,6 @@ namespace FROSch {
             RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(cout));
             XMatrixPtr phiTPhi = MatrixMatrix<SC,LO,GO,NO>::Multiply(*phiGamma,true,*phiGamma,false,*fancy); //phiGamma->describe(*fancy,VERB_EXTREME); phiTPhi->describe(*fancy,VERB_EXTREME); //AssembledInterfaceCoarseSpace_->getBasisMap()->describe(*fancy,VERB_EXTREME);
 
-
-
-
-            XMultiVectorPtr CC = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(phiTPhi->getMap(),phiTPhi->getGlobalNumCols());
-            ConstLOVecView indices;
-            ConstSCVecView values;
-            for(UN i = 0;i<phiTPhi->getMap()->getNodeNumElements();i++){
-              phiTPhi->getLocalRowView(i,indices,values);
-              for(UN j = 0;j<indices.size();j++){
-                CC->replaceLocalValue(i,indices[j],values[j]);
-              }
-            }
-            //CC->describe(*fancy,Teuchos::VERB_EXTREME);
-
-
             // Extract local part of the matrix
             ConstXMatrixPtr repeatedPhiTPhi = ExtractLocalSubdomainMatrix(phiTPhi.getConst(),AssembledInterfaceCoarseSpace_->getBasisMap());
             //Communicate matrix to the repeated map
@@ -586,37 +555,14 @@ namespace FROSch {
 
             //Compute local QR factorization
             TSerialQRDenseSolverPtr qRSolver(new SerialQRDenseSolver<LO,SC>());
-
             qRSolver->setMatrix(denseRepeatedPhiTPhi);
             qRSolver->factor();
             qRSolver->formQ();
             qRSolver->formR();
-            TSerialDenseMatrixPtr r = qRSolver->getR();
-
-            XMultiVectorPtr qq = ModifiedGramSchmidt(CC.getConst());
-            std::cout<<this->MpiComm_->getRank()<<"   "<<CC->getNumVectors()<<"  "<<CC->getMap()->getMaxAllGlobalIndex()<<std::endl;
-            std::cout<<this->MpiComm_->getRank()<<"   "<<qq->getNumVectors()<<"  "<<qq->getMap()->getMaxAllGlobalIndex()<<std::endl;
-
-            XMultiVectorPtr tmpR = ModGram_FormR(CC.getConst(),qq.getConst());
-            //Teuchos::RCP<Teuchos::SerialDenseMatrix<LO,SC> > r(tmpR->getNumVectors(),tmpR->getNumVectors());
-
-          /*  for(UN h = 0;h<tmpR->getNumVectors();h++){
-                 Teuchos::ArrayRCP<SC> data =tmpR->getDataNonConst(h);
-                 for(UN k = 0;k<data.size();k++){
-                   (*r)(k,h) = data[k];
-               }
-           }
-            Teuchos::SerialDenseMatrix<LO,SC> Tr (*r,Teuchos::TRANS);*/
-
 
             //Find rows of R approx. zero
+            TSerialDenseMatrixPtr r = qRSolver->getR();
             LO tmp = 0;
-            /*for(LO i = 0;i<Tr.numRows();i++){
-              if(Teuchos::getCol<int,double>( Teuchos::View, Tr, i).normFrobenius()<treshold){
-                linearDependentVectors[tmp] = i;
-                tmp++;
-              }
-            }*/
             for (LO i=0; i<r->numRows(); i++) {
                 SC normRow = 0.0;
                 for (LO j=0; j<r->numCols(); j++) {
@@ -722,8 +668,6 @@ namespace FROSch {
     {
         FROSCH_TIMER_START_LEVELID(computeExtensionsTime,"HarmonicCoarseOperator::computeExtensions");
         //this->Phi_ = MatrixFactory<SC,LO,GO,NO>::Build(this->K_->getRangeMap(),AssembledInterfaceCoarseSpace_->getBasisMap(),AssembledInterfaceCoarseSpace_->getBasisMap()->getNodeNumElements()); // Nonzeroes abhängig von dim/dofs!!!
-        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
-
         XMultiVectorPtr mVPhi = MultiVectorFactory<SC,LO,GO,NO>::Build(localMap,AssembledInterfaceCoarseSpace_->getBasisMap()->getNodeNumElements());
         XMultiVectorPtr mVtmp = MultiVectorFactory<SC,LO,GO,NO>::Build(kII->getRowMap(),AssembledInterfaceCoarseSpace_->getBasisMap()->getNodeNumElements());
         XMultiVectorPtr mVPhiI = MultiVectorFactory<SC,LO,GO,NO>::Build(kII->getRowMap(),AssembledInterfaceCoarseSpace_->getBasisMap()->getNodeNumElements());
@@ -733,15 +677,12 @@ namespace FROSch {
         if (AssembledInterfaceCoarseSpace_->hasAssembledBasis()) {
             for (UN i=0; i<AssembledInterfaceCoarseSpace_->getAssembledBasis()->getNumVectors(); i++) {
                 ConstSCVecPtr assembledInterfaceCoarseSpaceData = AssembledInterfaceCoarseSpace_->getAssembledBasis()->getData(i);
-                //std::cout<<this->MpiComm_->getRank()<<" "<<*assembledInterfaceCoarseSpaceData<<std::endl;
                 for (UN j=0; j<AssembledInterfaceCoarseSpace_->getAssembledBasis()->getLocalLength(); j++) {
                     mVPhiGamma->replaceLocalValue(j,i,assembledInterfaceCoarseSpaceData[j]);
                     mVPhi->replaceLocalValue(indicesGammaDofsAll[j],i,assembledInterfaceCoarseSpaceData[j]);
                 }
             }
         }
-
-        //mVPhi->describe(*fancy,Teuchos::VERB_EXTREME);
 //        LO jj=0;
 //        LO kk=0;
 //        UNVec numLocalBlockRows(NumberOfBlocks_);
@@ -818,8 +759,6 @@ namespace FROSch {
                 itmp++;
             }
         }
-
-
         return mVPhi;
     }
 

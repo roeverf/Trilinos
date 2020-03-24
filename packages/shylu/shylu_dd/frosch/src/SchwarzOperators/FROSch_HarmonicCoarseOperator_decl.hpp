@@ -43,12 +43,6 @@
 #define _FROSCH_HARMONICCOARSEOPERATOR_DECL_HPP
 
 #include <FROSch_CoarseOperator_def.hpp>
-#include "EpetraExt_OperatorOut.h"
-#include "EpetraExt_VectorOut.h"
-#include "EpetraExt_RowMatrixOut.h"
-#include <Epetra_MpiComm.h>
-
-#define ATimer(S,L) Teuchos::TimeMonitor::getNewCounter(std::string("FROSch: ") + std::string(S) + " (Level " + std::to_string(L) + std::string(")"));
 
 
 namespace FROSch {
@@ -110,28 +104,20 @@ namespace FROSch {
         using ConstSCVecPtr           = typename SchwarzOperator<SC,LO,GO,NO>::ConstSCVecPtr;
         using ConstSCVecView          = typename SchwarzOperator<SC,LO,GO,NO>::ConstSCVecView;
 
-        using TimePtr                 = typename SchwarzOperator<SC,LO,GO,NO>::TimePtr;
-
     public:
 
         HarmonicCoarseOperator(ConstXMatrixPtr k,
                                ParameterListPtr parameterList);
 
         virtual int initialize() = 0;
+        XMapPtr assembleCoarseMap();
+
 
         XMapPtr computeCoarseSpace(CoarseSpacePtr coarseSpace);
-
-        static int current_level;
-
-        Teuchos::Array<TimePtr> AssemCSpaceTimer;
-        Teuchos::Array<TimePtr> CompCSpaceTimer;
-        Teuchos::Array<TimePtr> CompExtTimer;
 
     protected:
 
         int intializeCoarseMap();
-
-        XMapPtr assembleCoarseMap();
 
         int assembleInterfaceCoarseSpace();
 

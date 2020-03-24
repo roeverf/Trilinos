@@ -70,7 +70,10 @@ namespace FROSch {
     {
         FROSCH_TIMER_START_LEVELID(initializeTime,"IPOUHarmonicCoarseOperator::initialize");
         int ret = buildCoarseSpace(dimension,dofsPerNode,nodesMap,dofsMaps,nullSpaceBasis,dirichletBoundaryDofs,nodeList);
+        this->CoarseMap_ = this->assembleCoarseMap();
         this->assembleInterfaceCoarseSpace();
+        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
+        //this->CoarseMap_->describe(*fancy,Teuchos::VERB_EXTREME);
         this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
         if(this->Verbose_)std::cout<<"#########################################################\n";
         this->buildCoarseSolveMap(this->AssembledInterfaceCoarseSpace_->getBasisMapUnique());
@@ -91,7 +94,11 @@ namespace FROSch {
         FROSCH_TIMER_START_LEVELID(initializeTime,"IPOUHarmonicCoarseOperator::initialize");
         this->dim = dimension;
         buildCoarseSpace(dimension,dofsPerNodeVec,repeatedNodesMapVec,repeatedDofMapsVec,nullSpaceBasisVec,dirichletBoundaryDofsVec,nodeListVec);
+        this->CoarseMap_ = this->assembleCoarseMap();
+
         this->assembleInterfaceCoarseSpace();
+        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
+      //  this->CoarseMap_->describe(*fancy,Teuchos::VERB_EXTREME);
         this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
         if(this->Verbose_)std::cout<<"#########################################################\n";
         this->buildCoarseSolveMap(this->AssembledInterfaceCoarseSpace_->getBasisMapUnique());
@@ -324,7 +331,7 @@ namespace FROSch {
             LocalPartitionOfUnityBasis_->buildLocalPartitionOfUnityBasis();
 
             if(sublist(coarseSpaceList,"LocalPartitionOfUnityBasis")->get("Coarse NullSpace",false)){
-              this->CoarseNullSpace_[blockId] = LocalPartitionOfUnityBasis_->getCoarseNullSpace();
+              //this->CoarseNullSpace_[blockId] = LocalPartitionOfUnityBasis_->getCoarseNullSpace();
             }
 
             this->InterfaceCoarseSpaces_[blockId] = LocalPartitionOfUnityBasis_->getLocalPartitionOfUnitySpace();

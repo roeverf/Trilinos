@@ -1526,7 +1526,6 @@ inline void compact(T &v)
       RCP<Xpetra::Map<LO,GO,NO> > CMap = MapFactory<LO,GO,NO>::Build(multiVector->getMap()->lib(),multiVector->getNumVectors(),0,multiVector->getMap()->getComm());
       RCP<MultiVector<SC,LO,GO,NO> > tmpRVec = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(CMap,multiVector->getNumVectors());
       CMap->getComm()->barrier();
-      if(CMap->getComm()->getRank() == 0) std::cout<<"ahhah\n";
       tmpRVec->multiply(Teuchos::TRANS,Teuchos::NO_TRANS,Teuchos::ScalarTraits<SC>::one(),*orthoBasis,*multiVector,Teuchos::ScalarTraits<SC>::zero());
       return tmpRVec;
 
