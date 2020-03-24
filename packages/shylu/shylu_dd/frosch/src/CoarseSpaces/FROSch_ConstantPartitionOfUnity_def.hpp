@@ -135,6 +135,7 @@ namespace FROSch {
         if (UseVolumes_) Volumes_->buildEntityMap(DDInterface_->getNodesMap());
 
         if (this->Verbosity_==All) {
+            FROSCH_TIMER_START_LEVELID(printStatisticsTime,"print statistics");
             // Count entities
             GOVec globalVec(1);
             LOVec localVec(1);
@@ -188,7 +189,7 @@ namespace FROSch {
                 << "\n" << setw(FROSCH_INDENT) << " "
                 << "| " << left << setw(20) << "Volumes" << right
                 << " | "; globalVec[0]<0 ? cout << setw(10) << " " : cout << setw(10) << globalVec[0]; cout
-                << " | "; avgVec[0]<0 ? cout << setw(10) << " " : cout << setw(10) << avgVec[0]; cout
+                << " | "; avgVec[0]<0 ? cout << setw(10) << " " : cout << setw(10) << setprecision(5) << avgVec[0]; cout
                 << " | "; minVec[0]<0 ? cout << setw(10) << " " : cout << setw(10) << minVec[0]; cout
                 << " | "; maxVec[0]<0 ? cout << setw(10) << " " : cout << setw(10) << maxVec[0]; cout
                 << " | "; sumVec[0]<0 ? cout << setw(10) << " " : cout << setw(10) << sumVec[0]; cout

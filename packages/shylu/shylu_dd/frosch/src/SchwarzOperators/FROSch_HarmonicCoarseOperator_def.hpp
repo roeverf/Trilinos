@@ -577,6 +577,7 @@ namespace FROSch {
             linearDependentVectors.resize(tmp);
         }
 
+        FROSCH_TIMER_START_LEVELID(printStatisticsTime,"print statistics");
         // Statistics on linear dependencies
         GO global = AssembledInterfaceCoarseSpace_->getBasisMap()->getMaxAllGlobalIndex();
         if (AssembledInterfaceCoarseSpace_->getBasisMap()->lib()==UseEpetra || AssembledInterfaceCoarseSpace_->getBasisMap()->getGlobalNumElements()>0) {
@@ -630,7 +631,7 @@ namespace FROSch {
             << "\n" << setw(FROSCH_INDENT) << " "
             << "| " << left << setw(20) << "Basis functions" << right
             << " | " << setw(10) << global
-            << " | " << setw(10) << avgVec[0]
+            << " | " << setw(10) << setprecision(5) << avgVec[0]
             << " | " << setw(10) << minVec[0]
             << " | " << setw(10) << maxVec[0]
             << " | " << setw(10) << sumVec[0]
@@ -638,7 +639,7 @@ namespace FROSch {
             << "\n" << setw(FROSCH_INDENT) << " "
             << "| " << left << setw(20) << "Dependent" << right
             << " | " << setw(10) << " "
-            << " | " << setw(10) << avgVec[1]
+            << " | " << setw(10) << setprecision(5) << avgVec[1]
             << " | " << setw(10) << minVec[1]
             << " | " << setw(10) << maxVec[1]
             << " | " << setw(10) << sumVec[1]
@@ -646,7 +647,7 @@ namespace FROSch {
             << "\n" << setw(FROSCH_INDENT) << " "
             << "| " << left << setw(20) << "Independent" << right
             << " | " << setw(10) << " "
-            << " | " << setw(10) << avgVec[2]
+            << " | " << setw(10) << setprecision(5) << avgVec[2]
             << " | " << setw(10) << minVec[2]
             << " | " << setw(10) << maxVec[2]
             << " | " << setw(10) << sumVec[2]
@@ -655,6 +656,7 @@ namespace FROSch {
             << setw(89) << "-----------------------------------------------------------------------------------------"
             << endl;
         }
+        FROSCH_TIMER_STOP(printStatisticsTime);
 
         return linearDependentVectors;
     }
