@@ -116,6 +116,7 @@ namespace FROSch {
     template<class SC,class LO,class GO,class NO>
     int EntitySet<SC,LO,GO,NO>::buildEntityMap(ConstXMapPtr localToGlobalNodesMap)
     {
+        RCP<const Comm<int> > comm = localToGlobalNodesMap->getComm();
         if (!EntityMapIsUpToDate_) {
             LO localNumberEntities = getNumEntities();
             LO globalNumberEntities = 0; // AH 10/13/2017: Can we stick with LO here
@@ -133,6 +134,7 @@ namespace FROSch {
                     entities[i] = getEntity(i)->getUniqueID()+1;
                     getEntity(i)->setLocalID(i);
                 }
+
                 XMapPtr entityMapping = MapFactory<LO,GO,NO>::Build(localToGlobalNodesMap->lib(),-1,entities(),0,localToGlobalNodesMap->getComm());
 
                 GOVec allEntities(maxLocalNumberEntities*localToGlobalNodesMap->getComm()->getSize(),0);
@@ -154,6 +156,7 @@ namespace FROSch {
 
             }
             EntityMap_ = MapFactory<LO,GO,NO>::Build(localToGlobalNodesMap->lib(),-1,localToGlobalVector(),0,localToGlobalNodesMap->getComm());
+          
             EntityMapIsUpToDate_ = true;
         }
         return 0;

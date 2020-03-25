@@ -56,8 +56,6 @@ namespace FROSch {
                                                                 ParameterListPtr parameterList) :
     OneLevelPreconditioner<SC,LO,GO,NO> (k,parameterList)
     {
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0)std::cout<<"TL 0\n";
         FROSCH_TIMER_START_LEVELID(twoLevelPreconditionerTime,"TwoLevelPreconditioner::TwoLevelPreconditioner::");
         if (!this->ParameterList_->get("CoarseOperator Type","IPOUHarmonicCoarseOperator").compare("IPOUHarmonicCoarseOperator")) {
             // Set the LevelID in the sublist
@@ -200,6 +198,8 @@ namespace FROSch {
             // Build Null Space
             if (!this->ParameterList_->get("Null Space Type","Laplace").compare("Laplace")) {
                 nullSpaceBasis = BuildNullSpace<SC,LO,GO,NO>(dimension,LaplaceNullSpace,repeatedMap,dofsPerNode,dofsMaps);
+                nullSpaceBasis->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
+                nullSpaceBasis->describe(*fancy,Teuchos::VERB_EXTREME);
             } else if (!this->ParameterList_->get("Null Space Type","Laplace").compare("Linear Elasticity")) {
                 nullSpaceBasis = BuildNullSpace(dimension,LinearElasticityNullSpace,repeatedMap,dofsPerNode,dofsMaps,nodeList);
             } else if (!this->ParameterList_->get("Null Space Type","Laplace").compare("Input")) {

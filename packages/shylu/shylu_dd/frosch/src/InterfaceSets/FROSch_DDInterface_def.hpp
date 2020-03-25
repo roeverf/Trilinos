@@ -106,7 +106,9 @@ namespace FROSch {
         IntVecVec componentsSubdomainsUnique;
 
         communicateLocalComponents(componentsSubdomains,componentsSubdomainsUnique,commStrategy);
+
         identifyLocalComponents(componentsSubdomains,componentsSubdomainsUnique);
+    
     }
 
     template <class SC,class LO,class GO,class NO>
@@ -338,6 +340,7 @@ namespace FROSch {
             }
 
         }
+
         return 0;
     }
 
@@ -356,6 +359,7 @@ namespace FROSch {
         if (buildVerticesMap) Vertices_->buildEntityMap(NodesMap_);
         if (buildShortEdgesMap) ShortEdges_->buildEntityMap(NodesMap_);
         if (buildStraightEdgesMap) StraightEdges_->buildEntityMap(NodesMap_);
+
         if (buildEdgesMap) Edges_->buildEntityMap(NodesMap_);
         if (buildFacesMap) Faces_->buildEntityMap(NodesMap_);
         if (buildRootsMap) Roots_->buildEntityMap(NodesMap_);

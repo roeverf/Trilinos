@@ -73,9 +73,6 @@ namespace FROSch {
         this->CoarseMap_ = this->assembleCoarseMap();
         this->assembleInterfaceCoarseSpace();
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
-        //this->CoarseMap_->describe(*fancy,Teuchos::VERB_EXTREME);
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->Verbose_)std::cout<<"#########################################################\n";
         this->buildCoarseSolveMap(this->AssembledInterfaceCoarseSpace_->getBasisMapUnique());
         this->IsInitialized_ = true;
         this->IsComputed_ = false;
@@ -95,12 +92,7 @@ namespace FROSch {
         this->dim = dimension;
         buildCoarseSpace(dimension,dofsPerNodeVec,repeatedNodesMapVec,repeatedDofMapsVec,nullSpaceBasisVec,dirichletBoundaryDofsVec,nodeListVec);
         this->CoarseMap_ = this->assembleCoarseMap();
-
         this->assembleInterfaceCoarseSpace();
-        Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
-      //  this->CoarseMap_->describe(*fancy,Teuchos::VERB_EXTREME);
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->Verbose_)std::cout<<"#########################################################\n";
         this->buildCoarseSolveMap(this->AssembledInterfaceCoarseSpace_->getBasisMapUnique());
         this->IsInitialized_ = true;
         this->IsComputed_ = false;
@@ -240,7 +232,8 @@ namespace FROSch {
             // Extract the interface and the interior from the DDInterface stored in the Interface Partition of Unity object
             InterfaceEntityPtr interface = interfacePartitionOfUnity->getDDInterface()->getInterface()->getEntity(0);
             InterfaceEntityPtr interior = interfacePartitionOfUnity->getDDInterface()->getInterior()->getEntity(0);
-
+            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+            if(this->MpiComm_->getRank() == 0)std::cout<<"Ipou 0\n";
             // Check whether the interface is empty. If so, we use a ConstantPartitionOfUnity instead, because we assume that the subdomains are decoupled.
             if (interface->getNumNodes()==0) {
                 FROSCH_NOTIFICATION("FROSch::IPOUHarmonicCoarseOperator",this->Verbose_,"No interface found => A Constant Partition of Unity will be used instead.");
@@ -256,6 +249,9 @@ namespace FROSch {
                                                                                                   this->LevelID_,
                                                                                                   interfacePartitionOfUnity->getDDInterfaceNonConst()));
 
+
+                                                                                                  this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+                                                                                                  if(this->MpiComm_->getRank() == 0)std::cout<<"Ipou 1.1\n";
                 PartitionOfUnity_->removeDirichletNodes(dirichletBoundaryDofs());
 
                 interface = interior;
@@ -272,8 +268,8 @@ namespace FROSch {
                 PartitionOfUnity_->computePartitionOfUnity(nodeList);
 
             } else {
-                interfacePartitionOfUnity->removeDirichletNodes(dirichletBoundaryDofs(),nodeList);
 
+                interfacePartitionOfUnity->removeDirichletNodes(dirichletBoundaryDofs(),nodeList);
 
                 interfacePartitionOfUnity->sortInterface(this->K_,nodeList);
 
@@ -290,6 +286,7 @@ namespace FROSch {
                 }
 
                 interfacePartitionOfUnity->computePartitionOfUnity(nodeList);
+
                 PartitionOfUnity_ = interfacePartitionOfUnity;
             }
 
@@ -308,7 +305,9 @@ namespace FROSch {
             }
 
            PartitionOfUnity_->assembledPartitionOfUnityMaps();
+
            this->kRowMap_ = PartitionOfUnity_->getAssembledPartitionOfUnityMap();
+           
            if (this->ParameterList_->get("Use RepMap",false)) {
               //  if (this->K_->getMap()->lib() == Xpetra::UseTpetra) {
                     //Teuchos::RCP<DDInterface<SC,LO,GO,NO> > theInterface =Teuchos::rcp_const_cast<DDInterface<SC,LO,GO,NO> >(interfacePartitionOfUnity->getDDInterface());

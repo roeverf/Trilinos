@@ -59,22 +59,9 @@ namespace FROSch {
                                                 ParameterListPtr parameterList) :
     SchwarzOperator<SC,LO,GO,NO> (k,parameterList),
     CoarseSpace_ (new CoarseSpace<SC,LO,GO,NO>(this->MpiComm_,this->SerialComm_)),
-    DistributionList_ (sublist(parameterList,"Distribution")),
-    ConstTimer(this->numLevel),
-    BuildCMatTimer(this->numLevel),
-    BuildCMapTimer(this->numLevel),
-    CompTimer(this->numLevel),
-    SetUpTimer(this->numLevel)
+    DistributionList_ (sublist(parameterList,"Distribution"))
     {
         current_level = current_level+1;
-        for(UN i = 0;i<this->numLevel;i++){
-          ConstTimer[i] = ATimer("CoarseOperator::CoarseOperator",i);
-          BuildCMatTimer[i] = ATimer("CoarseOperator::buildCoarseMatrix",i);
-          BuildCMapTimer[i] = ATimer("CoarseOperator::buildCoarseSolveMap",i);
-          CompTimer[i] = ATimer("CoarseOperator::compute",i);
-          SetUpTimer[i] = ATimer("CoarseOperator::setUpCoarseOperator",i);
-        }
-        //Teuchos::TimeMonitor ConstTM(*ConstTimer[current_level-1]);
         FROSCH_TIMER_START_LEVELID(coarseOperatorTime,"CoarseOperator::CoarseOperator");
     }
 
@@ -300,7 +287,6 @@ namespace FROSch {
     int CoarseOperator<SC,LO,GO,NO>::compute()
     {
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::VerboseObjectBase::getDefaultOStream();
-        //Teuchos::TimeMonitor CompTM(*CompTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(computeTime,"CoarseOperator::compute");
         FROSCH_ASSERT(this->IsInitialized_,"FROSch::CoarseOperator : ERROR: CoarseOperator has to be initialized before calling compute()");
         // This is not optimal yet... Some work could be moved to Initialize
@@ -484,7 +470,6 @@ namespace FROSch {
     int CoarseOperator<SC,LO,GO,NO>::setUpCoarseOperator()
     {
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
-        //Teuchos::TimeMonitor SetUpTM(*SetUpTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(setUpCoarseOperatorTime,"CoarseOperator::setUpCoarseOperator");
         if (!Phi_.is_null()) {
             // Build CoarseMatrix_
@@ -792,14 +777,10 @@ namespace FROSch {
                 }
                 if (!reuseCoarseMatrixSymbolicFactorization) {
                     if (this->IsComputed_ && this->Verbose_) cout << "FROSch::CoarseOperator : Recomputing the Symbolic Factorization of the coarse matrix" << endl;
-                    CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-                    if(CoarseSolveComm_->getRank() == 0)std::cout<<"Reset Coarse Solver-----\n";
+
                     CoarseSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(CoarseMatrix_,sublist(this->ParameterList_,"CoarseSolver")));
-                    CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-                    if(CoarseSolveComm_->getRank() == 0)std::cout<<"---Done---\n--Init...\n";
                     CoarseSolver_->initialize();
-                    CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
-                    if(CoarseSolveComm_->getRank() == 0) std::cout<<"---Done---\n";
+
 
                 } else {
                     FROSCH_ASSERT(!CoarseSolver_.is_null(),"FROSch::CoarseOperator : ERROR: CoarseSolver_.is_null()");
@@ -855,8 +836,6 @@ namespace FROSch {
     template<class SC,class LO,class GO,class NO>
     int CoarseOperator<SC,LO,GO,NO>::buildCoarseSolveMap(ConstXMapPtr coarseMapUnique)
     {
-
-        //Teuchos::TimeMonitor BuildCMapTM(*BuildCMapTimer[current_level-1]);
 
         ///FROSCH_TIMER_START_LEVELID(buildCoarseSolveMapTime,"CoarseOperator::buildCoarseSolveMap");
         NumProcsCoarseSolve_ = DistributionList_->get("NumProcs",1);

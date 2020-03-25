@@ -75,7 +75,9 @@ namespace FROSch {
         }
 
         DDInterface_.reset(new DDInterface<SC,LO,GO,NO>(dimension,dofsPerNode,nodesMap.getConst(),this->Verbosity_,this->LevelID_,communicationStrategy));
+
         DDInterface_->resetGlobalDofs(dofsMaps);
+      
     }
 
     template <class SC,class LO,class GO,class NO>

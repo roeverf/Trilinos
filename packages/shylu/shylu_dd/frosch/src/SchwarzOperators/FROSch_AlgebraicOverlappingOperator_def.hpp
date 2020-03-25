@@ -65,28 +65,11 @@ namespace FROSch {
     AlgebraicOverlappingOperator<SC,LO,GO,NO>::AlgebraicOverlappingOperator(ConstXMatrixPtr k,
                                                                             ParameterListPtr parameterList) :
     OverlappingOperator<SC,LO,GO,NO> (k,parameterList),
-    AddingLayersStrategy_ (),
-    InitTimer(this->numLevel),
-    ComTimer(this->numLevel),
-    BuildOMatTimer(this->numLevel)
+    AddingLayersStrategy_ ()
     {
-
-      this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-      if(this->MpiComm_->getRank() == 0)std::cout<<"AO 0\n";
-        for(UN i = 0;i<this->numLevel;i++){
-          //InitTimer[i] = Teuchos::TimeMonitor::getNewCounter(std::string("FROSch: ") + std::string("AlgebaicOverlappingOperator::initialize") + " (Level " + std::to_string(i) + std::string(")"));
-          InitTimer[i] = ATimer("AlgebaicOverlappingOperator::initialize",i);
-          ComTimer[i] = ATimer("AlgebaicOverlappingOperator::compute",i);
-          BuildOMatTimer[i] = ATimer("AlgebaicOverlappingOperator::buildOverlappingMatrices",i);
-        }
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0)std::cout<<"AO1\n";
         //AFROSCH_TIMER_LEVELID(timer_[0][current_level],"AlgebaicOverlappingOperator::initialize");
         current_level = current_level+1;
-        if(this->Verbose_)std::cout<<"Level "<<current_level<<std::endl;
         FROSCH_TIMER_START_LEVELID(algebraicOverlappingOperatorTime,"AlgebraicOverlappingOperator::AlgebraicOverlappingOperator");
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0)std::cout<<"AO 2\n";
         if (!this->ParameterList_->get("Adding Layers Strategy","CrsGraph").compare("CrsGraph")) {
             AddingLayersStrategy_ = LayersFromGraph;
         } else if (!this->ParameterList_->get("Adding Layers Strategy","CrsGraph").compare("CrsMatrix")) {
@@ -96,8 +79,7 @@ namespace FROSch {
         } else {
             FROSCH_ASSERT(false,"FROSch::AlgebraicOverlappingOperator : ERROR: Specify a valid strategy for adding layers.");
         }
-        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
-        if(this->MpiComm_->getRank() == 0)std::cout<<"AO 3\n";
+        
     }
 
     template <class SC,class LO,class GO,class NO>
