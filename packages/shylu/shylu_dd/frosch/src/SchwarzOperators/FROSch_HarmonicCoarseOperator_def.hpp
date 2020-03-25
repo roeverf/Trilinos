@@ -517,7 +517,7 @@ namespace FROSch {
                 }
                 iD = repeatedMap->getGlobalElement(indicesGammaDofsAll[i]);
 
-                if (iD!=-1) {
+                if (rowMap->getLocalElement(iD)!=-1) { // This should prevent duplicate entries on the interface
                     phiGamma->insertGlobalValues(iD,indices(),values());
                 }
             }

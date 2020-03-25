@@ -276,9 +276,11 @@ namespace FROSch {
                  Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
                  ConstXMultiVectorPtr nodeList = null;
                  GOVecPtr dirichletBoundaryDofs = null;
-
+                 TC->barrier(); TC->barrier(); TC->barrier();
+                 if(TC->getRank() == 0)std::cout<<"Sub 0\n";
                  TLP = Teuchos::rcp(new TwoLevelPreconditioner<SC,LO,GO,NO>(K_,ParameterList_));
-
+                 TC->barrier(); TC->barrier(); TC->barrier();
+                 if(TC->getRank() == 0)std::cout<<"Sub 1\n";
                  //TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,ParameterList_->get("Overlap",1),RepeatedMaps);
                  /*TLP->initialize(RepeatedMaps[0],
                                  nullSpaceBasisVec[0],

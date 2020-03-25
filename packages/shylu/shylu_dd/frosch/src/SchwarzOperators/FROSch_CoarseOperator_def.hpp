@@ -74,7 +74,7 @@ namespace FROSch {
           CompTimer[i] = ATimer("CoarseOperator::compute",i);
           SetUpTimer[i] = ATimer("CoarseOperator::setUpCoarseOperator",i);
         }
-        Teuchos::TimeMonitor ConstTM(*ConstTimer[current_level-1]);
+        //Teuchos::TimeMonitor ConstTM(*ConstTimer[current_level-1]);
         FROSCH_TIMER_START_LEVELID(coarseOperatorTime,"CoarseOperator::CoarseOperator");
     }
 
@@ -300,7 +300,7 @@ namespace FROSch {
     int CoarseOperator<SC,LO,GO,NO>::compute()
     {
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::VerboseObjectBase::getDefaultOStream();
-        Teuchos::TimeMonitor CompTM(*CompTimer[current_level-1]);
+        //Teuchos::TimeMonitor CompTM(*CompTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(computeTime,"CoarseOperator::compute");
         FROSCH_ASSERT(this->IsInitialized_,"FROSch::CoarseOperator : ERROR: CoarseOperator has to be initialized before calling compute()");
         // This is not optimal yet... Some work could be moved to Initialize
@@ -484,7 +484,7 @@ namespace FROSch {
     int CoarseOperator<SC,LO,GO,NO>::setUpCoarseOperator()
     {
         Teuchos::RCP<Teuchos::FancyOStream> fancy = Teuchos::fancyOStream(Teuchos::rcpFromRef(std::cout));
-        Teuchos::TimeMonitor SetUpTM(*SetUpTimer[current_level-1]);
+        //Teuchos::TimeMonitor SetUpTM(*SetUpTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(setUpCoarseOperatorTime,"CoarseOperator::setUpCoarseOperator");
         if (!Phi_.is_null()) {
             // Build CoarseMatrix_
@@ -519,7 +519,7 @@ namespace FROSch {
               // Zoltan Dual Option Inlcuding Passing on Coarse Null Space->with an option....
               //CoarseMatrix to new Communicator respectively new Map
 
-              CoarseSolveExporters_[0] = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseSpace_->getBasisMap(),GatheringMaps_[0]);
+              CoarseSolveExporters_[0] = Xpetra::ExportFactory<LO,GO,NO>::Build(k0->getMap(),GatheringMaps_[0]);
               XMatrixPtr tmpCoarseMatrix = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(GatheringMaps_[0],k0->getGlobalMaxNumRowEntries());
               tmpCoarseMatrix->doExport(*k0,*CoarseSolveExporters_[0],Xpetra::INSERT);
               //if GatheringSteps>1 than perform mor than one step....
@@ -536,6 +536,7 @@ namespace FROSch {
               tmpCoarseMatrix->fillComplete();
               k0 = tmpCoarseMatrix;
               //Option to build CoarseNullSpace_ for the nect level
+              /*
               if(DistributionList_->get("CoarseNullSpace",false)){
 
                 XExportPtr NullSpaceExport = Xpetra::ExportFactory<LO,GO,NO>::Build(CoarseNullSpace_[0]->getMap(),GatheringMaps_[0]);
@@ -571,7 +572,8 @@ namespace FROSch {
                   sublist(this->ParameterList_,"CoarseSolver")->set("Coarse NullSpace",CNullSpaces_);
 
                 }//CoarseSolveComm_
-              }//CoarseNullSpace
+              }*/
+              //CoarseNullSpace
 
             }else if (!DistributionList_->get("Type","linear").compare("struct2D")) {
               // Zoltan Dual Option Inlcuding Passing on Coarse Null Space->with an option....
@@ -790,9 +792,14 @@ namespace FROSch {
                 }
                 if (!reuseCoarseMatrixSymbolicFactorization) {
                     if (this->IsComputed_ && this->Verbose_) cout << "FROSch::CoarseOperator : Recomputing the Symbolic Factorization of the coarse matrix" << endl;
+                    CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
+                    if(CoarseSolveComm_->getRank() == 0)std::cout<<"Reset Coarse Solver-----\n";
                     CoarseSolver_.reset(new SubdomainSolver<SC,LO,GO,NO>(CoarseMatrix_,sublist(this->ParameterList_,"CoarseSolver")));
-
+                    CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
+                    if(CoarseSolveComm_->getRank() == 0)std::cout<<"---Done---\n--Init...\n";
                     CoarseSolver_->initialize();
+                    CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();CoarseSolveComm_->barrier();
+                    if(CoarseSolveComm_->getRank() == 0) std::cout<<"---Done---\n";
 
                 } else {
                     FROSCH_ASSERT(!CoarseSolver_.is_null(),"FROSch::CoarseOperator : ERROR: CoarseSolver_.is_null()");
@@ -849,7 +856,7 @@ namespace FROSch {
     int CoarseOperator<SC,LO,GO,NO>::buildCoarseSolveMap(ConstXMapPtr coarseMapUnique)
     {
 
-        Teuchos::TimeMonitor BuildCMapTM(*BuildCMapTimer[current_level-1]);
+        //Teuchos::TimeMonitor BuildCMapTM(*BuildCMapTimer[current_level-1]);
 
         ///FROSCH_TIMER_START_LEVELID(buildCoarseSolveMapTime,"CoarseOperator::buildCoarseSolveMap");
         NumProcsCoarseSolve_ = DistributionList_->get("NumProcs",1);

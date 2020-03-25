@@ -67,17 +67,23 @@ namespace FROSch {
     ConstTimer(this->numLevel),
     ApplyTimer(this->numLevel)
     {
+      this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+      if(this->MpiComm_->getRank() == 0)std::cout<<"OL 0\n";
         current_level = current_level+1;
         for(UN i = 0;i<this->numLevel;i++){
           ConstTimer[i] = ATimer("OneLevelPreconditioner::OneLevelPreconditioner",i);
           ApplyTimer[i] = ATimer("OneLevelPreconditioner::apply",i);
         }
-        Teuchos::TimeMonitor ConstTM(*ConstTimer[current_level-1]);
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0)std::cout<<"OL 1\n";
+        //Teuchos::TimeMonitor ConstTM(*ConstTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(oneLevelPreconditionerTime,"OneLevelPreconditioner::OneLevelPreconditioner");
         if (!this->ParameterList_->get("OverlappingOperator Type","AlgebraicOverlappingOperator").compare("AlgebraicOverlappingOperator")) {
             // Set the LevelID in the sublist
             parameterList->sublist("AlgebraicOverlappingOperator").set("Level ID",this->LevelID_);
             OverlappingOperator_ = AlgebraicOverlappingOperatorPtr(new AlgebraicOverlappingOperator<SC,LO,GO,NO>(k,sublist(parameterList,"AlgebraicOverlappingOperator")));
+            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+            if(this->MpiComm_->getRank() == 0)std::cout<<"OL 2\n";
         } else {
             FROSCH_ASSERT(false,"OverlappingOperator Type unkown.");
         }
@@ -88,8 +94,14 @@ namespace FROSch {
             MultiplicativeOperator_->addOperator(OverlappingOperator_);
         }
         else{
+            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+            if(this->MpiComm_->getRank() == 0)std::cout<<"OL 2.1\n";
             SumOperator_->addOperator(OverlappingOperator_);
+            this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+            if(this->MpiComm_->getRank() == 0)std::cout<<"OL 2.1\n";
         }
+        this->MpiComm_->barrier();this->MpiComm_->barrier();this->MpiComm_->barrier();
+        if(this->MpiComm_->getRank() == 0)std::cout<<"OL 3\n";
 
     }
 
@@ -146,7 +158,7 @@ namespace FROSch {
                                                     SC alpha,
                                                     SC beta) const
     {
-         Teuchos::TimeMonitor ApplyTM(*ApplyTimer[current_level-1]);
+        //Teuchos::TimeMonitor ApplyTM(*ApplyTimer[current_level-1]);
         //FROSCH_TIMER_START_LEVELID(applyTime,"OneLevelPreconditioner::apply");
         if (UseMultiplicative_) {
             return MultiplicativeOperator_->apply(x,y,true,mode,alpha,beta);
