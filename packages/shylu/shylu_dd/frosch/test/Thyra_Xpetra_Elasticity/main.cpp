@@ -201,7 +201,10 @@ int main(int argc, char *argv[])
             K = Problem->BuildMatrix();
         }
         RCP<Map<LO,GO,NO> > RepeatedMap = BuildRepeatedMapNonConst<LO,GO,NO>(K->getCrsGraph());
-
+        if(xpetraLib == UseTpetra){
+          writeMM(K,"system");
+        }
+        K->getMap()->describe(*out,Teuchos::VERB_EXTREME);
         RCP<MultiVector<SC,LO,GO,NO> > xSolution = MultiVectorFactory<SC,LO,GO,NO>::Build(UniqueMap,1);
         RCP<MultiVector<SC,LO,GO,NO> > xRightHandSide = MultiVectorFactory<SC,LO,GO,NO>::Build(UniqueMap,1);
 

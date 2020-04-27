@@ -81,6 +81,8 @@
 
 #include <ShyLU_DDFROSch_config.h>
 #include <Tpetra_Distributor.hpp>
+#include <MatrixMarket_Tpetra.hpp>
+
 
 #include <Xpetra_MatrixFactory.hpp>
 #include <Xpetra_CrsGraphFactory.hpp>
@@ -369,6 +371,10 @@ namespace FROSch {
 
     template<class T>
     inline void sort(T &v);
+
+    template<class SC, class LO, class GO, class NO>
+    void writeMM(Teuchos::RCP<Xpetra::Matrix<SC,LO,GO,NO> >& matrix_,std::string fileName);
+
 
     template <class T>
     void set_plus(std::vector<T> &u, const std::vector<T> &v);

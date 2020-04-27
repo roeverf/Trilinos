@@ -206,6 +206,7 @@ namespace FROSch {
    }
    MLCoarseMap_ = MapFactory<LO,GO,NO>::Build(MLGatheringMaps_[1]->lib(),-1,MLGatheringMaps_[1]->getNodeElementList(),0,CoarseSolveComm_);
    ElementNodeList_ =Xpetra::CrsGraphFactory<LO,GO,NO>::Build(MLCoarseMap_,maxNumElements);
+
       if(OnCoarseSolveComm_){
           const size_t numMyElementS = MLCoarseMap_->getNodeNumElements();
           //Teuchos::ArrayView<const GO> myGlobalElements = MLCoarseMap_->getNodeElementList();

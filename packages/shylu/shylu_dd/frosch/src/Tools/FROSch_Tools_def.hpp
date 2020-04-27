@@ -1454,6 +1454,25 @@ namespace FROSch {
         return true;
     }
 
+    template <class SC, class LO, class GO, class NO>
+    void writeMM(Teuchos::RCP<Xpetra::Matrix<SC,LO,GO,NO> >& matrix_,std::string fileName){
+
+    TEUCHOS_TEST_FOR_EXCEPTION( matrix_.is_null(), std::runtime_error,"Matrix in writeMM is null.");
+    TEUCHOS_TEST_FOR_EXCEPTION( !(matrix_->getMap()->lib()==Xpetra::UseTpetra), std::logic_error,"Only available for Tpetra underlying lib.");
+    typedef Tpetra::CrsMatrix<SC,LO,GO,NO> TpetraCrsMatrix;
+    typedef Teuchos::RCP<TpetraCrsMatrix> TpetraCrsMatrixPtr;
+
+
+    Xpetra::CrsMatrixWrap<SC,LO,GO,NO>& crsOp = dynamic_cast<Xpetra::CrsMatrixWrap<SC,LO,GO,NO>&>(*matrix_);
+    Xpetra::TpetraCrsMatrix<SC,LO,GO,NO>& xTpetraMat = dynamic_cast<Xpetra::TpetraCrsMatrix<SC,LO,GO,NO>&>(*crsOp.getCrsMatrix());
+
+    TpetraCrsMatrixPtr tpetraMat = xTpetraMat.getTpetra_CrsMatrixNonConst();
+
+    Tpetra::MatrixMarket::Writer< TpetraCrsMatrix > tpetraWriter;
+
+    tpetraWriter.writeSparseFile(fileName, tpetraMat, "matrix", "");
+   }
+
     template<class T>
     inline void sort(T &v)
     {
