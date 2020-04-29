@@ -207,7 +207,17 @@ int main(int argc, char *argv[])
         K->getMap()->describe(*out,Teuchos::VERB_EXTREME);
         RCP<MultiVector<SC,LO,GO,NO> > xSolution = MultiVectorFactory<SC,LO,GO,NO>::Build(UniqueMap,1);
         RCP<MultiVector<SC,LO,GO,NO> > xRightHandSide = MultiVectorFactory<SC,LO,GO,NO>::Build(UniqueMap,1);
+        RCP<MultiVector<SC,LO,GO,NO> > testSym = MultiVectorFactory<SC,LO,GO,NO>::Build(UniqueMap,1);
+        RCP<MultiVector<SC,LO,GO,NO> > testSol= MultiVectorFactory<SC,LO,GO,NO>::Build(UniqueMap,1);
+        RCP<MultiVector<SC,LO,GO,NO> > Tsol= MultiVectorFactory<SC,LO,GO,NO>::Build(UniqueMap,1);
 
+        testSym->putScalar(ScalarTraits<SC>::zero());
+        testSol->putScalar(ScalarTraits<SC>::zero());
+
+        for(UN i = 20;i<21;i++){
+          testSym->replaceGlobalValue(i,1,ScalarTraits<SC>::one());
+        }
+        testSym->describe(*out,Teuchos::VERB_EXTREME);
         xSolution->putScalar(ScalarTraits<SC>::zero());
         xRightHandSide->putScalar(ScalarTraits<SC>::one());
 
@@ -215,6 +225,11 @@ int main(int argc, char *argv[])
         RCP<const LinearOpBase<SC> > K_thyra = ThyraUtils<SC,LO,GO,NO>::toThyra(crsWrapK.getCrsMatrix());
         RCP<MultiVectorBase<SC> >thyraX = rcp_const_cast<MultiVectorBase<SC> >(ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(xSolution));
         RCP<const MultiVectorBase<SC> >thyraB = ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(xRightHandSide);
+
+
+        RCP<MultiVectorBase<SC> >TtestSol = rcp_const_cast<MultiVectorBase<SC> >(ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(testSol));
+        RCP<const MultiVectorBase<SC> >TtestSym= ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(testSym);
+
 
         //-----------Set Coordinates and RepMap in ParameterList--------------------------
         RCP<ParameterList> plList =  sublist(parameterList,"Preconditioner Types");
@@ -242,7 +257,24 @@ int main(int argc, char *argv[])
 
         RCP<LinearOpWithSolveFactoryBase<SC> > lowsFactory =
         linearSolverBuilder.createLinearSolveStrategy("");
+        RCP<PreconditionerFactoryBase<SC> > pfbFactory = linearSolverBuilder.createPreconditioningStrategy("");
+        RCP<PreconditionerBase<double> > ThyraPrec = prec(*pfbFactory,K_thyra);
+        RCP<const LinearOpBase<double> > LinearPrecOp = ThyraPrec->getUnspecifiedPrecOp();
 
+
+
+        Thyra::apply<double>( *LinearPrecOp,  NOTRANS , *TtestSym, TtestSol.ptr());
+
+        typedef Thyra::TpetraOperatorVectorExtraction<SC,LO,GO,NO> TOVE_Type;
+        typedef Tpetra::MultiVector<SC,LO,GO,NO> TpetraMultiVector_Type;
+        typedef Xpetra::TpetraMultiVector<SC,LO,GO,NO> XTpetraMultiVector_Type;
+        if (!UniqueMap->lib() == UseTpetra ) {
+          Teuchos::RCP<TpetraMultiVector_Type> tMV = TOVE_Type::getTpetraMultiVector(TtestSol);
+          Teuchos::RCP<XTpetraMultiVector_Type> xTMV = Teuchos::rcp( new XTpetraMultiVector_Type( tMV ) );
+          Tsol = xTMV;
+        }
+
+        Tsol->describe(*out,Teuchos::VERB_EXTREME);
         lowsFactory->setOStream(out);
         lowsFactory->setVerbLevel(VERB_HIGH);
 

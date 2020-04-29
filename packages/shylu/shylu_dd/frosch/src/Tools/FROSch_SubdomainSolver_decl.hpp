@@ -104,6 +104,14 @@
 #include <Ifpack2_Details_OneLevelFactory_decl.hpp>
 #endif
 
+#ifdef HAVE_SHYLU_DDFROSCH_THYRA
+#ifdef HAVE_SHYLU_DDFROSCH_IFPACK2
+#include "Teuchos_AbstractFactoryStd.hpp"
+#include "Thyra_Ifpack2PreconditionerFactory.hpp"
+#include "Stratimikos_DefaultLinearSolverBuilder.hpp"
+#endif
+#endif
+
 
 namespace FROSch {
 
@@ -345,6 +353,10 @@ namespace FROSch {
 
        Teuchos::RCP<TwoLevelPreconditioner<SC,LO,GO,NO> > TLP;
 
+#ifdef HAVE_SHYLU_DDFROSCH_THYRA
+        mutable RCP<Thyra::MultiVectorBase<SC> > ThyraYTmp_;
+        RCP<Thyra::LinearOpWithSolveBase<SC> > LOWS_;
+#endif
         bool IsInitialized_ = false;
 
         //! Flag to indicated whether this subdomain solver has been setup/computed

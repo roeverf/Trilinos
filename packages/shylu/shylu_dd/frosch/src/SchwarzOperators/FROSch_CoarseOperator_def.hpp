@@ -316,12 +316,6 @@ namespace FROSch {
                 Phi_ = CoarseSpace_->getGlobalBasisMatrix();
             }
         }
-        if ( this->ParameterList_->get("Set Phi to PList", false ) ){
-            if (this->Verbose_)
-                cout << "\t### Setting Phi (RCP<Xpetra::Matrix>) to ParameterList.\n";
-
-            this->ParameterList_->set("Phi Pointer", Phi_);
-        }
         if (!reuseCoarseMatrix) {
             if (this->IsComputed_ && this->Verbose_) cout << "FROSch::CoarseOperator : Recomputing the Coarse Matrix" << endl;
             this->setUpCoarseOperator();
@@ -330,6 +324,13 @@ namespace FROSch {
 
 
         this->IsComputed_ = true;
+
+        // Store current Phi in ParameterList_
+        if ( this->ParameterList_->get("Store Phi",false) ){
+            FROSCH_NOTIFICATION("FROSch::CoarseOperator",this->Verbose_,"Storing current Phi in Parameterlist.");
+            this->ParameterList_->set("RCP(Phi)", Phi_);
+        }
+
         return 0;
     }
 

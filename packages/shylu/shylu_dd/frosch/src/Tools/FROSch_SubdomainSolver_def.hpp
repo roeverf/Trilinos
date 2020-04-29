@@ -278,7 +278,7 @@ namespace FROSch {
                  GOVecPtr dirichletBoundaryDofs = null;
 
                  TLP = Teuchos::rcp(new TwoLevelPreconditioner<SC,LO,GO,NO>(K_,ParameterList_));
-              
+
                  //TLBP->initialize(ParameterList_->get("Dimension",3),dofsPerNodeVector,dofOrderings,ParameterList_->get("Overlap",1),RepeatedMaps);
                  /*TLP->initialize(RepeatedMaps[0],
                                  nullSpaceBasisVec[0],
@@ -299,6 +299,32 @@ namespace FROSch {
                                 dofsMapsVec[0],
                                 dirichletBoundaryDofs);
 
+        } else if (!ParameterList_->get("SolverType","Amesos").compare("Thyra")) {
+#ifdef HAVE_SHYLU_DDFROSCH_THYRA
+            FROSCH_ASSERT(K_->getRowMap()->lib()==UseTpetra,"SubdomainSolver cannot use Epetra for Thyra solvers.");
+            const CrsMatrixWrap<SC,LO,GO,NO>& crsOp = dynamic_cast<const CrsMatrixWrap<SC,LO,GO,NO>&>(*K_);
+            RCP<const Thyra::LinearOpBase<SC> > thyraOp = ThyraUtils<SC,LO,GO,NO>::toThyra(crsOp.getCrsMatrix());
+
+            Stratimikos::DefaultLinearSolverBuilder linearSolverBuilder;
+#ifdef HAVE_SHYLU_DDFROSCH_IFPACK2
+            linearSolverBuilder.setPreconditioningStrategyFactory(abstractFactoryStd<Thyra::PreconditionerFactoryBase<double>,Thyra::Ifpack2PreconditionerFactory<TCrsMatrix> >(),"Ifpack2");
+#endif
+
+            ParameterListPtr parameterList = sublist(ParameterList_,"Thyra");
+            linearSolverBuilder.setParameterList(parameterList);
+
+            RCP<Thyra::LinearOpWithSolveFactoryBase<SC> > lOWSFactory = linearSolverBuilder.createLinearSolveStrategy("");
+
+            // AH 04/02/2020: Is this necessary?
+            // RCP<FancyOStream> out = VerboseObjectBase::getDefaultOStream();
+            // lOWSFactory->setOStream(out);
+            // lOWSFactory->setVerbLevel(VERB_HIGH);
+
+            LOWS_ = Thyra::linearOpWithSolve(*lOWSFactory,thyraOp);
+
+#else
+            ThrowErrorMissingPackage("FROSch::SubdomainSolver", "Thyra");
+#endif
         } else {
             FROSCH_ASSERT(false,"SolverType unknown...");
         }
@@ -332,6 +358,10 @@ namespace FROSch {
 #ifdef HAVE_SHYLU_DDFROSCH_BELOS
         BelosLinearProblem_.reset();
         BelosSolverManager_.reset();
+#endif
+
+#ifdef HAVE_SHYLU_DDFROSCH_THYRA
+        LOWS_.reset();
 #endif
     }
 
@@ -379,8 +409,14 @@ namespace FROSch {
   IsComputed_ = false;
 } else if (!ParameterList_->get("SolverType","Amesos").compare("TwoLevelPreconditioner")) {
   IsInitialized_ = true;
-  IsComputed_ = false;}
-  else {
+  IsComputed_ = false;
+} else if (!ParameterList_->get("SolverType","Amesos").compare("Thyra")) {
+  #ifdef HAVE_SHYLU_DDFROSCH_THYRA
+    // TODO: In the current implementation initialize() and compute() are part of apply() for Thyra.
+    IsInitialized_ = true;
+    IsComputed_ = false;
+    #endif
+} else {
             FROSCH_ASSERT(false,"SolverType unknown...");
         }
         return 0;
@@ -452,7 +488,11 @@ namespace FROSch {
                 TLP->compute();
 
                 IsComputed_ = true;
-            } else {
+            } else if (!ParameterList_->get("SolverType","Amesos").compare("Thyra")) {
+              #ifdef HAVE_SHYLU_DDFROSCH_THYRA
+              IsComputed_ = true;
+              #endif
+            }  else {
             FROSCH_ASSERT(false,"SolverType unknown...");
         }
         return 0;
@@ -563,7 +603,32 @@ namespace FROSch {
             if (YTmp_.is_null()) YTmp_ = Xpetra::MultiVectorFactory<SC,LO,GO,NO>::Build(y.getMap(),x.getNumVectors());
             TLP->apply(x,*YTmp_,Teuchos::NO_TRANS);
             y = *YTmp_;
-        }else {
+        } else if (!ParameterList_->get("SolverType","Amesos").compare("Thyra")) {
+                   #ifdef HAVE_SHYLU_DDFROSCH_THYRA
+                    ConstXMultiVectorPtr xPtr = rcpFromRef(x);
+                    RCP<const Thyra::MultiVectorBase<SC> > thyraX = ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(xPtr);
+
+                    // AH 04/02/2020: Is there an easier way to do this? This seems to be close to the miminum in order to have two connected Thyra and Xpetra Multivectors
+                    if (ThyraYTmp_.is_null()) {
+                        XMultiVectorPtr yTmp = XMultiVectorFactory::Build(y.getMap(),x.getNumVectors());
+                        ThyraYTmp_ = rcp_const_cast<Thyra::MultiVectorBase<SC> >(ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(yTmp));
+                    }
+                    const RCP<Tpetra::MultiVector<SC,LO,GO,NO> > yTmpTpMultVec = Thyra::TpetraOperatorVectorExtraction<SC,LO,GO,NO>::getTpetraMultiVector(ThyraYTmp_);
+                    TEUCHOS_TEST_FOR_EXCEPT(is_null(yTmpTpMultVec));
+                    YTmp_ = rcp(new Xpetra::TpetraMultiVector<SC,LO,GO,NO>(yTmpTpMultVec));
+                    TEUCHOS_TEST_FOR_EXCEPT(is_null(YTmp_));
+
+                    Thyra::SolveStatus<double> status = Thyra::solve<double>(*LOWS_, Thyra::NOTRANS, *thyraX, ThyraYTmp_.ptr());
+                    y = *YTmp_;
+
+                    /*
+                    const RCP<Tpetra::MultiVector<SC,LO,GO,NO> > yTpMultVec = Thyra::TpetraOperatorVectorExtraction<SC,LO,GO,NO>::getTpetraMultiVector(rcpFromPtr(Y_inout));
+                    TEUCHOS_TEST_FOR_EXCEPT(is_null(yTpMultVec));
+                    xY = rcp(new Xpetra::TpetraMultiVector<SC,LO,GO,NO>(yTpMultVec));
+                    TEUCHOS_TEST_FOR_EXCEPT(is_null(xY));
+                    */
+        #endif
+                }else {
             FROSCH_ASSERT(false,"SolverType unknown...");
         }
         y.update(alpha,*YTmp_,beta);
@@ -685,6 +750,12 @@ namespace FROSch {
             FROSCH_ASSERT(false,"FROSch::SubdomainSolver : ERROR: resetMatrix() is not implemented for Belos yet.");
 #else
             ThrowErrorMissingPackage("FROSch::SubdomainSolver", "Belos");
+#endif
+} else if (!ParameterList_->get("SolverType","Amesos").compare("Belos")) {
+#ifdef HAVE_SHYLU_DDFROSCH_THYRA
+    FROSCH_ASSERT(false,"FROSch::SubdomainSolver : ERROR: resetMatrix() is not implemented for Thyra yet.");
+#else
+    ThrowErrorMissingPackage("FROSch::SubdomainSolver", "Thyra");
 #endif
         } else {
             FROSCH_ASSERT(false,"SolverType unknown...");
