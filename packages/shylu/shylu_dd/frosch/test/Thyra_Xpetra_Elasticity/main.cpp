@@ -257,6 +257,7 @@ int main(int argc, char *argv[])
 
         RCP<LinearOpWithSolveFactoryBase<SC> > lowsFactory =
         linearSolverBuilder.createLinearSolveStrategy("");
+        /*
         RCP<PreconditionerFactoryBase<SC> > pfbFactory = linearSolverBuilder.createPreconditioningStrategy("");
         RCP<PreconditionerBase<double> > ThyraPrec = prec(*pfbFactory,K_thyra);
         RCP<const LinearOpBase<double> > LinearPrecOp = ThyraPrec->getUnspecifiedPrecOp();
@@ -274,7 +275,7 @@ int main(int argc, char *argv[])
           Tsol = xTMV;
         }
 
-        Tsol->describe(*out,Teuchos::VERB_EXTREME);
+        Tsol->describe(*out,Teuchos::VERB_EXTREME);*/
         lowsFactory->setOStream(out);
         lowsFactory->setVerbLevel(VERB_HIGH);
 

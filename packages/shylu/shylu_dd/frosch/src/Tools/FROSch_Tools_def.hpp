@@ -206,6 +206,42 @@ namespace FROSch {
         return minidx;
     }
 
+    template <class SC, class LO, class GO, class NO>
+    void writeMM(std::string fileName, Teuchos::RCP<Xpetra::Matrix<SC,LO,GO,NO> > &matrix_){
+      TEUCHOS_TEST_FOR_EXCEPTION( matrix_.is_null(), std::runtime_error,"Matrix in writeMM is null.");
+      TEUCHOS_TEST_FOR_EXCEPTION( !(matrix_->getMap()->lib()==Xpetra::UseTpetra), std::logic_error,"Only available for Tpetra underlying lib.");
+      typedef Tpetra::CrsMatrix<SC,LO,GO,NO> TpetraCrsMatrix;
+      typedef Teuchos::RCP<TpetraCrsMatrix> TpetraCrsMatrixPtr;
+
+      Xpetra::CrsMatrixWrap<SC,LO,GO,NO>& crsOp = dynamic_cast<Xpetra::CrsMatrixWrap<SC,LO,GO,NO>&>(*matrix_);
+      Xpetra::TpetraCrsMatrix<SC,LO,GO,NO>& xTpetraMat = dynamic_cast<Xpetra::TpetraCrsMatrix<SC,LO,GO,NO>&>(*crsOp.getCrsMatrix());
+
+      TpetraCrsMatrixPtr tpetraMat = xTpetraMat.getTpetra_CrsMatrixNonConst();
+
+      Tpetra::MatrixMarket::Writer< TpetraCrsMatrix > tpetraWriter;
+
+      tpetraWriter.writeSparseFile(fileName, tpetraMat, "matrix", "");
+    }
+
+    template <class SC, class LO, class GO, class NO>
+    void readMM(std::string fileName, Teuchos::RCP<Xpetra::Matrix<SC,LO,GO,NO> > &matrix_,RCP<const Comm<int> > &comm){
+
+      TEUCHOS_TEST_FOR_EXCEPTION( !(matrix_->getMap()->lib()==Xpetra::UseTpetra), std::logic_error,"Only available for Tpetra underlying lib.");
+      typedef Tpetra::CrsMatrix<SC,LO,GO,NO> TpetraCrsMatrix;
+      typedef Teuchos::RCP<TpetraCrsMatrix> TpetraCrsMatrixPtr;
+
+      TpetraCrsMatrixPtr tmpMatrix;
+      Tpetra::MatrixMarket::Reader<TpetraCrsMatrix> tpetraReader;
+
+      tmpMatrix = tpetraReader.readSparseFile(fileName,comm);
+
+      matrix_ = rcp_dynamic_cast<Matrix<SC,LO,GO,NO> >(tmpMatrix);
+
+
+
+
+    }
+
     template <class LO,class GO,class NO>
     RCP<const Map<LO,GO,NO> > BuildUniqueMap(const RCP<const Map<LO,GO,NO> > map,
                                              bool useCreateOneToOneMap,
@@ -1852,7 +1888,7 @@ inline void compact(T &v)
     RCP<Epetra_Map> ConvertToEpetra(const Map<LO,GO,NO> &map,
                                     RCP<Epetra_Comm> epetraComm)
     {
-        FROSCH_TIMER_START(convertToEpetraTime,"ConvertToEpetra");
+        FROSCH_TIMER_START(convertToEpetraTime,"ConvertToEpetConvertToEra");
         ArrayView<const GO> elementList = map.getNodeElementList();
 
         GO numGlobalElements = map.getGlobalNumElements();
