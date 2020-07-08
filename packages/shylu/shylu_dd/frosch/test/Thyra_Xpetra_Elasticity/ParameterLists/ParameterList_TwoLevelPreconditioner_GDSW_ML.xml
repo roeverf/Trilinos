@@ -40,7 +40,6 @@
 
             <ParameterList name="IPOUHarmonicCoarseOperator">
                 <Parameter name="Set Phi to PList" type="bool" value="true"/>
-                <Parameter name="Use RepMap"                                    type="bool"              value="true"/>
                 <ParameterList name="Blocks">
                     <ParameterList name="1">
                         <Parameter name="Use For Coarse Space"                  type="bool"     value="true"/>
@@ -64,7 +63,6 @@
 
                 <ParameterList name="Distribution">
                   <Parameter name="CoarseNullSpace"                             type="bool"     value="false"/>
-                    <Parameter name="Use RepMap"                                type="bool"     value="true"/>
                     <Parameter name="Type"                                      type="string"   value="ZoltanDual"/>
                     <Parameter name="NumProcs"                                  type="int"      value="2"/>
                     <Parameter name="Factor"                                    type="double"   value="1.0"/>

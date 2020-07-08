@@ -246,6 +246,9 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     RCP<const Map<LO,GO,NO> > BuildRepeatedMap(RCP<const Matrix<SC,LO,GO,NO> > matrix);
 
+    template <class SC,class LO,class GO,class NO>
+    RCP<Map<LO,GO,NO> > BuildRepeatedMapGaleriStruct(RCP<const Matrix<SC,LO,GO,NO> > matrix,int M,int Dim);
+
     template <class LO,class GO,class NO>
     RCP<Map<LO,GO,NO> > BuildRepeatedMapNonConst(RCP<const CrsGraph<LO,GO,NO> > graph);
 
@@ -257,7 +260,7 @@ namespace FROSch {
                                                            unsigned dofsPerNode,
                                                            unsigned dofOrdering);
 
-  
+
 
 
     template <class LO,class GO,class NO>

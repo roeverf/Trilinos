@@ -331,6 +331,9 @@ namespace FROSch {
 
             } else if(!DistributionList_->get("Type","linear").compare("ZoltanDual")){
               //ZoltanDual
+#ifdef HAVE_SHYLU_DDFROSCH_ZOLTAN2
+#ifdef HAVE_SHYLU_DDFROSCH_PARMETIS
+
               CoarseSolveExporters_[0] = Xpetra::ExportFactory<LO,GO,NO>::Build(k0->getMap(),GatheringMaps_[0]);
               XMatrixPtr tmpCoarseMatrix = Xpetra::MatrixFactory<SC,LO,GO,NO>::Build(GatheringMaps_[0],k0->getGlobalMaxNumRowEntries());
               tmpCoarseMatrix->doExport(*k0,*CoarseSolveExporters_[0],Xpetra::INSERT);
@@ -345,7 +348,8 @@ namespace FROSch {
 
               tmpCoarseMatrix->fillComplete();
               k0 = tmpCoarseMatrix;
-
+#endif
+#endif
             } else if (!DistributionList_->get("Type","linear").compare("Zoltan2")) {
 #ifdef HAVE_SHYLU_DDFROSCH_ZOLTAN2
                 GatheringMaps_[0] = rcp_const_cast<XMap> (BuildUniqueMap(k0->getRowMap()));
@@ -738,6 +742,8 @@ namespace FROSch {
           //ZoltanDual provides a factorization of the coarse problem with Zoltan2 inlcuding the
           //build of a Repeated map suited for the next level
           //GatheringSteps to communicate Matrix
+#ifdef HAVE_SHYLU_DDFROSCH_ZOLTAN2
+#ifdef HAVE_SHYLU_DDFROSCH_PARMETIS
           int gatheringSteps = DistributionList_->get("GatheringSteps",1);
           GatheringMaps_.resize(gatheringSteps);
           CoarseSolveExporters_.resize(gatheringSteps);
@@ -886,6 +892,8 @@ namespace FROSch {
              }
              GatheringMaps_[gatheringSteps-1] = tmpMap;
              CoarseSolveMap_ = Xpetra::MapFactory<LO,GO,NO>::Build(CoarseMap_->lib(),-1,tmpMap->getNodeElementList(),0,CoarseSolveComm_);
+#endif
+#endif
         } else if(!DistributionList_->get("Type","linear").compare("Zoltan2")) {
 #ifdef HAVE_SHYLU_DDFROSCH_ZOLTAN2
             GatheringMaps_.resize(1);

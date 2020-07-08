@@ -525,6 +525,61 @@ namespace FROSch {
         return BuildRepeatedMapNonConst(matrix).getConst();
     }
 
+    template <class SC,class LO,class GO,class NO>
+    RCP<Map<LO,GO,NO> > BuildRepeatedMapGaleriStruct(RCP<const Matrix<SC,LO,GO,NO> > matrix,int M,int Dim)
+    {
+      Teuchos::ArrayView< const GO> eleList;
+      eleList = matrix->getMap()->getNodeElementList();
+      Teuchos::RCP< const Teuchos::Comm< int > > Comm = matrix->getMap()->getComm();
+
+      int size = Comm->getSize();
+      int rank = Comm->getRank();
+
+      Teuchos::Array<GO> vert;
+      vert.reserve(M*Dim);
+      Teuchos::Array<GO> horz;
+      horz.reserve((M+1)*Dim);
+      int numSubPerRow  = sqrt(size);
+      GO nodesInRow = M*Dim*numSubPerRow;
+      Teuchos::Array<GO> newEle;
+      newEle.reserve(eleList.size()+M*Dim+(M+1)*Dim);
+      int count = 0;
+      for(int i = 0;i<eleList.size();i++){
+        newEle.push_back(eleList[i]);
+        count++;
+      }
+
+      if(rank%numSubPerRow != numSubPerRow-1){
+        for(int j = 0;j<M;j++){
+          for(int i = 0;i<Dim;i++){
+            vert.push_back(eleList[Dim*M*(j+1)-1]+(i+1));
+            newEle.push_back(vert[j*Dim+i]);
+            count++;
+          }
+        }
+      }
+
+      if(rank<size-numSubPerRow){
+        if(rank%numSubPerRow == numSubPerRow-1){
+          for(int j=0;j<Dim*M;j++){
+            horz.push_back(eleList[eleList.size()-Dim*M]+nodesInRow+j);
+            newEle.push_back(horz[j]);
+            count++;
+          }
+        }
+        else{
+          for(int j=0;j<Dim*M+2;j++){
+            horz.push_back(eleList[eleList.size()-Dim*M]+nodesInRow+j);
+            newEle.push_back(horz[j]);
+            count++;
+          }
+        }
+      }
+
+      return Xpetra::MapFactory<LO,GO,NO>::Build(matrix->getMap()->lib(),matrix->getMap()->getGlobalNumElements(),newEle(),0,Comm);
+
+    }
+
     template <class LO,class GO,class NO>
     RCP<Map<LO,GO,NO> > BuildRepeatedMapNonConst(RCP<const CrsGraph<LO,GO,NO> > graph)
     {

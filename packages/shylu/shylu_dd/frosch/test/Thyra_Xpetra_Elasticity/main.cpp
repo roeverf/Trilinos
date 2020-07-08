@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
     RCP<const Comm<int> > CommWorld = DefaultPlatform::getDefaultPlatform().getComm();
 
     CommandLineProcessor My_CLP;
-
+    RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(cout));
     RCP<FancyOStream> out = VerboseObjectBase::getDefaultOStream();
 
     int M = 4;
@@ -123,6 +123,8 @@ int main(int argc, char *argv[])
     My_CLP.setOption("O",&Overlap,"Overlap.");
     string xmlFile = "ParameterList.xml";
     My_CLP.setOption("PLIST",&xmlFile,"File name of the parameter list.");
+    string xmlFile2;
+    My_CLP.setOption("SPLIST",&xmlFile2,"File name of the second parameter list.");
     bool useepetra = false;
     My_CLP.setOption("USEEPETRA","USETPETRA",&useepetra,"Use Epetra infrastructure for the linear algebra.");
 
@@ -135,6 +137,12 @@ int main(int argc, char *argv[])
 
     CommWorld->barrier();
     RCP<StackedTimer> stackedTimer = rcp(new StackedTimer("Thyra Elasticity Test"));
+    RCP<Time> assemTimer = TimeMonitor::getNewTimer("Assemble Linear Elasticity");
+    RCP<Time> halfTimer = TimeMonitor::getNewTimer("FROSch::False Map: Rotations");
+    RCP<Time> fullTimer = TimeMonitor::getNewTimer("FROSch::False Map: NoRotations");
+    RCP<Time> allTimer = TimeMonitor::getNewTimer("FROSch::Correct Map: Rotations");
+
+
     TimeMonitor::setStackedTimer(stackedTimer);
 
     int N = 0;
@@ -163,44 +171,59 @@ int main(int argc, char *argv[])
     RCP<const Comm<int> > Comm = CommWorld->split(color,CommWorld->getRank());
 
     if (color==0) {
-
-        RCP<ParameterList> parameterList = getParametersFromXmlFile(xmlFile);
-        
         Comm->barrier();
-        if(Comm->getRank()==0) {
+
+        /*if(Comm->getRank()==0) {
             cout << "##################\n# Parameter List #\n##################" << endl;
             parameterList->print(cout);
             cout << endl;
-        }
+        }*/
 
         Comm->barrier(); if (Comm->getRank()==0) cout << "##############################\n# Assembly Laplacian #\n##############################\n" << endl;
-        
-        ParameterList GaleriList;
-        GaleriList.set("nx", GO(N*M));
-        GaleriList.set("ny", GO(N*M));
-        GaleriList.set("nz", GO(N*M));
-        GaleriList.set("mx", GO(N));
-        GaleriList.set("my", GO(N));
-        GaleriList.set("mz", GO(N));
-        
         RCP<const Map<LO,GO,NO> > UniqueNodeMap;
         RCP<const Map<LO,GO,NO> > UniqueMap;
         RCP<MultiVector<SC,LO,GO,NO> > Coordinates;
         RCP<Matrix<SC,LO,GO,NO> > K;
-        if (Dimension==2) {
+        {
+          TimeMonitor Assem(*assemTimer);
+          ParameterList GaleriList;
+          GaleriList.set("nx", GO(N*M));
+          GaleriList.set("ny", GO(N*M));
+          GaleriList.set("nz", GO(N*M));
+          GaleriList.set("mx", GO(N));
+          GaleriList.set("my", GO(N));
+          GaleriList.set("mz", GO(N));
+
+
+          if (Dimension==2) {
             UniqueNodeMap = Galeri::Xpetra::CreateMap<LO,GO,NO>(xpetraLib,"Cartesian2D",Comm,GaleriList); // RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(cout)); nodeMap->describe(*fancy,VERB_EXTREME);
             UniqueMap = Xpetra::MapFactory<LO,GO,NO>::Build(UniqueNodeMap,2);
             Coordinates = Galeri::Xpetra::Utils::CreateCartesianCoordinates<SC,LO,GO,Map<LO,GO,NO>,MultiVector<SC,LO,GO,NO> >("2D",UniqueMap,GaleriList);
             RCP<Galeri::Xpetra::Problem<Map<LO,GO,NO>,CrsMatrixWrap<SC,LO,GO,NO>,MultiVector<SC,LO,GO,NO> > > Problem = Galeri::Xpetra::BuildProblem<SC,LO,GO,Map<LO,GO,NO>,CrsMatrixWrap<SC,LO,GO,NO>,MultiVector<SC,LO,GO,NO> >("Elasticity2D",UniqueMap,GaleriList);
             K = Problem->BuildMatrix();
-        } else if (Dimension==3) {
+          } else if (Dimension==3) {
             UniqueNodeMap = Galeri::Xpetra::CreateMap<LO,GO,NO>(xpetraLib,"Cartesian3D",Comm,GaleriList); // RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(cout)); nodeMap->describe(*fancy,VERB_EXTREME);
             UniqueMap = Xpetra::MapFactory<LO,GO,NO>::Build(UniqueNodeMap,3);
             Coordinates = Galeri::Xpetra::Utils::CreateCartesianCoordinates<SC,LO,GO,Map<LO,GO,NO>,MultiVector<SC,LO,GO,NO> >("3D",UniqueMap,GaleriList);
             RCP<Galeri::Xpetra::Problem<Map<LO,GO,NO>,CrsMatrixWrap<SC,LO,GO,NO>,MultiVector<SC,LO,GO,NO> > > Problem = Galeri::Xpetra::BuildProblem<SC,LO,GO,Map<LO,GO,NO>,CrsMatrixWrap<SC,LO,GO,NO>,MultiVector<SC,LO,GO,NO> >("Elasticity3D",UniqueMap,GaleriList);
             K = Problem->BuildMatrix();
         }
+        }
         RCP<Map<LO,GO,NO> > RepeatedMap = BuildRepeatedMapNonConst<LO,GO,NO>(K->getCrsGraph());
+
+          /*
+        K->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
+        Teuchos::ArrayView<const LO> ind;
+        Teuchos::ArrayView<const SC> val;
+        K->getLocalRowView(4,ind, val);
+        if(CommWorld->getRank() == 0){
+          for(int i = 0;i<ind.size();i++){
+            std::cout<<K->getColMap()->getGlobalElement(ind[i])<<std::endl;
+          }
+        }
+        K->getColMap()->describe(*fancy,Teuchos::VERB_EXTREME);
+        */
+        RCP<Map<LO,GO,NO> > FullRepeatedMap = BuildRepeatedMapGaleriStruct<SC,LO,GO,NO>(K,M,Dimension);
 
         RCP<MultiVector<SC,LO,GO,NO> > xSolution = MultiVectorFactory<SC,LO,GO,NO>::Build(UniqueMap,1);
         RCP<MultiVector<SC,LO,GO,NO> > xRightHandSide = MultiVectorFactory<SC,LO,GO,NO>::Build(UniqueMap,1);
@@ -214,45 +237,107 @@ int main(int argc, char *argv[])
         RCP<const MultiVectorBase<SC> >thyraB = ThyraUtils<SC,LO,GO,NO>::toThyraMultiVector(xRightHandSide);
 
         //-----------Set Coordinates and RepMap in ParameterList--------------------------
-        RCP<ParameterList> plList =  sublist(parameterList,"Preconditioner Types");
-        sublist(plList,"FROSch")->set("Dimension",Dimension);
-        sublist(plList,"FROSch")->set("Overlap",Overlap);
-        sublist(plList,"FROSch")->set("DofOrdering","NodeWise");
-        sublist(plList,"FROSch")->set("DofsPerNode",Dimension);
-        
-        sublist(plList,"FROSch")->set("Repeated Map",RepeatedMap);
-        sublist(plList,"FROSch")->set("Coordinates List",Coordinates);
-
         Comm->barrier();
-        if(Comm->getRank()==0) {
+        /*if(Comm->getRank()==0) {
             cout << "##################\n# Parameter List #\n##################" << endl;
             parameterList->print(cout);
             cout << endl;
-        }
-        
+        }*/
+
+
         Comm->barrier(); if (Comm->getRank()==0) cout << "###################################\n# Stratimikos LinearSolverBuilder #\n###################################\n" << endl;
         Stratimikos::DefaultLinearSolverBuilder linearSolverBuilder;
         Stratimikos::enableFROSch<LO,GO,NO>(linearSolverBuilder);
-        linearSolverBuilder.setParameterList(parameterList);
-        
+
         Comm->barrier(); if (Comm->getRank()==0) cout << "######################\n# Thyra PrepForSolve #\n######################\n" << endl;
-        
-        RCP<LinearOpWithSolveFactoryBase<SC> > lowsFactory =
-        linearSolverBuilder.createLinearSolveStrategy("");
-        
-        lowsFactory->setOStream(out);
-        lowsFactory->setVerbLevel(VERB_HIGH);
-        
-        Comm->barrier(); if (Comm->getRank()==0) cout << "###########################\n# Thyra LinearOpWithSolve #\n###########################" << endl;
-        
-        RCP<LinearOpWithSolveBase<SC> > lows =
-        linearOpWithSolve(*lowsFactory, K_thyra);
-        
-        Comm->barrier(); if (Comm->getRank()==0) cout << "\n#########\n# Solve #\n#########" << endl;
-        SolveStatus<double> status =
-        solve<double>(*lows, Thyra::NOTRANS, *thyraB, thyraX.ptr());
-        
-        Comm->barrier(); if (Comm->getRank()==0) cout << "\n#############\n# Finished! #\n#############" << endl;
+
+        {
+          RCP<ParameterList> parameterList = getParametersFromXmlFile(xmlFile);
+          RCP<ParameterList> plList =  sublist(parameterList,"Preconditioner Types");
+          sublist(plList,"FROSch")->set("Dimension",Dimension);
+          sublist(plList,"FROSch")->set("Overlap",Overlap);
+          sublist(plList,"FROSch")->set("DofOrdering","NodeWise");
+          sublist(plList,"FROSch")->set("DofsPerNode",Dimension);
+
+          sublist(plList,"FROSch")->set("Repeated Map",FullRepeatedMap);
+          sublist(plList,"FROSch")->set("Coordinates List",Coordinates);
+          linearSolverBuilder.setParameterList(parameterList);
+
+          TimeMonitor all(*allTimer);
+          RCP<LinearOpWithSolveFactoryBase<SC> > lowsFactory =
+          linearSolverBuilder.createLinearSolveStrategy("");
+
+          lowsFactory->setOStream(out);
+          lowsFactory->setVerbLevel(VERB_HIGH);
+
+          Comm->barrier(); if (Comm->getRank()==0) cout << "################################################\n# Thyra LinearOpWithSolve - MAP - Rotations #\n#########################################################" << endl;
+
+          RCP<LinearOpWithSolveBase<SC> > lows =
+          linearOpWithSolve(*lowsFactory, K_thyra);
+
+          Comm->barrier(); if (Comm->getRank()==0) cout << "\n#########\n# Solve #\n#########" << endl;
+          SolveStatus<double> status =
+          solve<double>(*lows, Thyra::NOTRANS, *thyraB, thyraX.ptr());
+         }
+
+        {
+          RCP<ParameterList> parameterList = getParametersFromXmlFile(xmlFile);
+          RCP<ParameterList> plList =  sublist(parameterList,"Preconditioner Types");
+          sublist(plList,"FROSch")->set("Dimension",Dimension);
+          sublist(plList,"FROSch")->set("Overlap",Overlap);
+          sublist(plList,"FROSch")->set("DofOrdering","NodeWise");
+          sublist(plList,"FROSch")->set("DofsPerNode",Dimension);
+
+          sublist(plList,"FROSch")->set("Repeated Map",RepeatedMap);
+          sublist(plList,"FROSch")->set("Coordinates List",Coordinates);
+          linearSolverBuilder.setParameterList(parameterList);
+
+          TimeMonitor Half(*halfTimer);
+          RCP<LinearOpWithSolveFactoryBase<SC> > lowsFactory =
+          linearSolverBuilder.createLinearSolveStrategy("");
+
+          lowsFactory->setOStream(out);
+          lowsFactory->setVerbLevel(VERB_HIGH);
+
+          Comm->barrier(); if (Comm->getRank()==0) cout << "########################################################\n# Thyra LinearOpWithSolve Alg Map - Rotations #\n########################################################" << endl;
+
+          RCP<LinearOpWithSolveBase<SC> > lows =
+          linearOpWithSolve(*lowsFactory, K_thyra);
+
+          Comm->barrier(); if (Comm->getRank()==0) cout << "\n#########\n# Solve #\n#########" << endl;
+          SolveStatus<double> status =
+          solve<double>(*lows, Thyra::NOTRANS, *thyraB, thyraX.ptr());
+         }
+         {
+           RCP<ParameterList> parameterList = getParametersFromXmlFile(xmlFile2);
+           RCP<ParameterList> plList =  sublist(parameterList,"Preconditioner Types");
+           sublist(plList,"FROSch")->set("Dimension",Dimension);
+           sublist(plList,"FROSch")->set("Overlap",Overlap);
+           sublist(plList,"FROSch")->set("DofOrdering","NodeWise");
+           sublist(plList,"FROSch")->set("DofsPerNode",Dimension);
+
+           sublist(plList,"FROSch")->set("Repeated Map",RepeatedMap);
+           sublist(plList,"FROSch")->set("Coordinates List",Coordinates);
+
+           linearSolverBuilder.setParameterList(parameterList);
+
+           TimeMonitor full(*fullTimer);
+           RCP<LinearOpWithSolveFactoryBase<SC> > lowsFactory =
+           linearSolverBuilder.createLinearSolveStrategy("");
+
+           lowsFactory->setOStream(out);
+           lowsFactory->setVerbLevel(VERB_HIGH);
+
+           Comm->barrier(); if (Comm->getRank()==0) cout << "##################################################\n# Thyra LinearOpWithSolve Alg Map - NO Rotations #\n####################################################" << endl;
+
+           RCP<LinearOpWithSolveBase<SC> > lows =
+           linearOpWithSolve(*lowsFactory, K_thyra);
+
+           Comm->barrier(); if (Comm->getRank()==0) cout << "\n#########\n# Solve #\n#########" << endl;
+           SolveStatus<double> status =
+           solve<double>(*lows, Thyra::NOTRANS, *thyraB, thyraX.ptr());
+          }
+          Comm->barrier(); if (Comm->getRank()==0) cout << "\n#############\n# Finished! #\n#############" << endl;
     }
 
     CommWorld->barrier();
