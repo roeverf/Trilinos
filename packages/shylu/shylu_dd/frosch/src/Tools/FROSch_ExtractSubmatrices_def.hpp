@@ -56,10 +56,11 @@ namespace FROSch {
                                                                 RCP<const Map<LO,GO,NO> > map)
     {
         FROSCH_TIMER_START(extractLocalSubdomainMatrixTime,"ExtractLocalSubdomainMatrix");
+      
         RCP<Matrix<SC,LO,GO,NO> > subdomainMatrix = MatrixFactory<SC,LO,GO,NO>::Build(map,globalMatrix->getGlobalMaxNumRowEntries());
         RCP<Import<LO,GO,NO> > scatter = ImportFactory<LO,GO,NO>::Build(globalMatrix->getRowMap(),map);
         subdomainMatrix->doImport(*globalMatrix,*scatter,ADD);
-        //cout << *subdomainMatrix << endl;
+
         RCP<const Comm<LO> > SerialComm = rcp(new MpiComm<LO>(MPI_COMM_SELF));
         RCP<Map<LO,GO,NO> > localSubdomainMap = MapFactory<LO,GO,NO>::Build(map->lib(),map->getNodeNumElements(),0,SerialComm);
         RCP<Matrix<SC,LO,GO,NO> > localSubdomainMatrix = MatrixFactory<SC,LO,GO,NO>::Build(localSubdomainMap,globalMatrix->getGlobalMaxNumRowEntries());
@@ -83,8 +84,12 @@ namespace FROSch {
                 localSubdomainMatrix->insertGlobalValues(i,indicesLocal(),valuesLocal());
             }
         }
+
         localSubdomainMatrix->fillComplete();
+
+
         return localSubdomainMatrix.getConst();
+
     }
 
     template <class SC,class LO,class GO,class NO>
@@ -99,7 +104,7 @@ namespace FROSch {
         //cout << *subdomainMatrix << endl;
         RCP<const Comm<LO> > SerialComm = rcp(new MpiComm<LO>(MPI_COMM_SELF));
         RCP<Map<LO,GO,NO> > localSubdomainMap = MapFactory<LO,GO,NO>::Build(map->lib(),map->getNodeNumElements(),0,SerialComm);
-        RCP<Matrix<SC,LO,GO,NO> > localSubdomainMatrix = MatrixFactory<SC,LO,GO,NO>::Build(localSubdomainMap,globalMatrix->getNodeMaxNumRowEntries());
+        RCP<Matrix<SC,LO,GO,NO> > localSubdomainMatrix = MatrixFactory<SC,LO,GO,NO>::Build(localSubdomainMap,globalMatrix->getGlobalMaxNumRowEntries());
 
         for (unsigned i=0; i<localSubdomainMap->getNodeNumElements(); i++) {
             ArrayView<const GO> indices;

@@ -526,7 +526,7 @@ namespace FROSch {
     }
 
     template <class SC,class LO,class GO,class NO>
-    RCP<Map<LO,GO,NO> > BuildRepeatedMapGaleriStruct(RCP<const Matrix<SC,LO,GO,NO> > matrix,int M,int Dim)
+    RCP<Map<LO,GO,NO> > BuildRepeatedMapGaleriStruct2D(RCP<const Matrix<SC,LO,GO,NO> > matrix,int M,int Dim)
     {
       Teuchos::ArrayView< const GO> eleList;
       eleList = matrix->getMap()->getNodeElementList();
@@ -574,6 +574,104 @@ namespace FROSch {
             count++;
           }
         }
+      }
+
+      return Xpetra::MapFactory<LO,GO,NO>::Build(matrix->getMap()->lib(),matrix->getMap()->getGlobalNumElements(),newEle(),0,Comm);
+
+    }
+
+    template <class SC,class LO,class GO,class NO>
+    RCP<Map<LO,GO,NO> > BuildRepeatedMapGaleriStruct3D(RCP<const Matrix<SC,LO,GO,NO> > matrix,int M,int Dim)
+    {
+      Teuchos::ArrayView< const GO> eleList;
+      eleList = matrix->getMap()->getNodeElementList();
+      Teuchos::RCP< const Teuchos::Comm< int > > Comm = matrix->getMap()->getComm();
+
+      int size = Comm->getSize();
+      int rank = Comm->getRank();
+
+      Teuchos::Array<GO> vert;
+      vert.reserve(M*Dim);
+      Teuchos::Array<GO> horz;
+      horz.reserve((M+1)*Dim);
+      int numSubPerRow  = pow(size,1/3.);
+      int subInLev = numSubPerRow*numSubPerRow;
+      GO nodesInRow = M*Dim*numSubPerRow;
+      GO nodesInLev = M*M*Dim*numSubPerRow;
+      int subLevel = rank/(numSubPerRow*numSubPerRow);
+      //std::cout<<rank<<" Level Rank "<<subLevel<<std::endl;
+
+      Teuchos::Array<GO> newEle;
+      newEle.reserve(eleList.size()+M*Dim+(M+1)*Dim);
+      int count = 0;
+      for(int i = 0;i<eleList.size();i++){
+        newEle.push_back(eleList[i]);
+        count++;
+      }
+      if(rank%numSubPerRow != numSubPerRow-1){
+        for(int j = 0;j<M*M;j++){
+          for(int i = 0;i<Dim;i++){
+            vert.push_back(eleList[Dim*M*(j+1)-1]+(i+1));
+            newEle.push_back(eleList[Dim*M*(j+1)-1]+(i+1));
+            count++;
+          }
+        }
+      }
+
+      if(rank<(subLevel+1)*(numSubPerRow*numSubPerRow)-numSubPerRow){
+        if(rank%numSubPerRow == numSubPerRow-1){
+          for(int j=0;j<M;j++){
+            for(int i = 0;i<M*Dim;i++){
+             horz.push_back(eleList[(j+1)*(M*M*Dim)-1]+nodesInRow-M*Dim+i+1);
+             newEle.push_back(eleList[(j+1)*(M*M*Dim)-1]+nodesInRow-M*Dim+i+1);
+             count++;
+          }
+        }
+      }else{
+          for(int j=0;j<M;j++){
+            for(int i = 0;i<M*Dim+Dim;i++){
+             horz.push_back(eleList[(j+1)*(M*M*Dim)-1]+nodesInRow-M*Dim+i+1);
+             newEle.push_back(eleList[(j+1)*(M*M*Dim)-1]+nodesInRow-M*Dim+i+1);
+             count++;
+          }
+         }
+        }
+      }
+      if(rank<size-(numSubPerRow*numSubPerRow)){
+        //kein rechter ran und nich oben
+        if(rank%numSubPerRow <numSubPerRow-1 && rank<(subLevel+1)*(numSubPerRow*numSubPerRow)-numSubPerRow){
+          for(int i = 0;i<M*Dim+Dim;i++){
+            for(int j  = 0;j<M+1;j++){
+            newEle.push_back(eleList[0]+M*(M*numSubPerRow*M*numSubPerRow*Dim)+i+j*nodesInRow);
+          }
+        }
+        }
+        //kein rechter rand aber oben
+        else if(rank%numSubPerRow <numSubPerRow-1 &&(rank>=(subLevel+1)*(numSubPerRow*numSubPerRow)-numSubPerRow)){
+          for(int i = 0;i<M*Dim+Dim;i++){
+            for(int j  = 0;j<M;j++){
+            newEle.push_back(eleList[0]+M*(M*numSubPerRow*M*numSubPerRow*Dim)+i+j*nodesInRow);
+          }
+        }
+        }
+        //rechts und nicht oben
+        else if (rank%numSubPerRow == numSubPerRow-1 && rank<(subLevel+1)*(numSubPerRow*numSubPerRow)-numSubPerRow){
+          for(int i = 0;i<M*Dim;i++){
+            for(int j  = 0;j<M+1;j++){
+            newEle.push_back(eleList[0]+M*(M*numSubPerRow*M*numSubPerRow*Dim)+i+j*nodesInRow);
+          }
+        }
+        }
+        //rechter rand und oben
+        else if(rank%numSubPerRow == numSubPerRow-1 &&(rank>=(subLevel+1)*(numSubPerRow*numSubPerRow)-numSubPerRow)){
+          for(int i = 0;i<M*Dim;i++){
+            for(int j  = 0;j<M;j++){
+            newEle.push_back(eleList[0]+M*(M*numSubPerRow*M*numSubPerRow*Dim)+i+j*nodesInRow);
+          }
+        }
+        }
+
+
       }
 
       return Xpetra::MapFactory<LO,GO,NO>::Build(matrix->getMap()->lib(),matrix->getMap()->getGlobalNumElements(),newEle(),0,Comm);

@@ -141,6 +141,7 @@ int main(int argc, char *argv[])
     RCP<Time> halfTimer = TimeMonitor::getNewTimer("FROSch::False Map: Rotations");
     RCP<Time> fullTimer = TimeMonitor::getNewTimer("FROSch::False Map: NoRotations");
     RCP<Time> allTimer = TimeMonitor::getNewTimer("FROSch::Correct Map: Rotations");
+    RCP<Time> repTimer = TimeMonitor::getNewTimer("Main: Build correct RepMap");
 
 
     TimeMonitor::setStackedTimer(stackedTimer);
@@ -223,7 +224,18 @@ int main(int argc, char *argv[])
         }
         K->getColMap()->describe(*fancy,Teuchos::VERB_EXTREME);
         */
-        RCP<Map<LO,GO,NO> > FullRepeatedMap = BuildRepeatedMapGaleriStruct<SC,LO,GO,NO>(K,M,Dimension);
+        RCP<Map<LO,GO,NO> > FullRepeatedMap;
+        if(Dimension == 2){
+          {
+            TimeMonitor rep(*repTimer);
+            FullRepeatedMap = BuildRepeatedMapGaleriStruct2D<SC,LO,GO,NO>(K,M,Dimension);
+          }
+        }else if(Dimension == 3){
+          {
+            TimeMonitor rep(*repTimer);
+            FullRepeatedMap = BuildRepeatedMapGaleriStruct3D<SC,LO,GO,NO>(K,M,Dimension);
+          }
+        }
 
         RCP<MultiVector<SC,LO,GO,NO> > xSolution = MultiVectorFactory<SC,LO,GO,NO>::Build(UniqueMap,1);
         RCP<MultiVector<SC,LO,GO,NO> > xRightHandSide = MultiVectorFactory<SC,LO,GO,NO>::Build(UniqueMap,1);

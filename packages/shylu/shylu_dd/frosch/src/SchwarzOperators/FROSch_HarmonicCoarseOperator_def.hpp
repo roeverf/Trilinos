@@ -77,6 +77,7 @@ namespace FROSch {
         XMapPtr repeatedMap = AssembleSubdomainMap(NumberOfBlocks_,DofsMaps_,DofsPerNode_);
 
         // Build local saddle point problem
+
         ConstXMatrixPtr repeatedMatrix = ExtractLocalSubdomainMatrix(this->K_.getConst(),repeatedMap.getConst()); // AH 12/11/2018: Should this be in initalize?
 
         // Extract submatrices
@@ -100,7 +101,7 @@ namespace FROSch {
         XMatrixPtr kGammaGamma;
 
         BuildSubmatrices(repeatedMatrix,indicesIDofsAll(),kII,kIGamma,kGammaI,kGammaGamma);
-
+        
         //Detect linear dependencies
         if (!this->ParameterList_->get("Skip DetectLinearDependencies",false)) {
             LOVecPtr linearDependentVectors = detectLinearDependencies(indicesGammaDofsAll(),this->K_->getRowMap(),this->K_->getRangeMap(),repeatedMap,this->ParameterList_->get("Threshold Phi",1.e-8));

@@ -247,7 +247,11 @@ namespace FROSch {
     RCP<const Map<LO,GO,NO> > BuildRepeatedMap(RCP<const Matrix<SC,LO,GO,NO> > matrix);
 
     template <class SC,class LO,class GO,class NO>
-    RCP<Map<LO,GO,NO> > BuildRepeatedMapGaleriStruct(RCP<const Matrix<SC,LO,GO,NO> > matrix,int M,int Dim);
+    RCP<Map<LO,GO,NO> > BuildRepeatedMapGaleriStruct2D(RCP<const Matrix<SC,LO,GO,NO> > matrix,int M,int Dim);
+
+
+    template <class SC,class LO,class GO,class NO>
+    RCP<Map<LO,GO,NO> > BuildRepeatedMapGaleriStruct3D(RCP<const Matrix<SC,LO,GO,NO> > matrix,int M,int Dim);
 
     template <class LO,class GO,class NO>
     RCP<Map<LO,GO,NO> > BuildRepeatedMapNonConst(RCP<const CrsGraph<LO,GO,NO> > graph);
