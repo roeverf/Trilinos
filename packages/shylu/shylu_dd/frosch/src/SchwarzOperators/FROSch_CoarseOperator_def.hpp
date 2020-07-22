@@ -74,51 +74,7 @@ namespace FROSch {
 
   //REP MAP Zoltam
 
-    template <class SC,class LO,class GO, class NO>
-    int CoarseOperator<SC,LO,GO,NO>::BuildRepMapZoltan(GraphPtr Xgraph,
-                                GraphPtr  B,
-                                ParameterListPtr parameterList,
-                                Teuchos::RCP<const Teuchos::Comm<int> > TeuchosComm,
-                                XMapPtr &RepeatedMap)
-    {
 
-      FROSCH_TIMER_START_LEVELID(BuildRepMapZoltanTime,"CoarseOperator::BuildRepMapZoltan");
-      //Zoltan2 Problem
-      typedef Zoltan2::XpetraCrsGraphAdapter<Xpetra::CrsGraph<LO,GO,NO> > inputAdapter;
-      Teuchos::RCP<Teuchos::ParameterList> tmpList = Teuchos::sublist(parameterList,"Zoltan2 Parameter");
-      Teuchos::RCP<inputAdapter> adaptedMatrix = Teuchos::rcp(new inputAdapter(Xgraph,0,0));
-      size_t MaxRow = B->getGlobalMaxNumRowEntries();
-      Teuchos::RCP<const Xpetra::Map<LO, GO, NO> > ColMap = Xpetra::MapFactory<LO,GO,NO>::createLocalMap(Xgraph->getRowMap()->lib(),MaxRow,TeuchosComm);
-      Teuchos::RCP<Zoltan2::PartitioningProblem<inputAdapter> >problem;
-      {
-        problem = Teuchos::RCP<Zoltan2::PartitioningProblem<inputAdapter> >(new Zoltan2::PartitioningProblem<inputAdapter> (adaptedMatrix.getRawPtr(), tmpList.get(),TeuchosComm));
-        problem->solve();
-      }
-      // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > ReGraph;
-      {
-        adaptedMatrix->applyPartitioningSolution(*Xgraph,ReGraph,problem->getSolution());
-      }
-      Teuchos::RCP<Xpetra::Import<LO,GO,NO> > scatter = Xpetra::ImportFactory<LO,GO,NO>::Build(Xgraph->getRowMap(),ReGraph->getRowMap());
-      Teuchos::RCP<Xpetra::CrsGraph<LO,GO,NO> > BB = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(ReGraph->getRowMap(),MaxRow);
-      {
-        BB->doImport(*B,*scatter,Xpetra::INSERT);
-      }
-      // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      Teuchos::Array<GO> repeatedMapEntries(0);
-      for (UN i = 0; i<ReGraph->getRowMap()->getNodeNumElements(); i++) {
-        Teuchos::ArrayView<const GO> arr;
-        Teuchos::ArrayView<const LO> cc;
-        GO gi = ReGraph->getRowMap()->getGlobalElement(i);
-        BB->getGlobalRowView(gi,arr);
-        for (unsigned j=0; j<arr.size(); j++) {
-          repeatedMapEntries.push_back(arr[j]);
-        }
-      }
-      sortunique(repeatedMapEntries);
-      RepeatedMap = Xpetra::MapFactory<LO,GO,NO>::Build(ReGraph->getColMap()->lib(),-1,repeatedMapEntries(),0,ReGraph->getColMap()->getComm());
-      return 0;
-    }
 //################end Coarse RepetedMap Functions###########################
 
     template <class SC,class LO,class GO,class NO>
@@ -739,7 +695,7 @@ namespace FROSch {
 #endif
             }
         } else if(!DistributionList_->get("Type","linear").compare("ZoltanDual")){
-          //ZoltanDual provides a factorization of the coarse problem with Zoltan2 inlcuding the
+          //ZoltanDual provides a partition of the coarse problem with Zoltan2 inlcuding the
           //build of a Repeated map suited for the next level
           //GatheringSteps to communicate Matrix
 #ifdef HAVE_SHYLU_DDFROSCH_ZOLTAN2
@@ -770,6 +726,8 @@ namespace FROSch {
 
           //Gathering Steps for RepeatedMap#################################################
           //-> Have to test that
+          RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(cout));
+
           int MLgatheringSteps = DistributionList_->get("MLGatheringSteps",2);
           MLGatheringMaps_.resize(MLgatheringSteps);
           MLCoarseSolveExporters_.resize(MLgatheringSteps);
@@ -789,6 +747,7 @@ namespace FROSch {
                     }
                 }
                 MLGatheringMaps_[i] = Xpetra::MapFactory<LO,GO,NO>::Build(CoarseMap_->lib(),-1,MLnumMyRows,0,this->MpiComm_);
+
             }
 
             MLnumMyRows = 0;
@@ -813,8 +772,9 @@ namespace FROSch {
 											 RowsCoarseSolve[i] = start+i;
 									 }
 					   }
-
-						 MLCoarseMap_ = Xpetra::MapFactory<LO,GO,NO>::Build(CoarseMap_->lib(),-1,RowsCoarseSolve,0,CoarseSolveComm_);
+             Teuchos::ArrayView< const GO > CList = MLGatheringMaps_[MLgatheringSteps-1]->getNodeElementList();
+             //MLCoarseMap_ =  Xpetra::MapFactory<LO,GO,NO>::Build(CoarseMap_->lib(),-1,CList,0,CoarseSolveComm_);->Should work but does not WHY?!?!
+						 MLCoarseMap_ = Xpetra::MapFactory<LO,GO,NO>::Build(CoarseMap_->lib(),MLGatheringMaps_[MLgatheringSteps-1]->getGlobalNumElements(),0,CoarseSolveComm_);
 
              //#####################################################################
              // Build Repeated Map Zoltan2
@@ -833,7 +793,7 @@ namespace FROSch {
              if(OnCoarseSolveComm_){
                //Coarse DofsMaps so far only one Block will work
                ConstXMapPtrVecPtr2D CoarseDofsMaps(1);
-               BuildRepMapZoltan(SubdomainConnectGraph_,ElementNodeList_, DistributionList_,CoarseSolveComm_,CoarseSolveRepeatedMap_);
+               FROSch::BuildRepMapZoltan(SubdomainConnectGraph_,ElementNodeList_, DistributionList_,MLCoarseMap_->getComm(),CoarseSolveRepeatedMap_);
                ConstRepMap = CoarseSolveRepeatedMap_;
                ConstXMapPtrVecPtr NodesMapVector(1);
                //MapVector for next Level
@@ -843,9 +803,7 @@ namespace FROSch {
                ConstXMapPtrVecPtr DMap(CoarseDofsPerNode_);
                ConstXMapPtrVecPtr DMapRep(CoarseDofsPerNode_);
 
-               tmpRepMap  = this->BuildRepeatedMapCoarseLevel(ConstRepMap,CoarseDofsPerNode_,DMapRep);
-
-
+               tmpRepMap  = this->BuildRepeatedMapCoarseLevel(ConstRepMap,CoarseDofsPerNode_,DMapRep,PartitionType_);
                RepMapCoarse_ = tmpRepMap;
                RepMapVector[0] = tmpRepMap;
 
@@ -855,12 +813,9 @@ namespace FROSch {
                //Create uniqueMap following the repeatedMap
                //Create uniqueNodeMap so that dof belonging to one node are on the same process
                UniqueMap = FROSch::BuildUniqueMap<LO,GO,NO>(CoarseSolveRepeatedMap_);
-
-
-               UniqueMapAll  = this->BuildRepeatedMapCoarseLevel(UniqueMap,CoarseDofsPerNode_,DMap);
+               UniqueMapAll  = this->BuildRepeatedMapCoarseLevel(UniqueMap,CoarseDofsPerNode_,DMap,PartitionType_);
 
                uniEle = UniqueMapAll->getNodeElementList();
-
                //Set DofOderingVec and DofsPerNodeVec to ParameterList for the next Level
                //Create Here DofsMaps for the next Level->DofOrdering will become redundant
                Teuchos::ArrayRCP<DofOrdering> dofOrderings(1);
@@ -874,8 +829,8 @@ namespace FROSch {
                sublist(this->ParameterList_,"CoarseSolver")->set("DofOrdering Vector",dofOrderings);
                sublist(this->ParameterList_,"CoarseSolver")->set("DofsPerNode Vector",dofsPerNodeVector);
                sublist(this->ParameterList_,"CoarseSolver")->set("Nodes Map Vector",NodesMapVector);
-
              }
+
              Teuchos::RCP<Xpetra::Map<LO,GO,NO> > tmpMap = Xpetra::MapFactory<LO,GO,NO>::Build(CoarseMap_->lib(),-1,uniEle,0,this->MpiComm_);
 
              for (int i=0; i<gatheringSteps-1; i++) {
@@ -906,24 +861,6 @@ namespace FROSch {
 #endif
         } else {
             FROSCH_ASSERT(false,"FROSch::CoarseOperator : ERROR: Distribution type unknown.");
-        }
-
-        if (OnCoarseSolveComm_) {
-            GO dimCoarseProblem = CoarseSolveMap_->getMaxAllGlobalIndex();
-            if (CoarseSolveMap_->lib()==UseEpetra || CoarseSolveMap_->getGlobalNumElements()>0) {
-                dimCoarseProblem += 1;
-            }
-            LO localVal = CoarseSolveMap_->getNodeNumElements();
-            LO sumVal;
-            LO minVal;
-            LO maxVal;
-
-            reduceAll(*CoarseSolveComm_,REDUCE_SUM,localVal,ptr(&sumVal));
-            SC avgVal = max(sumVal/double(CoarseSolveComm_->getSize()),0.0);
-            reduceAll(*CoarseSolveComm_,REDUCE_MIN,localVal,ptr(&minVal));
-            reduceAll(*CoarseSolveComm_,REDUCE_MAX,localVal,ptr(&maxVal));
-
-
         }
 
         return 0;

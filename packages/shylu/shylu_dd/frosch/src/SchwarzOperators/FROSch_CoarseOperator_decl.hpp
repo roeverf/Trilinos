@@ -153,7 +153,8 @@ namespace FROSch {
         virtual int buildCoarseGraph() = 0;
         virtual XMapPtr BuildRepeatedMapCoarseLevel(ConstXMapPtr &nodesMap,
                                                     UN dofsPerNode,
-                                                    ConstXMapPtrVecPtr dofsMaps) = 0;
+                                                    ConstXMapPtrVecPtr dofsMaps,
+                                                    UN partition) = 0;
 
         virtual int clearCoarseSpace();
 
@@ -175,13 +176,6 @@ namespace FROSch {
                               XMultiVector& y) const;
 
         virtual CoarseSpacePtr getCoarseSpace() const;
-
-        virtual int BuildRepMapZoltan(GraphPtr Xgraph,
-                                      GraphPtr  B,
-                                      ParameterListPtr parameterList,
-                                      Teuchos::RCP<const Teuchos::Comm<int> > TeuchosComm,
-                                      XMapPtr &RepeatedMap);
-
 
     protected:
 
@@ -232,7 +226,7 @@ namespace FROSch {
         XExportPtrVecPtr CoarseSolveExporters_ = XExportPtrVecPtr(0);
         XExportPtrVecPtr MLCoarseSolveExporters_;
 
-        UN partitionType;
+        UN PartitionType_;
 #ifdef FROSCH_COARSEOPERATOR_EXPORT_AND_IMPORT
         XImportPtrVecPtr CoarseSolveImporters_ = XImportPtrVecPtr(0);
 #endif

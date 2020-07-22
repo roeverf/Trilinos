@@ -64,7 +64,6 @@ namespace FROSch {
     IDofs_ (0),
     DofsMaps_ (0),
     NumberOfBlocks_ (0),
-    KRowMap_(),
     MaxNumNeigh_(0)
     {
         FROSCH_TIMER_START_LEVELID(harmonicCoarseOperatorTime,"HarmonicCoarseOperator::HarmonicCoarseOperator");
@@ -310,7 +309,7 @@ namespace FROSch {
     template <class SC,class LO,class GO,class NO>
     typename HarmonicCoarseOperator<SC,LO,GO,NO>::XMapPtr HarmonicCoarseOperator<SC,LO,GO,NO>::assembleCoarseMap()
     {
-        //FROSCH_TIMER_START_LEVELID(assembleCoarseMapTime,"HarmonicCoarseOperator::assembleCoarseMap");
+        FROSCH_TIMER_START_LEVELID(assembleCoarseMapTime,"HarmonicCoarseOperator::assembleCoarseMap");
         GOVec mapVector(0);
         GO tmp = 0;
         for (UN i=0; i<NumberOfBlocks_; i++) {
@@ -824,7 +823,6 @@ namespace FROSch {
       GraphPtr elemGraph = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(this->MLGatheringMaps_[0],maxNumElements);
       Teuchos::ArrayView<const GO> myGlobals = this->SubdomainConnectGraph_->getRowMap()->getNodeElementList();
 
-
       for (size_t i = 0; i < this->SubdomainConnectGraph_->getRowMap()->getNodeNumElements(); i++) {
         elemGraph->insertGlobalIndices(myGlobals[i],elements);
       }
@@ -842,10 +840,12 @@ namespace FROSch {
         tmpElemGraph = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(this->MLGatheringMaps_[i],maxNumElements);
         tmpElemGraph->doExport(*elemSGraph,*this->MLCoarseSolveExporters_[i],Xpetra::INSERT);
       }
+      //tmpElemGraph->fillComplete();
+      elemSGraph = tmpElemGraph;
+
       if(gathered == 0){
         elemSGraph = tmpElemGraph;
       }
-      this->MLCoarseMap_ = MapFactory<LO,GO,NO>::Build(this->MLGatheringMaps_[1]->lib(),-1,this->MLGatheringMaps_[1]->getNodeElementList(),0,this->CoarseSolveComm_);
       this->ElementNodeList_ =Xpetra::CrsGraphFactory<LO,GO,NO>::Build(this->MLCoarseMap_,maxNumElements);
 
       if(this->OnCoarseSolveComm_){
@@ -853,11 +853,12 @@ namespace FROSch {
         Teuchos::ArrayView<const GO> va;
         for (UN i = 0; i < numMyElementS; i++) {
           GO kg = this->MLGatheringMaps_[this->MLGatheringMaps_.size()-1]->getGlobalElement(i);
-          elemSGraph->getGlobalRowView(kg,va);
+          tmpElemGraph->getGlobalRowView(kg,va);
           Teuchos::Array<GO> vva(va);
           this->ElementNodeList_->insertGlobalIndices(kg,vva());//mal va nehmen
         }
         this->ElementNodeList_->fillComplete();
+
       }
       return 0;
     }
@@ -874,17 +875,16 @@ namespace FROSch {
 
       tmpGraph->doExport(*this->SubdomainConnectGraph_,*this->MLCoarseSolveExporters_[1],Xpetra::INSERT);
 
-
       for(int i  = 2;i<this->MLGatheringMaps_.size();i++){
         tmpGraph->fillComplete();
         tmpGraphGathering = tmpGraph;
         tmpGraph = Xpetra::CrsGraphFactory<LO,GO,NO>::Build(this->MLGatheringMaps_[i],MaxNumNeigh_);
         tmpGraph->doExport(*tmpGraphGathering,*this->MLCoarseSolveExporters_[i],Xpetra::INSERT);
      }
-
      const size_t numMyElementS = this->MLGatheringMaps_[this->MLGatheringMaps_.size()-1]->getNodeNumElements();
+     this->SubdomainConnectGraph_= Xpetra::CrsGraphFactory<LO,GO,NO>::Build(this->MLCoarseMap_,MaxNumNeigh_);
+
      if (this->OnCoarseSolveComm_) {
-       this->SubdomainConnectGraph_= Xpetra::CrsGraphFactory<LO,GO,NO>::Build(this->MLCoarseMap_,MaxNumNeigh_);
        for (size_t k = 0; k<numMyElementS; k++) {
          Teuchos::ArrayView<const LO> in;
          Teuchos::ArrayView<const GO> vals_graph;
