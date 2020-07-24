@@ -212,9 +212,9 @@ int main(int argc, char *argv[])
         }
         RCP<Map<LO,GO,NO> > RepeatedMap = BuildRepeatedMapNonConst<LO,GO,NO>(K->getCrsGraph());
 
-          /*
-        K->getMap()->describe(*fancy,Teuchos::VERB_EXTREME);
-        Teuchos::ArrayView<const LO> ind;
+
+      
+        /*Teuchos::ArrayView<const LO> ind;
         Teuchos::ArrayView<const SC> val;
         K->getLocalRowView(4,ind, val);
         if(CommWorld->getRank() == 0){
@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
             cout << endl;
         }*/
 
-
+        FullRepeatedMap->describe(*fancy,Teuchos::VERB_EXTREME);
         Comm->barrier(); if (Comm->getRank()==0) cout << "###################################\n# Stratimikos LinearSolverBuilder #\n###################################\n" << endl;
         Stratimikos::DefaultLinearSolverBuilder linearSolverBuilder;
         Stratimikos::enableFROSch<LO,GO,NO>(linearSolverBuilder);
@@ -321,7 +321,7 @@ int main(int argc, char *argv[])
           solve<double>(*lows, Thyra::NOTRANS, *thyraB, thyraX.ptr());
          }
          {
-           RCP<ParameterList> parameterList = getParametersFromXmlFile(xmlFile2);
+           RCP<ParameterList> parameterList = getParametersFromXmlFile(xmlFile);
            RCP<ParameterList> plList =  sublist(parameterList,"Preconditioner Types");
            sublist(plList,"FROSch")->set("Dimension",Dimension);
            sublist(plList,"FROSch")->set("Overlap",Overlap);

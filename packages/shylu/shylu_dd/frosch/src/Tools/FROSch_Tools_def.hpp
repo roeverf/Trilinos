@@ -604,10 +604,16 @@ namespace FROSch {
       Teuchos::Array<GO> newEle;
       newEle.reserve(eleList.size()+M*Dim+(M+1)*Dim);
       int count = 0;
-      for(int i = 0;i<eleList.size();i++){
+      GO startval;
+
+      //Differentiate between locations of the sub
+
+
+  /*    for(int i = 0;i<eleList.size();i++){
         newEle.push_back(eleList[i]);
         count++;
       }
+
       if(rank%numSubPerRow != numSubPerRow-1){
         for(int j = 0;j<M*M;j++){
           for(int i = 0;i<Dim;i++){
@@ -637,8 +643,9 @@ namespace FROSch {
          }
         }
       }
+
       if(rank<size-(numSubPerRow*numSubPerRow)){
-        //kein rechter ran und nich oben
+        //kein rechter rand und nich oben
         if(rank%numSubPerRow <numSubPerRow-1 && rank<(subLevel+1)*(numSubPerRow*numSubPerRow)-numSubPerRow){
           for(int i = 0;i<M*Dim+Dim;i++){
             for(int j  = 0;j<M+1;j++){
@@ -646,6 +653,7 @@ namespace FROSch {
           }
         }
         }
+
         //kein rechter rand aber oben
         else if(rank%numSubPerRow <numSubPerRow-1 &&(rank>=(subLevel+1)*(numSubPerRow*numSubPerRow)-numSubPerRow)){
           for(int i = 0;i<M*Dim+Dim;i++){
@@ -654,6 +662,7 @@ namespace FROSch {
           }
         }
         }
+
         //rechts und nicht oben
         else if (rank%numSubPerRow == numSubPerRow-1 && rank<(subLevel+1)*(numSubPerRow*numSubPerRow)-numSubPerRow){
           for(int i = 0;i<M*Dim;i++){
@@ -662,6 +671,7 @@ namespace FROSch {
           }
         }
         }
+
         //rechter rand und oben
         else if(rank%numSubPerRow == numSubPerRow-1 &&(rank>=(subLevel+1)*(numSubPerRow*numSubPerRow)-numSubPerRow)){
           for(int i = 0;i<M*Dim;i++){
@@ -669,10 +679,10 @@ namespace FROSch {
             newEle.push_back(eleList[0]+M*(M*numSubPerRow*M*numSubPerRow*Dim)+i+j*nodesInRow);
           }
         }
-        }
-
-
       }
+
+
+    }*/ //if ->end
 
       return Xpetra::MapFactory<LO,GO,NO>::Build(matrix->getMap()->lib(),matrix->getMap()->getGlobalNumElements(),newEle(),0,Comm);
 

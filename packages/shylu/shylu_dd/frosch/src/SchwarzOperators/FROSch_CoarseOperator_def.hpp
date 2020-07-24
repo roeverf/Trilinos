@@ -92,19 +92,33 @@ namespace FROSch {
             reuseCoarseMatrix = false;
         }
 
+        this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
+        if(this->Verbose_)std::cout<<"C0\n";
         if (!reuseCoarseBasis) {
+          this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
+          if(this->Verbose_)std::cout<<"C0.1\n";
             if (this->IsComputed_ && this->Verbose_) cout << "FROSch::CoarseOperator : Recomputing the Coarse Basis" << endl;
             clearCoarseSpace(); // AH 12/11/2018: If we do not clear the coarse space, we will always append just append the coarse space
             XMapPtr subdomainMap = this->computeCoarseSpace(CoarseSpace_); // AH 12/11/2018: This map could be overlapping, repeated, or unique. This depends on the specific coarse operator
+            this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
+            if(this->Verbose_)std::cout<<"C1\n";
             if (CoarseSpace_->hasUnassembledMaps()) { // If there is no unassembled basis, the current Phi_ should already be correct
                 CoarseSpace_->assembleCoarseSpace();
+                this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
+                if(this->Verbose_)std::cout<<"C2\n";
                 FROSCH_ASSERT(CoarseSpace_->hasAssembledBasis(),"FROSch::CoarseOperator : !CoarseSpace_->hasAssembledBasis()");
                 CoarseSpace_->buildGlobalBasisMatrix(this->K_->getRowMap(),this->K_->getRangeMap(),subdomainMap,this->ParameterList_->get("Threshold Phi",1.e-8));
+                this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
+                if(this->Verbose_)std::cout<<"C3\n";
                 FROSCH_ASSERT(CoarseSpace_->hasGlobalBasisMatrix(),"FROSch::CoarseOperator : !CoarseSpace_->hasGlobalBasisMatrix()");
                 Phi_ = CoarseSpace_->getGlobalBasisMatrix();
+                this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
+                if(this->Verbose_)std::cout<<"C4\n";
             }
         }
         if (!reuseCoarseMatrix) {
+          this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
+          if(this->Verbose_)std::cout<<"C4.1\n";
             if (this->IsComputed_ && this->Verbose_) cout << "FROSch::CoarseOperator : Recomputing the Coarse Matrix" << endl;
             this->setUpCoarseOperator();
         }

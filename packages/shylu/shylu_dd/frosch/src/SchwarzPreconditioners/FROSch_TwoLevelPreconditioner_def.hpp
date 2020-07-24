@@ -181,7 +181,8 @@ namespace FROSch {
         } else {
             FROSCH_ASSERT(false,"OverlappingOperator Type unkown.");
         }
-
+        this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
+        if(this->Verbose_)std::cout<<"TL0\n";
         ///////////////////////////////
         // Initialize CoarseOperator //
         ///////////////////////////////
@@ -215,6 +216,8 @@ namespace FROSch {
         } else {
             FROSCH_ASSERT(false,"CoarseOperator Type unkown.");
         }
+        this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
+        if(this->Verbose_)std::cout<<"TL1\n";
         return ret;
     }
 
@@ -223,7 +226,11 @@ namespace FROSch {
     {
         FROSCH_TIMER_START_LEVELID(computeTime,"TwoLevelPreconditioner::compute");
         int ret = 0;
+        this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
+        if(this->Verbose_)std::cout<<"TLC0\n";
         if (0>this->OverlappingOperator_->compute()) ret -= 1;
+        this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
+        if(this->Verbose_)std::cout<<"TLC1\n";
         if (0>CoarseOperator_->compute()) ret -= 10;
         return ret;
     }
