@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
         RCP<Map<LO,GO,NO> > RepeatedMap = BuildRepeatedMapNonConst<LO,GO,NO>(K->getCrsGraph());
 
 
-      
+
         /*Teuchos::ArrayView<const LO> ind;
         Teuchos::ArrayView<const SC> val;
         K->getLocalRowView(4,ind, val);
@@ -225,6 +225,7 @@ int main(int argc, char *argv[])
         K->getColMap()->describe(*fancy,Teuchos::VERB_EXTREME);
         */
         RCP<Map<LO,GO,NO> > FullRepeatedMap;
+        RCP<const Map<LO,GO,NO> > FullRepeatedMapNode;
         if(Dimension == 2){
           {
             TimeMonitor rep(*repTimer);
@@ -233,7 +234,8 @@ int main(int argc, char *argv[])
         }else if(Dimension == 3){
           {
             TimeMonitor rep(*repTimer);
-            FullRepeatedMap = BuildRepeatedMapGaleriStruct3D<SC,LO,GO,NO>(K,M,Dimension);
+            FullRepeatedMapNode = BuildRepeatedMapGaleriStruct3D<SC,LO,GO,NO>(K,M,Dimension);
+            FullRepeatedMap = BuildMapFromNodeMap(FullRepeatedMapNode,Dimension,NodeWise);
           }
         }
 
@@ -256,7 +258,6 @@ int main(int argc, char *argv[])
             cout << endl;
         }*/
 
-        FullRepeatedMap->describe(*fancy,Teuchos::VERB_EXTREME);
         Comm->barrier(); if (Comm->getRank()==0) cout << "###################################\n# Stratimikos LinearSolverBuilder #\n###################################\n" << endl;
         Stratimikos::DefaultLinearSolverBuilder linearSolverBuilder;
         Stratimikos::enableFROSch<LO,GO,NO>(linearSolverBuilder);

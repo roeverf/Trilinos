@@ -596,18 +596,106 @@ namespace FROSch {
       horz.reserve((M+1)*Dim);
       int numSubPerRow  = pow(size,1/3.);
       int subInLev = numSubPerRow*numSubPerRow;
-      GO nodesInRow = M*Dim*numSubPerRow;
-      GO nodesInLev = M*M*Dim*numSubPerRow;
+      GO nodesInRow = M*numSubPerRow;
+      GO nodesInLev = nodesInRow*nodesInRow;
       int subLevel = rank/(numSubPerRow*numSubPerRow);
-      //std::cout<<rank<<" Level Rank "<<subLevel<<std::endl;
 
       Teuchos::Array<GO> newEle;
       newEle.reserve(eleList.size()+M*Dim+(M+1)*Dim);
       int count = 0;
-      GO startval;
+      GO startval = eleList[0]/Dim;
 
       //Differentiate between locations of the sub
+      //not back
+      if(rank<size-subInLev){
+        //not right boundary
+        if(rank%numSubPerRow != numSubPerRow-1){
+          //not top
+          if(subLevel*subInLev <=rank && rank<(subLevel+1)*subInLev-numSubPerRow){
+            for(int k = 0;k<M+1;k++){
+              for(int j = 0;j<M+1;j++){
+                for(int i = 0;i<M+1;i++){
+                  newEle.push_back(startval+i+j*nodesInRow+nodesInLev*k);
+                }
+              }
+            }
+            }else{
+            //top
+            for(int k = 0;k<M+1;k++){
+              for(int j = 0;j<M;j++){
+                for(int i = 0;i<M+1;i++){
+                  newEle.push_back(startval+i+j*nodesInRow+nodesInLev*k);
+                }
+              }
+            }
+          }
+        }else{
+          //rightboundary
+          if(subLevel*subInLev <=rank && rank<(subLevel+1)*subInLev-numSubPerRow){
+            for(int k = 0;k<M+1;k++){
+              for(int j = 0;j<M+1;j++){
+                for(int i = 0;i<M;i++){
+                  newEle.push_back(startval+i+j*nodesInRow+nodesInLev*k);
+                }
+              }
+            }
+            }else{
+            //top
+            for(int k = 0;k<M+1;k++){
+              for(int j = 0;j<M;j++){
+                for(int i = 0;i<M;i++){
+                  newEle.push_back(startval+i+j*nodesInRow+nodesInLev*k);
+                }
+              }
+            }
+          }
+        }
+        //#########################################
+      } else{
+        //back
+          if(rank%numSubPerRow != numSubPerRow-1){
+          //not top
+          if(subLevel*subInLev <=rank && rank<(subLevel+1)*subInLev-numSubPerRow){
+            for(int k = 0;k<M;k++){
+              for(int j = 0;j<M+1;j++){
+                for(int i = 0;i<M+1;i++){
+                  newEle.push_back(startval+i+j*nodesInRow+nodesInLev*k);
+                }
+              }
+            }
+            }else{
+            //top
+            for(int k = 0;k<M;k++){
+              for(int j = 0;j<M;j++){
+                for(int i = 0;i<M+1;i++){
+                  newEle.push_back(startval+i+j*nodesInRow+nodesInLev*k);
+                }
+              }
+            }
+          }
+        }else{
+          //rightboundary
+          if(subLevel*subInLev <=rank && rank<(subLevel+1)*subInLev-numSubPerRow){
+            for(int k = 0;k<M;k++){
+              for(int j = 0;j<M+1;j++){
+                for(int i = 0;i<M;i++){
+                  newEle.push_back(startval+i+j*nodesInRow+nodesInLev*k);
+                }
+              }
+            }
+            }else{
+            //top
+            for(int k = 0;k<M;k++){
+              for(int j = 0;j<M;j++){
+                for(int i = 0;i<M;i++){
+                  newEle.push_back(startval+i+j*nodesInRow+nodesInLev*k);
+                }
+              }
+            }
+          }
+        }
 
+      }
 
   /*    for(int i = 0;i<eleList.size();i++){
         newEle.push_back(eleList[i]);

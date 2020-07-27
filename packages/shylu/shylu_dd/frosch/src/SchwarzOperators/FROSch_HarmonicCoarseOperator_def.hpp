@@ -76,10 +76,7 @@ namespace FROSch {
         XMapPtr repeatedMap = AssembleSubdomainMap(NumberOfBlocks_,DofsMaps_,DofsPerNode_);
 
         // Build local saddle point problem
-        this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
-        if(this->Verbose_)std::cout<<"H0\n";
         ConstXMatrixPtr repeatedMatrix = ExtractLocalSubdomainMatrix(this->K_.getConst(),repeatedMap.getConst()); // AH 12/11/2018: Should this be in initalize?
-        if(this->Verbose_)std::cout<<"H1\n";
 
         // Extract submatrices
         GOVec indicesGammaDofsAll(0);

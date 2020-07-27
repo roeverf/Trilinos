@@ -70,17 +70,9 @@ namespace FROSch {
     {
         FROSCH_TIMER_START_LEVELID(initializeTime,"IPOUHarmonicCoarseOperator::initialize");
         int ret = buildCoarseSpace(dimension,dofsPerNode,nodesMap,dofsMaps,nullSpaceBasis,dirichletBoundaryDofs,nodeList);
-        this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
-        if(this->Verbose_)std::cout<<"IP0\n";
         this->CoarseMap_ = this->assembleCoarseMap();
-        this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
-        if(this->Verbose_)std::cout<<"IP1\n";
         this->assembleInterfaceCoarseSpace();
-        this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
-        if(this->Verbose_)std::cout<<"IP2\n";
         this->buildCoarseSolveMap(this->AssembledInterfaceCoarseSpace_->getBasisMapUnique());
-        this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
-        if(this->Verbose_)std::cout<<"IP3\n";
         this->IsInitialized_ = true;
         this->IsComputed_ = false;
         return ret;
@@ -294,11 +286,7 @@ namespace FROSch {
                     }
                 }
             }
-            this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
-            if(this->Verbose_)std::cout<<"IPOU0\n";
             PartitionOfUnity_->assembledPartitionOfUnityMaps();
-            this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
-            if(this->Verbose_)std::cout<<"IPOU1\n";
            this->KRowMap_ = PartitionOfUnity_->getAssembledPartitionOfUnityMap();
            NumEnt_ = interfacePartitionOfUnity->getDDInterface()->getNumEnt();
 
@@ -309,18 +297,10 @@ namespace FROSch {
              int dim = dimension;
              sublist(this->ParameterList_,"CoarseSolver")->set("Dimension",dim);
            }
-           this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
-           if(this->Verbose_)std::cout<<"IPOU2\n";
             // Build local basis
             LocalPartitionOfUnityBasis_ = LocalPartitionOfUnityBasisPtr(new LocalPartitionOfUnityBasis<SC,LO,GO,NO>(this->MpiComm_,this->SerialComm_,this->DofsPerNode_[blockId],sublist(coarseSpaceList,"LocalPartitionOfUnityBasis"),interfaceNullspaceBasis.getConst(),PartitionOfUnity_->getLocalPartitionOfUnity(),PartitionOfUnity_->getPartitionOfUnityMaps())); // sublist(coarseSpaceList,"LocalPartitionOfUnityBasis") testen
-            this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
-            if(this->Verbose_)std::cout<<"IPOU3\n";
             LocalPartitionOfUnityBasis_->buildLocalPartitionOfUnityBasis();
-            this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
-            if(this->Verbose_)std::cout<<"IPOU4\n";
             this->InterfaceCoarseSpaces_[blockId] = LocalPartitionOfUnityBasis_->getLocalPartitionOfUnitySpace();
-            this->MpiComm_->barrier();  this->MpiComm_->barrier();  this->MpiComm_->barrier();
-            if(this->Verbose_)std::cout<<"IPOU5\n";
             FROSCH_NOTIFICATION("FROSch::IPOUHarmonicCoarseOperator",this->Verbose_,"Need to build block coarse sizes for use in MueLu nullspace. This is not performed here yet.");
             //if (this->Verbose_) {RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(cout)); this->MVPhiGamma_[blockId]->describe(*fancy,VERB_EXTREME);}
         }
