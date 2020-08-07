@@ -68,9 +68,12 @@ namespace FROSch {
                                                             ConstXMultiVectorPtr nodeList,
                                                             GOVecPtr dirichletBoundaryDofs)
     {
+        RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(cout));
         FROSCH_TIMER_START_LEVELID(initializeTime,"IPOUHarmonicCoarseOperator::initialize");
         int ret = buildCoarseSpace(dimension,dofsPerNode,nodesMap,dofsMaps,nullSpaceBasis,dirichletBoundaryDofs,nodeList);
         this->CoarseMap_ = this->assembleCoarseMap();
+
+        this->CoarseMap_->describe(*fancy,Teuchos::VERB_EXTREME);
         this->assembleInterfaceCoarseSpace();
         this->buildCoarseSolveMap(this->AssembledInterfaceCoarseSpace_->getBasisMapUnique());
         this->IsInitialized_ = true;
@@ -90,6 +93,10 @@ namespace FROSch {
         FROSCH_TIMER_START_LEVELID(initializeTime,"IPOUHarmonicCoarseOperator::initialize");
         buildCoarseSpace(dimension,dofsPerNodeVec,repeatedNodesMapVec,repeatedDofMapsVec,nullSpaceBasisVec,dirichletBoundaryDofsVec,nodeListVec);
         this->CoarseMap_ = this->assembleCoarseMap();
+        RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(cout));
+
+        this->CoarseMap_->describe(*fancy,Teuchos::VERB_EXTREME);
+
         this->assembleInterfaceCoarseSpace();
         this->buildCoarseSolveMap(this->AssembledInterfaceCoarseSpace_->getBasisMapUnique());
         this->IsInitialized_ = true;
@@ -172,7 +179,8 @@ namespace FROSch {
         FROSCH_ASSERT(dofsMaps.size()==dofsPerNode,"dofsMaps.size()!=dofsPerNode");
         FROSCH_ASSERT(blockId<this->NumberOfBlocks_,"Block does not exist yet and can therefore not be reset.");
         this->CoarseDofsPerNode_ = nullSpaceBasis->getNumVectors();
-        //this->CoarseMap_->describe(*fancy,Teuchos::VERB_EXTREME);
+        RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(cout));
+
 
         if (this->Verbose_) {
             cout << "\n\
@@ -305,6 +313,7 @@ namespace FROSch {
             //if (this->Verbose_) {RCP<FancyOStream> fancy = fancyOStream(rcpFromRef(cout)); this->MVPhiGamma_[blockId]->describe(*fancy,VERB_EXTREME);}
         }
 
+        this->InterfaceCoarseSpaces_[blockId]->getBasisMapUnique()->describe(*fancy,Teuchos::VERB_EXTREME);
         return 0;
     }
     template <class SC,class LO,class GO,class NO>
